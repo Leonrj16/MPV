@@ -156,6 +156,27 @@ se muestre vacía — es la barrera adecuada para una herramienta interna,
 pero si se expone a una red no confiable conviene añadir autenticación
 también a nivel de servidor de archivos estáticos.
 
+### Pruebas automatizadas
+
+```bash
+npm test
+```
+
+`tests/` cubre, sin necesitar una base de datos real (el pool de `pg` se
+mockea con Jest):
+
+- `pricingEngine.test.js` — la fórmula de PVP, casos límite (margen 0%,
+  margen ≥100%, precio negativo, unidades estimadas en 0) y el desempate
+  de `compararProveedores`.
+- `authMiddleware.test.js` — rechazo de tokens ausentes/inválidos/expirados
+  y el control de roles de `requiereRol`.
+- `tableroPrecios.test.js` — que los filtros del tablero viajen como
+  parámetros (no concatenados en el SQL) y que el cálculo de cada fila use
+  la configuración activa.
+- `usuariosController.test.js` — que un admin no pueda desactivarse ni
+  quitarse su propio rol, y que la contraseña nunca se guarde en texto
+  plano.
+
 Ambas vistas consumen la API mediante `public/js/api.js` y no requieren build
 step: se sirven como estáticos desde el propio Express (`npm run dev`).
 
