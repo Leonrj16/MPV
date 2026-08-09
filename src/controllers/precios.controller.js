@@ -182,6 +182,51 @@ async function marcarProveedorPrincipal(req, res) {
 }
 
 /**
+ * GET /api/precios/historial/:proveedorProductoId
+ * Serie histórica de precios de compra para graficar la tendencia.
+ */
+async function obtenerHistorialPrecio(req, res) {
+    try {
+        const { proveedorProductoId } = req.params;
+
+        const { rows: contexto } = await pool.query(
+            `SELECT pr.nombre AS producto_nombre, pr.sku, pv.nombre AS proveedor_nombre
+             FROM proveedor_producto pp
+             JOIN productos pr ON pr.id = pp.producto_id
+             JOIN proveedores pv ON pv.id = pp.proveedor_id
+             WHERE pp.id = $1`,
+            [proveedorProductoId]
+        );
+
+        if (contexto.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Registro no encontrado' });
+        }
+
+        const { rows: historial } = await pool.query(
+            `SELECT precio_compra_unitario, fecha_registro
+             FROM historial_precios
+             WHERE proveedor_producto_id = $1
+             ORDER BY fecha_registro ASC`,
+            [proveedorProductoId]
+        );
+
+        res.json({
+            ok: true,
+            producto: contexto[0].producto_nombre,
+            sku: contexto[0].sku,
+            proveedor: contexto[0].proveedor_nombre,
+            data: historial.map((h) => ({
+                precioCompraUnitario: Number(h.precio_compra_unitario),
+                fechaRegistro: h.fecha_registro,
+            })),
+        });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+/**
  * GET /api/dashboard/kpis
  */
 async function obtenerKpis(req, res) {
@@ -220,6 +265,7 @@ async function obtenerKpis(req, res) {
 module.exports = {
     listarTableroPrecios,
     compararProveedoresProducto,
+    obtenerHistorialPrecio,
     actualizarPrecioCompra,
     marcarProveedorPrincipal,
     obtenerKpis,

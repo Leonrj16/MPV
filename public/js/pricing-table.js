@@ -54,6 +54,9 @@
                         <button class="btn-icon-sm" title="Comparar proveedores" onclick="PricingUI.abrirComparar(${fila.productoId})">
                             <i class="bi bi-bar-chart-steps"></i>
                         </button>
+                        <button class="btn-icon-sm" title="Ver historial de precios" onclick="PricingUI.abrirHistorial(${fila.proveedorProductoId})">
+                            <i class="bi bi-graph-up-arrow"></i>
+                        </button>
                         <button class="btn-icon-sm" title="Actualizar precio" onclick="PricingUI.abrirActualizar(${fila.proveedorProductoId}, '${fila.producto.replace(/'/g, "\\'")}', '${fila.proveedor.replace(/'/g, "\\'")}', ${fila.precioCompra})">
                             <i class="bi bi-pencil-fill"></i>
                         </button>
@@ -123,6 +126,8 @@
     // -------- Modales --------
     const modalActualizar = new bootstrap.Modal(document.getElementById('modalActualizarPrecio'));
     const modalComparar = new bootstrap.Modal(document.getElementById('modalComparar'));
+    const modalHistorial = new bootstrap.Modal(document.getElementById('modalHistorial'));
+    let chartHistorialInstancia = null;
 
     window.PricingUI = {
         abrirActualizar(proveedorProductoId, producto, proveedor, precioActual) {
@@ -152,6 +157,63 @@
                 `).join('');
             } catch (err) {
                 body.innerHTML = `<p class="text-danger mb-0">Error al comparar proveedores: ${err.message}</p>`;
+            }
+        },
+        async abrirHistorial(proveedorProductoId) {
+            modalHistorial.show();
+            const body = document.getElementById('modalHistorialBody');
+            const subtitulo = document.getElementById('modalHistorialSubtitulo');
+            body.innerHTML = `<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>`;
+            subtitulo.textContent = '';
+
+            try {
+                const { producto, sku, proveedor, data } = await MPV.getHistorialPrecio(proveedorProductoId);
+                subtitulo.textContent = `${producto} (${sku}) — ${proveedor}`;
+
+                if (!data.length) {
+                    body.innerHTML = `<p class="text-muted mb-0">Aún no hay historial registrado para este producto.</p>`;
+                    return;
+                }
+
+                body.innerHTML = `<div style="height: 280px;"><canvas id="chartHistorial"></canvas></div>`;
+
+                const labels = data.map((d) => new Date(d.fechaRegistro).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' }));
+                const valores = data.map((d) => d.precioCompraUnitario);
+
+                if (chartHistorialInstancia) {
+                    chartHistorialInstancia.destroy();
+                }
+
+                const ctx = document.getElementById('chartHistorial').getContext('2d');
+                chartHistorialInstancia = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [{
+                            label: 'Precio de compra (USD)',
+                            data: valores,
+                            borderColor: '#2563eb',
+                            backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                            borderWidth: 2.5,
+                            pointBackgroundColor: '#2563eb',
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            tension: 0.3,
+                            fill: true,
+                        }],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { ticks: { callback: (v) => `$${Number(v).toFixed(2)}` }, grid: { color: '#f1f5f9' } },
+                            x: { grid: { display: false } },
+                        },
+                    },
+                });
+            } catch (err) {
+                body.innerHTML = `<p class="text-danger mb-0">Error al cargar el historial: ${err.message}</p>`;
             }
         },
     };

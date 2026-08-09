@@ -1,9 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const ctrl = require('../controllers/productos.controller');
+const { verificarToken, requiereRol } = require('../middleware/auth.middleware');
 
-router.get('/productos', ctrl.listarProductos);
-router.post('/productos', ctrl.crearProducto);
-router.get('/categorias', ctrl.listarCategorias);
+router.get('/productos', verificarToken, ctrl.listarProductos);
+router.post('/productos', verificarToken, requiereRol('admin'), ctrl.crearProducto);
+router.get('/categorias', verificarToken, ctrl.listarCategorias);
 
 module.exports = router;

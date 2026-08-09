@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPV Dental | Iniciar Sesión</title>
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+    <style>
+        body {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at top left, #eff6ff, var(--mpv-gray-50) 55%);
+        }
+        .login-card {
+            width: 100%;
+            max-width: 400px;
+            background: #fff;
+            border: 1px solid var(--mpv-gray-200);
+            border-radius: var(--mpv-radius);
+            box-shadow: var(--mpv-shadow-hover);
+            padding: 2.25rem 2rem;
+        }
+        .login-brand {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.75rem;
+            text-align: center;
+        }
+        .login-brand .icon-badge {
+            width: 52px;
+            height: 52px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, var(--mpv-blue), var(--mpv-emerald));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            font-size: 1.5rem;
+        }
+        .login-demo-hint {
+            font-size: 0.76rem;
+            color: var(--mpv-ink-soft);
+            background: var(--mpv-gray-50);
+            border: 1px solid var(--mpv-gray-200);
+            border-radius: 10px;
+            padding: 0.65rem 0.85rem;
+            margin-top: 1.25rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-card">
+    <div class="login-brand">
+        <div class="icon-badge"><i class="bi bi-clipboard2-pulse"></i></div>
+        <div>
+            <div class="fw-bold fs-5">MPV Dental</div>
+            <div class="text-muted small">Plataforma de Gestión de Precios</div>
+        </div>
+    </div>
+
+    <form id="loginForm">
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">Correo electrónico</label>
+            <input type="email" class="form-control" id="email" required autofocus placeholder="admin@mpvdental.com">
+        </div>
+        <div class="mb-3">
+            <label class="form-label small fw-semibold">Contraseña</label>
+            <input type="password" class="form-control" id="password" required placeholder="••••••••">
+        </div>
+        <div class="alert alert-danger py-2 small d-none" id="loginError"></div>
+        <button type="submit" class="btn btn-mpv-primary w-100" id="btnLogin">Iniciar Sesión</button>
+    </form>
+
+    <div class="login-demo-hint">
+        <i class="bi bi-info-circle me-1"></i>
+        Cuenta de demostración: <strong>admin@mpvdental.com</strong> / <strong>Admin123!</strong>
+    </div>
+</div>
+
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/api.js"></script>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorBox = document.getElementById('loginError');
+        const btn = document.getElementById('btnLogin');
+        errorBox.classList.add('d-none');
+        btn.disabled = true;
+        btn.textContent = 'Ingresando…';
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                }),
+            });
+            const body = await res.json();
+            if (!res.ok || !body.ok) {
+                throw new Error(body.error || 'No se pudo iniciar sesión');
+            }
+            localStorage.setItem('mpv_token', body.data.token);
+            localStorage.setItem('mpv_usuario', JSON.stringify(body.data.usuario));
+            window.location.href = 'index.html';
+        } catch (err) {
+            errorBox.textContent = err.message;
+            errorBox.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            btn.textContent = 'Iniciar Sesión';
+        }
+    });
+</script>
+</body>
+</html>

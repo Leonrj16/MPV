@@ -2,10 +2,20 @@ const MPV = (() => {
     const BASE_URL = '/api';
 
     async function request(path, options = {}) {
+        const token = window.MPVAuth?.getToken?.();
         const res = await fetch(`${BASE_URL}${path}`, {
-            headers: { 'Content-Type': 'application/json' },
+            headers: {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
             ...options,
         });
+
+        if (res.status === 401) {
+            window.MPVAuth?.cerrarSesion?.();
+            throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+        }
+
         const body = await res.json().catch(() => ({}));
         if (!res.ok || body.ok === false) {
             throw new Error(body.error || `Error en la solicitud: ${res.status}`);
@@ -25,6 +35,7 @@ const MPV = (() => {
         getProveedores: () => request('/proveedores'),
         getCategorias: () => request('/categorias'),
         compararProveedores: (productoId) => request(`/precios/comparar/${productoId}`),
+        getHistorialPrecio: (proveedorProductoId) => request(`/precios/historial/${proveedorProductoId}`),
         actualizarPrecio: (proveedorProductoId, precioCompraUnitario) =>
             request(`/precios/${proveedorProductoId}`, {
                 method: 'PUT',

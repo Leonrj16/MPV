@@ -11,23 +11,30 @@ de productos dentales.
 ### Estructura del proyecto
 
 ```
-database/schema.sql        Esquema SQL: tablas, vistas, triggers y datos de ejemplo
-src/config/db.js            Conexión al pool de PostgreSQL
-src/services/pricingEngine.js  Motor de cálculo de precios (PVP, comparación de proveedores)
-src/controllers/            Lógica de negocio de cada endpoint
-src/routes/                 Definición de rutas REST
-src/server.js                Punto de entrada de la API
-public/                      Frontend estático (Dashboard + Gestión de Precios)
+database/schema.sql              Esquema base: tablas, vistas, triggers y datos de ejemplo
+database/migrations/002_...sql   Usuarios, roles e historial de precios
+src/config/db.js                 Conexión al pool de PostgreSQL
+src/services/pricingEngine.js    Motor de cálculo de precios (PVP, comparación de proveedores)
+src/middleware/auth.middleware.js  Verificación de JWT y control de roles
+src/controllers/                 Lógica de negocio de cada endpoint
+src/routes/                      Definición de rutas REST
+src/server.js                    Punto de entrada de la API
+public/                          Frontend estático (Login, Dashboard, Gestión de Precios)
 ```
 
 ### Puesta en marcha
 
 ```bash
 npm install
-cp .env.example .env        # ajustar credenciales de PostgreSQL
+cp .env.example .env        # ajustar credenciales de PostgreSQL y JWT_SECRET
 psql -U postgres -d mpv_dental -f database/schema.sql
-npm run dev                 # http://localhost:3000
+psql -U postgres -d mpv_dental -f database/migrations/002_auth_historial.sql
+npm run dev                 # http://localhost:3000 (redirige a /login.html)
 ```
+
+Cuenta de demostración tras aplicar la migración: `admin@mpvdental.com` /
+`Admin123!` (rol admin) y `compras@mpvdental.com` / `Admin123!` (rol
+operador). Cambia estas contraseñas antes de usar el sistema en producción.
 
 ### Modelo de datos
 
@@ -42,6 +49,17 @@ npm run dev                 # http://localhost:3000
   vendidas/mes (para prorratear el costo logístico) e impuesto (IGV/IVA).
 - **vw_proveedor_optimo** / **vw_tablero_precios** — vistas SQL que resuelven
   el proveedor más barato por producto y arman el tablero completo.
+
+### Migración 002 — Autenticación e Historial (`database/migrations/`)
+
+- **usuarios** — email, hash bcrypt de la contraseña y `rol` (`admin` |
+  `operador`), con índice único case-insensitive sobre el email.
+- **historial_precios** — cada alta o cambio de precio en
+  `proveedor_producto` se registra automáticamente vía trigger
+  (`trg_historial_precio`), lo que alimenta el gráfico de tendencia. La
+  migración también hace un *backfill* del precio vigente de cada
+  `proveedor_producto` ya existente, para que ninguna combinación quede sin
+  al menos un punto histórico.
 
 ### Motor de precios (`src/services/pricingEngine.js`)
 
@@ -59,28 +77,48 @@ marca la más conveniente como **Proveedor Óptimo**.
 
 ### API REST
 
-| Método | Ruta | Descripción |
-|---|---|---|
-| GET | `/api/dashboard/kpis` | KPIs del dashboard |
-| GET | `/api/precios` | Tablero de precios (filtros: `categoria`, `proveedor`, `busqueda`) |
-| GET | `/api/precios/comparar/:productoId` | Compara proveedores de un producto |
-| PUT | `/api/precios/:proveedorProductoId` | Actualiza el precio de compra |
-| PUT | `/api/precios/:proveedorProductoId/proveedor-principal` | Marca proveedor principal |
-| GET/POST | `/api/productos`, `/api/proveedores`, `/api/categorias` | CRUD base |
+Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
+`Authorization: Bearer <token>`, emitido por el login y válido 8 horas.
 
-### Frontend (Fase 2 — incluido como preview funcional)
+| Método | Ruta | Rol requerido | Descripción |
+|---|---|---|---|
+| POST | `/api/auth/login` | — | Autentica y devuelve el JWT |
+| GET | `/api/auth/me` | cualquiera | Datos del usuario autenticado |
+| GET | `/api/dashboard/kpis` | cualquiera | KPIs del dashboard |
+| GET | `/api/precios` | cualquiera | Tablero de precios (filtros: `categoria`, `proveedor`, `busqueda`) |
+| GET | `/api/precios/comparar/:productoId` | cualquiera | Compara proveedores de un producto |
+| GET | `/api/precios/historial/:proveedorProductoId` | cualquiera | Serie histórica de precios de compra |
+| PUT | `/api/precios/:proveedorProductoId` | admin, operador | Actualiza el precio de compra |
+| PUT | `/api/precios/:proveedorProductoId/proveedor-principal` | admin, operador | Marca proveedor principal |
+| POST | `/api/productos`, `/api/proveedores` | admin | Alta de catálogo |
+| GET | `/api/productos`, `/api/proveedores`, `/api/categorias` | cualquiera | Lectura de catálogo |
 
+### Frontend
+
+- `public/login.html` — inicio de sesión. Guarda el JWT y los datos del
+  usuario en `localStorage`.
 - `public/index.html` — Dashboard con tarjetas KPI y actividad reciente.
 - `public/pricing.html` — Tabla avanzada de gestión de precios con buscador
   en tiempo real, filtros por categoría/proveedor/rentabilidad, badges de
-  margen (verde/amarillo/rojo), comparación de proveedores y edición rápida
-  de precios vía modal.
+  margen (verde/amarillo/rojo), comparación de proveedores, **historial de
+  precios con gráfico de tendencia (Chart.js)** y edición rápida de precios
+  vía modal.
+- `public/js/auth.js` — expone `window.MPVAuth`; redirige a `login.html` si
+  no hay sesión y pinta nombre/rol/avatar en el sidebar.
+- `public/js/api.js` — adjunta el `Authorization: Bearer <token>` a cada
+  llamada y cierra la sesión automáticamente ante un 401.
 
-Bootstrap 5 y Bootstrap Icons están vendorizados en `public/vendor/` en vez
-de cargarse desde un CDN, para que el sistema funcione sin depender de
-internet (útil detrás de firewalls corporativos). Para actualizar de
-versión, reemplaza los archivos en `public/vendor/bootstrap/` y
-`public/vendor/bootstrap-icons/` por los de la nueva release.
+Bootstrap 5, Bootstrap Icons y Chart.js están vendorizados en
+`public/vendor/` en vez de cargarse desde un CDN, para que el sistema
+funcione sin depender de internet (útil detrás de firewalls corporativos).
+Para actualizar de versión, reemplaza los archivos correspondientes por los
+de la nueva release.
+
+La protección real es a nivel de API (JWT + roles); las páginas estáticas
+se sirven sin autenticar y el guard de `auth.js` solo evita que la interfaz
+se muestre vacía — es la barrera adecuada para una herramienta interna,
+pero si se expone a una red no confiable conviene añadir autenticación
+también a nivel de servidor de archivos estáticos.
 
 Ambas vistas consumen la API mediante `public/js/api.js` y no requieren build
 step: se sirven como estáticos desde el propio Express (`npm run dev`).
@@ -88,16 +126,24 @@ step: se sirven como estáticos desde el propio Express (`npm run dev`).
 ## Estado de verificación
 
 El esquema y la API fueron probados de extremo a extremo contra una
-instancia real de PostgreSQL 16: carga del `schema.sql`, arranque del
-servidor Express, y validación funcional de los endpoints (KPIs, tablero de
-precios, comparación de proveedores, actualización de precio con
-respaldo automático del precio anterior vía trigger). El frontend fue
-verificado visualmente en navegador (dashboard, tabla de precios, buscador,
-filtros, modal de comparación y modal de actualización de precio).
+instancia real de PostgreSQL 16, incluyendo:
+
+- Carga de `schema.sql` y de `database/migrations/002_auth_historial.sql`.
+- Login con credenciales correctas/incorrectas, acceso sin token (401) y
+  control de roles (admin vs. operador, incluyendo un intento bloqueado
+  con 403).
+- Actualización de precio con respaldo automático del precio anterior y
+  registro automático en `historial_precios` vía triggers.
+- Tablero de precios, comparación de proveedores y serie histórica.
+
+El frontend fue verificado visualmente en navegador: redirección a login
+sin sesión, error de credenciales, dashboard autenticado con datos reales,
+buscador y filtros de la tabla de precios, y el gráfico de tendencia del
+modal de historial.
 
 ## Próximas fases sugeridas
 
-- Autenticación y roles (admin / operador).
-- Historial de precios con gráficos de tendencia.
 - Alertas automáticas por email/WhatsApp ante alza de precios.
 - Exportación a Excel/PDF del tablero de precios.
+- Pantalla de administración de usuarios (alta/baja, cambio de contraseña).
+- Configuración de márgenes editable desde la interfaz.

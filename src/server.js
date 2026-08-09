@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const path = require('path');
 
+const authRoutes = require('./routes/auth.routes');
 const productosRoutes = require('./routes/productos.routes');
 const proveedoresRoutes = require('./routes/proveedores.routes');
 const preciosRoutes = require('./routes/precios.routes');
@@ -12,6 +13,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
+app.use('/api', authRoutes);
 app.use('/api', productosRoutes);
 app.use('/api', proveedoresRoutes);
 app.use('/api', preciosRoutes);
