@@ -1,0 +1,534 @@
+/* ============================================================================
+   MPV Dental — Estilos corporativos SaaS
+   Paleta: blancos puros + grises modernos + azul clínico + verde esmeralda
+   ============================================================================ */
+
+:root {
+    --mpv-blue: #2563eb;
+    --mpv-blue-dark: #1d4ed8;
+    --mpv-blue-soft: #eff6ff;
+    --mpv-emerald: #10b981;
+    --mpv-emerald-soft: #ecfdf5;
+    --mpv-amber: #f59e0b;
+    --mpv-amber-soft: #fffbeb;
+    --mpv-red: #ef4444;
+    --mpv-red-soft: #fef2f2;
+
+    --mpv-ink: #0f172a;
+    --mpv-ink-soft: #475569;
+    --mpv-gray-50: #f8fafc;
+    --mpv-gray-100: #f1f5f9;
+    --mpv-gray-200: #e2e8f0;
+    --mpv-gray-300: #cbd5e1;
+
+    --mpv-radius: 14px;
+    --mpv-radius-sm: 10px;
+    --mpv-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.10);
+    --mpv-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.06), 0 16px 32px -12px rgba(15, 23, 42, 0.16);
+
+    --sidebar-width: 260px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+    background: var(--mpv-gray-50);
+    color: var(--mpv-ink);
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-size: 0.9375rem;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Layout: Sidebar + Topbar                                                */
+/* ---------------------------------------------------------------------- */
+.mpv-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sidebar-width);
+    background: #ffffff;
+    border-right: 1px solid var(--mpv-gray-200);
+    display: flex;
+    flex-direction: column;
+    z-index: 1030;
+    transition: transform 0.25s ease;
+}
+
+.mpv-sidebar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 1.35rem 1.25rem;
+    border-bottom: 1px solid var(--mpv-gray-100);
+}
+
+.mpv-sidebar-brand .icon-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--mpv-blue), var(--mpv-emerald));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.mpv-sidebar-brand .brand-title {
+    font-weight: 700;
+    font-size: 1.02rem;
+    line-height: 1.1;
+    color: var(--mpv-ink);
+}
+
+.mpv-sidebar-brand .brand-sub {
+    font-size: 0.72rem;
+    color: var(--mpv-ink-soft);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+}
+
+.mpv-nav {
+    padding: 1rem 0.9rem;
+    flex: 1;
+    overflow-y: auto;
+}
+
+.mpv-nav .nav-section-title {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    color: var(--mpv-gray-300);
+    padding: 0.5rem 0.75rem 0.4rem;
+}
+
+.mpv-nav .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 0.7rem;
+    padding: 0.62rem 0.8rem;
+    border-radius: var(--mpv-radius-sm);
+    color: var(--mpv-ink-soft);
+    font-weight: 550;
+    font-size: 0.875rem;
+    margin-bottom: 0.15rem;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.mpv-nav .nav-link i { font-size: 1.05rem; }
+
+.mpv-nav .nav-link:hover {
+    background: var(--mpv-gray-100);
+    color: var(--mpv-ink);
+}
+
+.mpv-nav .nav-link.active {
+    background: var(--mpv-blue-soft);
+    color: var(--mpv-blue-dark);
+}
+
+.mpv-sidebar-footer {
+    padding: 1rem 1.1rem;
+    border-top: 1px solid var(--mpv-gray-100);
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.mpv-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--mpv-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: var(--mpv-ink-soft);
+    flex-shrink: 0;
+}
+
+.mpv-main {
+    margin-left: var(--sidebar-width);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.mpv-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 1020;
+    background: rgba(248, 250, 252, 0.85);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--mpv-gray-200);
+    padding: 1rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.mpv-topbar h1 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.mpv-topbar .subtitle {
+    font-size: 0.8rem;
+    color: var(--mpv-ink-soft);
+    margin-top: 0.1rem;
+}
+
+.mpv-content {
+    padding: 1.75rem;
+    flex: 1;
+}
+
+@media (max-width: 991.98px) {
+    .mpv-sidebar { transform: translateX(-100%); }
+    .mpv-sidebar.show { transform: translateX(0); }
+    .mpv-main { margin-left: 0; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tarjetas KPI                                                            */
+/* ---------------------------------------------------------------------- */
+.kpi-card {
+    background: #fff;
+    border: 1px solid var(--mpv-gray-200);
+    border-radius: var(--mpv-radius);
+    padding: 1.35rem 1.5rem;
+    box-shadow: var(--mpv-shadow);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    height: 100%;
+}
+
+.kpi-card:hover {
+    box-shadow: var(--mpv-shadow-hover);
+    transform: translateY(-2px);
+}
+
+.kpi-card .kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 0.9rem;
+}
+
+.kpi-icon.bg-blue { background: var(--mpv-blue-soft); color: var(--mpv-blue-dark); }
+.kpi-icon.bg-emerald { background: var(--mpv-emerald-soft); color: var(--mpv-emerald); }
+.kpi-icon.bg-amber { background: var(--mpv-amber-soft); color: var(--mpv-amber); }
+.kpi-icon.bg-red { background: var(--mpv-red-soft); color: var(--mpv-red); }
+
+.kpi-card .kpi-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--mpv-ink);
+    line-height: 1.1;
+}
+
+.kpi-card .kpi-label {
+    font-size: 0.82rem;
+    color: var(--mpv-ink-soft);
+    font-weight: 550;
+    margin-top: 0.35rem;
+}
+
+.kpi-trend {
+    font-size: 0.76rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin-top: 0.65rem;
+}
+
+.kpi-trend.up { color: var(--mpv-emerald); }
+.kpi-trend.down { color: var(--mpv-red); }
+
+/* ---------------------------------------------------------------------- */
+/* Tarjetas generales / paneles                                            */
+/* ---------------------------------------------------------------------- */
+.mpv-panel {
+    background: #fff;
+    border: 1px solid var(--mpv-gray-200);
+    border-radius: var(--mpv-radius);
+    box-shadow: var(--mpv-shadow);
+}
+
+.mpv-panel-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--mpv-gray-100);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.mpv-panel-header h2 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    margin: 0;
+}
+
+.mpv-panel-header .panel-sub {
+    font-size: 0.8rem;
+    color: var(--mpv-ink-soft);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Buscador y filtros                                                      */
+/* ---------------------------------------------------------------------- */
+.mpv-search {
+    position: relative;
+    min-width: 260px;
+}
+
+.mpv-search i {
+    position: absolute;
+    left: 0.85rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--mpv-gray-300);
+    font-size: 0.95rem;
+}
+
+.mpv-search input {
+    padding-left: 2.35rem;
+    border-radius: 10px;
+    border: 1px solid var(--mpv-gray-200);
+    background: var(--mpv-gray-50);
+    font-size: 0.85rem;
+}
+
+.mpv-search input:focus {
+    background: #fff;
+    border-color: var(--mpv-blue);
+    box-shadow: 0 0 0 3px var(--mpv-blue-soft);
+}
+
+.mpv-filter-select {
+    border-radius: 10px;
+    border: 1px solid var(--mpv-gray-200);
+    background: var(--mpv-gray-50);
+    font-size: 0.85rem;
+    padding: 0.5rem 2rem 0.5rem 0.85rem;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Tabla avanzada de precios                                               */
+/* ---------------------------------------------------------------------- */
+.mpv-table-wrap {
+    overflow-x: auto;
+}
+
+.mpv-table {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    min-width: 1080px;
+}
+
+.mpv-table thead th {
+    position: sticky;
+    top: 0;
+    background: var(--mpv-gray-50);
+    text-transform: uppercase;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+    font-weight: 700;
+    color: var(--mpv-ink-soft);
+    padding: 0.85rem 1.1rem;
+    border-bottom: 1px solid var(--mpv-gray-200);
+    white-space: nowrap;
+    z-index: 5;
+}
+
+.mpv-table tbody td {
+    padding: 0.95rem 1.1rem;
+    border-bottom: 1px solid var(--mpv-gray-100);
+    vertical-align: middle;
+    font-size: 0.875rem;
+}
+
+.mpv-table tbody tr {
+    transition: background 0.15s ease;
+}
+
+.mpv-table tbody tr:hover {
+    background: var(--mpv-gray-50);
+}
+
+.mpv-table tbody tr:last-child td { border-bottom: none; }
+
+.product-cell { display: flex; align-items: center; gap: 0.75rem; }
+
+.product-thumb {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--mpv-blue-soft);
+    color: var(--mpv-blue-dark);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 1rem;
+}
+
+.product-name { font-weight: 650; color: var(--mpv-ink); }
+.product-sku { font-size: 0.74rem; color: var(--mpv-ink-soft); }
+
+.supplier-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--mpv-ink-soft);
+}
+
+.supplier-badge.optimo {
+    color: var(--mpv-emerald);
+}
+
+.supplier-badge .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+/* Badges de rentabilidad */
+.badge-margin {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.32rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.76rem;
+    font-weight: 700;
+}
+
+.badge-margin.alto { background: var(--mpv-emerald-soft); color: #047857; }
+.badge-margin.medio { background: var(--mpv-amber-soft); color: #b45309; }
+.badge-margin.bajo { background: var(--mpv-red-soft); color: #b91c1c; }
+
+.alert-price-up {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--mpv-red);
+    background: var(--mpv-red-soft);
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    margin-left: 0.4rem;
+}
+
+.pvp-value {
+    font-weight: 800;
+    font-size: 0.98rem;
+    color: var(--mpv-ink);
+}
+
+.pvp-sub { font-size: 0.72rem; color: var(--mpv-ink-soft); }
+
+/* Botones de acción en tabla */
+.row-actions { display: flex; gap: 0.35rem; justify-content: flex-end; }
+
+.btn-icon-sm {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    border: 1px solid var(--mpv-gray-200);
+    background: #fff;
+    color: var(--mpv-ink-soft);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s ease;
+}
+
+.btn-icon-sm:hover {
+    background: var(--mpv-blue-soft);
+    color: var(--mpv-blue-dark);
+    border-color: var(--mpv-blue-soft);
+}
+
+/* Botón primario de marca */
+.btn-mpv-primary {
+    background: linear-gradient(135deg, var(--mpv-blue), var(--mpv-blue-dark));
+    border: none;
+    color: #fff;
+    font-weight: 650;
+    border-radius: 10px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.85rem;
+    box-shadow: 0 4px 10px -4px rgba(37, 99, 235, 0.5);
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-mpv-primary:hover {
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 16px -6px rgba(37, 99, 235, 0.55);
+}
+
+.btn-mpv-outline {
+    background: #fff;
+    border: 1px solid var(--mpv-gray-200);
+    color: var(--mpv-ink-soft);
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.55rem 1.1rem;
+    font-size: 0.85rem;
+}
+
+.btn-mpv-outline:hover {
+    background: var(--mpv-gray-50);
+    color: var(--mpv-ink);
+}
+
+/* Skeleton loading */
+.skeleton-row td {
+    padding: 1rem 1.1rem;
+}
+.skeleton-bar {
+    height: 14px;
+    border-radius: 6px;
+    background: linear-gradient(90deg, var(--mpv-gray-100) 25%, var(--mpv-gray-200) 37%, var(--mpv-gray-100) 63%);
+    background-size: 400% 100%;
+    animation: skeleton-loading 1.4s ease infinite;
+}
+@keyframes skeleton-loading {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
+/* Empty state */
+.mpv-empty {
+    padding: 3.5rem 1rem;
+    text-align: center;
+    color: var(--mpv-ink-soft);
+}
+.mpv-empty i { font-size: 2.2rem; color: var(--mpv-gray-300); margin-bottom: 0.75rem; display: block; }
+
+/* Scrollbar refinado */
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--mpv-gray-300); border-radius: 999px; }

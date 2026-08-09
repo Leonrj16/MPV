@@ -1,0 +1,27 @@
+require('dotenv').config();
+const express = require('express');
+const path = require('path');
+
+const productosRoutes = require('./routes/productos.routes');
+const proveedoresRoutes = require('./routes/proveedores.routes');
+const preciosRoutes = require('./routes/precios.routes');
+
+const app = express();
+const PORT = process.env.PORT || 3000;
+
+app.use(express.json());
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
+app.use('/api', productosRoutes);
+app.use('/api', proveedoresRoutes);
+app.use('/api', preciosRoutes);
+
+app.get('/health', (req, res) => res.json({ ok: true, service: 'mpv-dental-api' }));
+
+app.use((req, res) => {
+    res.status(404).json({ ok: false, error: 'Ruta no encontrada' });
+});
+
+app.listen(PORT, () => {
+    console.log(`MPV Dental API escuchando en http://localhost:${PORT}`);
+});
