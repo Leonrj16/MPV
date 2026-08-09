@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Consultorio Dental San Judas Tadeo | Tienda Virtual</title>
-    <meta name="description" content="Insumos, resinas e instrumental dental de calidad, con precios claros y entrega rápida.">
+    <title>San Judas Tadeo Botica Dental | Tienda Virtual</title>
+    <meta name="description" content="Insumos, resinas e instrumental dental de calidad en San Judas Tadeo Botica Dental, con precios claros y entrega rápida.">
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="css/base.css" rel="stylesheet">
@@ -30,7 +30,7 @@
             <div class="logo-badge"><i class="bi bi-clipboard2-pulse"></i></div>
             <div class="d-none d-md-block">
                 <div class="brand-title">San Judas Tadeo</div>
-                <div class="brand-sub">Insumos Dentales</div>
+                <div class="brand-sub">Botica Dental</div>
             </div>
         </a>
 
@@ -49,22 +49,48 @@
 <!-- Hero -->
 <section class="tienda-hero">
     <div class="container reveal">
-        <div class="tienda-hero-badge"><i class="bi bi-patch-check-fill"></i> Precios actualizados en tiempo real</div>
-        <h1>Todo lo que tu consultorio necesita, en un solo lugar</h1>
-        <p>Resinas, instrumental rotatorio, bioseguridad y anestesia de proveedores certificados, con el mejor precio calculado automáticamente por nuestro sistema.</p>
+        <div class="tienda-hero-grid">
+            <div class="tienda-hero-copy">
+                <div class="tienda-hero-badge"><i class="bi bi-patch-check-fill"></i> Precios actualizados en tiempo real</div>
+                <h1>Todo lo que tu consultorio necesita, en un solo lugar</h1>
+                <p>Resinas, instrumental rotatorio, bioseguridad y anestesia de proveedores certificados, con el mejor precio calculado automáticamente por nuestro sistema.</p>
 
-        <div class="tienda-hero-stats">
-            <div>
-                <div class="stat-num" id="statProductos">—</div>
-                <div class="stat-label">Productos disponibles</div>
+                <div class="tienda-hero-cta">
+                    <a href="#catalogo" class="btn-hero-primary">Ver catálogo <i class="bi bi-arrow-down ms-1"></i></a>
+                    <a href="https://wa.me/51999000111" target="_blank" rel="noopener" class="btn-hero-outline"><i class="bi bi-whatsapp me-1"></i> Escríbenos</a>
+                </div>
+
+                <div class="tienda-hero-stats">
+                    <div>
+                        <div class="stat-num" id="statProductos">—</div>
+                        <div class="stat-label">Productos disponibles</div>
+                    </div>
+                    <div>
+                        <div class="stat-num" id="statCategorias">—</div>
+                        <div class="stat-label">Categorías</div>
+                    </div>
+                    <div>
+                        <div class="stat-num">100%</div>
+                        <div class="stat-label">Precios verificados por sistema</div>
+                    </div>
+                </div>
             </div>
-            <div>
-                <div class="stat-num" id="statCategorias">—</div>
-                <div class="stat-label">Categorías</div>
-            </div>
-            <div>
-                <div class="stat-num">100%</div>
-                <div class="stat-label">Precios verificados por sistema</div>
+
+            <div class="hero-media">
+                <div class="hero-media-card">
+                    <div class="hero-media-emblem"><i class="bi bi-clipboard2-pulse"></i></div>
+                </div>
+                <div class="hero-media-icon i-1" title="Resinas y composites"><i class="bi bi-droplet-half"></i></div>
+                <div class="hero-media-icon i-2" title="Bioseguridad"><i class="bi bi-shield-fill-check"></i></div>
+                <div class="hero-media-icon i-3" title="Instrumental rotatorio"><i class="bi bi-tools"></i></div>
+                <div class="hero-media-icon i-4" title="Anestesia y cartuchos"><i class="bi bi-capsule"></i></div>
+
+                <div class="hero-floating-card card-top">
+                    <i class="bi bi-truck"></i> Entrega en 24–48h
+                </div>
+                <div class="hero-floating-card card-bottom">
+                    <i class="bi bi-shield-check"></i> Proveedores certificados
+                </div>
             </div>
         </div>
     </div>
@@ -114,7 +140,7 @@
     </div>
 </section>
 
-<main class="container">
+<main class="container" id="catalogo">
     <!-- Filtros de categoría -->
     <div class="tienda-categorias" id="categoriasNav">
         <button class="chip-categoria activo" data-categoria="">Todos los productos</button>
@@ -173,8 +199,8 @@
                 <div class="d-flex align-items-center gap-2 mb-3">
                     <div class="logo-badge"><i class="bi bi-clipboard2-pulse"></i></div>
                     <div>
-                        <div class="fw-bold text-white">Consultorio Dental</div>
                         <div class="fw-bold text-white">San Judas Tadeo</div>
+                        <div class="fw-bold text-white">Botica Dental</div>
                     </div>
                 </div>
                 <p class="small">Insumos y equipamiento dental de calidad, con precios justos y actualizados, para consultorios y clínicas.</p>
@@ -199,7 +225,7 @@
             </div>
         </div>
         <div class="tienda-footer-bottom text-center">
-            © <span id="anioActual"></span> Consultorio Dental San Judas Tadeo. Todos los derechos reservados.
+            © <span id="anioActual"></span> San Judas Tadeo Botica Dental. Todos los derechos reservados.
         </div>
     </div>
 </footer>

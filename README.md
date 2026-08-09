@@ -178,6 +178,39 @@ el resumen para que el consultorio confirme el pedido manualmente. Una
 pasarela de pago real y una bandeja de pedidos son evoluciones naturales
 si el volumen lo justifica.
 
+### Rebranding + hero con imagen (`San Judas Tadeo Botica Dental`)
+
+El nombre real del negocio es **San Judas Tadeo Botica Dental** (antes
+decía "Consultorio Dental San Judas Tadeo" en el `<title>`, header, footer
+y copyright — corregido en las 4 ubicaciones). Además, el hero de la
+portada pasó de ser una sola columna de texto centrada a un layout de dos
+columnas (texto + imagen), pedido explícitamente porque el primer
+"vistazo" de la tienda se sentía incompleto sin nada visual junto al
+título:
+
+- No hay fotografía real del negocio todavía, así que en vez de un
+  placeholder gris (que se ve roto/inacabado) se compuso una imagen con el
+  mismo lenguaje visual del resto del sitio: una tarjeta con degradado de
+  marca y el emblema del logo al centro, con 4 íconos de categoría
+  (resinas, bioseguridad, instrumental, anestesia) flotando alrededor con
+  una animación suave de sube-baja, y dos tarjetas flotantes con señales de
+  confianza ("Entrega en 24–48h", "Proveedores certificados"). En pantallas
+  muy chicas (`<576px`) las dos tarjetas flotantes se ocultan para no
+  saturar; los 4 íconos de categoría se quedan.
+- Se agregaron dos botones de llamado a la acción: "Ver catálogo" (ancla a
+  `#catalogo`, el contenedor del grid de productos) y "Escríbenos"
+  (WhatsApp directo), donde antes el hero no tenía ningún CTA explícito.
+- **Bug real encontrado al verificar con Playwright**: la imagen del hero
+  no se veía — la tarjeta y el emblema central estaban en el DOM pero con
+  `width:0; height:0`. Causa: `.hero-media` tiene `aspect-ratio:1/1` pero
+  todos sus hijos son `position:absolute` (no aportan tamaño intrínseco al
+  padre), combinado con `margin:0 auto` — eso activa *shrink-to-fit*
+  sizing en vez de que el ítem de grid se estire, y sin contenido en flujo
+  normal el resultado es una caja de tamaño cero. Se corrigió agregando
+  `width:100%` explícito (con `max-width:420px` para el tope), confirmado
+  con `getBoundingClientRect()` antes/después del fix (0×0 → 420×420) y
+  con capturas en 1440px, 768px y 393px sin overflow horizontal.
+
 ## Sistema de diseño (`public/css/base.css`)
 
 Panel interno y tienda virtual tenían cada uno su propia hoja de estilos
