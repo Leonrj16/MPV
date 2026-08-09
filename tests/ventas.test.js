@@ -1,6 +1,6 @@
 jest.mock('../src/config/db', () => ({ query: jest.fn(), connect: jest.fn() }));
 const pool = require('../src/config/db');
-const { registrarVenta, listarProductosDisponibles, listarVentas, obtenerVentaPorId } = require('../src/services/ventas');
+const { registrarVenta, listarProductosDisponibles, listarVentas, obtenerVentaPorId, obtenerKpisVentas } = require('../src/services/ventas');
 
 const configRow = {
     margen_utilidad_defecto_pct: '35.00',
@@ -132,6 +132,50 @@ describe('listarVentas', () => {
         const [sql, params] = pool.query.mock.calls[0];
         expect(sql).toContain('LIMIT $1');
         expect(params).toEqual([5]);
+    });
+
+    test('sin filtros no agrega cláusula WHERE de filtro', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+        await listarVentas({});
+        const [sql] = pool.query.mock.calls[0];
+        // El único "WHERE" legítimo sin filtros es el de FILTER (WHERE vd.id IS NOT NULL)
+        // del agregado JSON; "WHERE v." es exclusivo de los filtros dinámicos.
+        expect(sql).not.toContain('WHERE v.');
+    });
+
+    test('arma los filtros de fecha/cliente/método de pago como consulta parametrizada', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+        await listarVentas({ desde: '2026-08-01', hasta: '2026-08-09', cliente: "'; DROP TABLE ventas; --", metodoPago: 'efectivo', limite: 20 });
+        const [sql, params] = pool.query.mock.calls[0];
+        expect(sql).toContain('v.created_at >= $1');
+        expect(sql).toContain('v.created_at < ($2::date');
+        expect(sql).toContain('v.cliente ILIKE $3');
+        expect(sql).toContain('v.metodo_pago = $4');
+        expect(sql).toContain('LIMIT $5');
+        expect(sql).not.toContain('DROP TABLE'); // el valor peligroso va como parámetro, no en el texto del SQL
+        expect(params).toEqual(['2026-08-01', '2026-08-09', "%'; DROP TABLE ventas; --%", 'efectivo', 20]);
+    });
+});
+
+describe('obtenerKpisVentas', () => {
+    test('mapea el resumen y el top de productos a camelCase con números, no strings', async () => {
+        pool.query
+            .mockResolvedValueOnce({
+                rows: [{ ingresos_hoy: '150.50', ingresos_semana: '820.00', ingresos_mes: '3400.75', ventas_hoy: '4' }],
+            })
+            .mockResolvedValueOnce({
+                rows: [{ nombre: 'Resina Compuesta', sku: 'RES-001', cantidad_vendida: '12', ingreso_total: '224.40' }],
+            });
+
+        const kpis = await obtenerKpisVentas();
+
+        expect(kpis).toEqual({
+            ingresosHoy: 150.5,
+            ingresosSemana: 820,
+            ingresosMes: 3400.75,
+            ventasHoy: 4,
+            topProductos: [{ nombre: 'Resina Compuesta', sku: 'RES-001', cantidadVendida: 12, ingresoTotal: 224.4 }],
+        });
     });
 });
 

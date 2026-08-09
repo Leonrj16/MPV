@@ -176,6 +176,14 @@ const MPV = (() => {
             return request(`/ventas${qs ? `?${qs}` : ''}`);
         },
         abrirBoleta,
+        getVentasKpis: () => request('/ventas/kpis'),
+        getPedidosWeb: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request(`/pedidos-web${qs ? `?${qs}` : ''}`);
+        },
+        actualizarEstadoPedidoWeb: (id, estado) =>
+            request(`/pedidos-web/${id}/estado`, { method: 'PUT', body: JSON.stringify({ estado }) }),
+        crearPedidoWeb: (payload) => request('/tienda/pedidos', { method: 'POST', body: JSON.stringify(payload) }),
         formatCurrency,
     };
 })();

@@ -206,7 +206,23 @@
             `Total: ${formatCurrency(Carrito.calcularTotal())}`,
         ].join('\n');
 
+        // window.open() va primero y sin await: tiene que ejecutarse en el
+        // mismo turno síncrono del click o algunos navegadores (Safari) lo
+        // bloquean por no "parecer" iniciado por el usuario.
         window.open(`https://wa.me/${CONFIG.WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener');
+
+        // Registro best-effort en el panel interno (Ventas > Pedidos Web),
+        // para que el pedido no exista solo dentro del chat de WhatsApp. Si
+        // esto falla, no debe afectar el pedido real: ya se abrió WhatsApp.
+        const nombreCliente = document.getElementById('carritoNombreCliente')?.value.trim();
+        fetch('/api/tienda/pedidos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                items: items.map((i) => ({ productoId: i.id, cantidad: i.cantidad })),
+                cliente: nombreCliente || undefined,
+            }),
+        }).catch(() => {});
     });
 
     Carrito.suscribir(renderCarrito);

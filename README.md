@@ -31,6 +31,7 @@ psql -U postgres -d mpv_dental -f database/schema.sql
 psql -U postgres -d mpv_dental -f database/migrations/002_auth_historial.sql
 psql -U postgres -d mpv_dental -f database/migrations/003_ventas.sql
 psql -U postgres -d mpv_dental -f database/migrations/004_configuracion_tienda.sql
+psql -U postgres -d mpv_dental -f database/migrations/005_pedidos_web.sql
 npm run dev                 # http://localhost:3000 (redirige a /login.html)
 ```
 
@@ -111,6 +112,10 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET | `/api/ventas` | cualquiera | Historial de ventas (parámetro `limite`, por defecto 20) |
 | POST | `/api/ventas` | admin, operador | Registra una venta de mostrador y descuenta stock (ver abajo) |
 | GET | `/api/ventas/:id/boleta` | cualquiera | PDF del comprobante de venta provisional (ver abajo) |
+| GET | `/api/ventas/kpis` | cualquiera | Ingresos hoy/semana/mes, ventas de hoy, top 5 productos del mes |
+| POST | `/api/tienda/pedidos` | **pública, sin token** | Registra un pedido de la tienda virtual (no descuenta stock) |
+| GET | `/api/pedidos-web` | cualquiera | Lista pedidos web (filtro opcional `estado`) |
+| PUT | `/api/pedidos-web/:id/estado` | admin, operador | Cambia el estado de un pedido (pendiente/atendido/cancelado) |
 | GET | `/api/tienda/productos`, `/api/tienda/categorias` | **pública, sin token** | Catálogo para la tienda virtual (ver abajo) |
 | GET | `/api/tienda/configuracion` | **pública, sin token** | Marca/imágenes/textos/contacto de la tienda (ver "Tienda Virtual configurable") |
 | PUT | `/api/tienda/configuracion` | admin | Edita la configuración de marca de la tienda |
@@ -194,6 +199,88 @@ texto en azul en vez de negro, pero el archivo generado tiene el color
 correcto (`#0f172a`) en todo el documento; es un artefacto del visor, no
 un bug del PDF. Flujo completo probado con Playwright: agregar producto,
 registrar venta, y confirmar que se abre una pestaña nueva con el PDF.
+
+## Fase A — Historial de Ventas, Pedidos Web y dashboard con ventas reales
+
+Hasta esta fase había una desconexión real en el sistema: una venta de
+mostrador (Punto de Venta) quedaba guardada con boleta y todo, pero un
+pedido hecho desde la **tienda virtual** se iba directo a WhatsApp sin
+dejar ningún rastro — no había forma de ver cuántos pedidos web llegaron
+ni de que no se perdiera uno en el chat. La migración `005_pedidos_web.sql`
+y tres piezas nuevas cierran ese hueco.
+
+### `public/ventas.html` — Historial de Ventas + Pedidos Web
+
+Una sola página con dos pestañas (un simple toggle de botones, sin
+librería de tabs):
+
+- **Ventas de Mostrador**: lista las ventas reales de `ventas`/`venta_detalle`
+  con filtros por cliente (`ILIKE`, con debounce de 400ms para no
+  disparar una consulta por cada tecla), rango de fechas y método de
+  pago — todos parametrizados (`GET /api/ventas?desde=&hasta=&cliente=&metodoPago=`).
+  El filtro de fecha `hasta` incluye el día completo
+  (`created_at < (hasta::date + interval '1 day')`), no solo la medianoche.
+  Cada fila tiene un botón "Ver boleta" que reutiliza `MPV.abrirBoleta()`
+  (la misma función que usa Punto de Venta).
+- **Pedidos Web**: lista `pedidos_web` con su detalle, filtrable por
+  estado. Cada fila trae un `<select>` para cambiar el estado
+  (pendiente/atendido/cancelado) sin abrir un modal — el cambio se guarda
+  al vuelo (`PUT /api/pedidos-web/:id/estado`). El botón de la pestaña
+  muestra un badge con la cantidad de pedidos **pendientes**, para que se
+  note de un vistazo que hay algo por atender sin tener que entrar a la
+  pestaña.
+
+### `pedidos_web` — deliberadamente separada de `ventas`
+
+Un pedido web es una **intención de compra**, no un hecho consumado: se
+guarda con el mismo motor de precios (`calcularPVP` + proveedor óptimo)
+que usa el resto de la app, pero **no descuenta stock** — a diferencia de
+`registrarVenta()` (Punto de Venta), que sí lo hace dentro de una
+transacción con `SELECT ... FOR UPDATE`. Si el negocio decide atender un
+pedido web, el staff lo procesa como una venta real desde Punto de Venta
+(ahí sí se valida y descuenta stock); mezclar ambos conceptos en una sola
+tabla habría significado inventar un estado "a medio confirmar" para el
+stock, más frágil que mantenerlos separados.
+
+- `POST /api/tienda/pedidos` es pública (la llama la propia tienda, sin
+  sesión de staff) y corre en una transacción igual que `registrarVenta()`:
+  valida que cada producto exista, esté activo y tenga un proveedor con
+  precio antes de confirmar nada.
+- En `tienda.html`, el offcanvas del carrito ahora pide un nombre
+  opcional ("Tu nombre — para identificar tu pedido") antes de
+  "Finalizar Pedido por WhatsApp". Al hacer clic, **`window.open()` hacia
+  WhatsApp se llama primero y de forma síncrona** (sin `await` antes) —
+  si se esperara a que termine el `fetch` del registro interno antes de
+  abrir la ventana, Safari (y algunos navegadores) bloquean el popup por
+  no "parecer" iniciado directamente por el usuario. El registro del
+  pedido (`fetch('/api/tienda/pedidos')`) es *best-effort* y no bloqueante:
+  si falla (sin conexión, etc.), el pedido por WhatsApp ya se envió de
+  todos modos y el error se ignora en silencio — el tracking interno
+  nunca debe poder romper el canal de venta real.
+
+### Dashboard con ventas reales, no solo precios
+
+`GET /api/ventas/kpis` agrega ingresos de hoy/semana/mes y el conteo de
+ventas de hoy (con `FILTER (WHERE ...)` sobre `CURRENT_DATE` /
+`date_trunc('week'|'month', CURRENT_DATE)`), más el top 5 de productos
+más vendidos del mes por cantidad. El dashboard tenía puros KPIs de
+precios/márgenes hasta ahora — nunca mostraba lo que efectivamente se
+vendió. Se agregó una fila de 4 tarjetas (Ingresos Hoy/Semana/Mes, Ventas
+Hoy) más un panel "Top Productos del Mes", entre los KPIs existentes y el
+gráfico de categorías. Los montos en soles usan una variante de tarjeta
+más angosta (`.kpi-value-money`, 1.5rem en vez de 2.05rem) porque
+"S/ 1,234.50" es bastante más largo que un conteo o un porcentaje.
+
+Verificado con `curl` contra PostgreSQL real (crear pedido web público,
+listarlo, cambiar estado, rechazo de estado inválido y de producto
+inexistente) y con Playwright de punta a punta: filtrar el historial de
+ventas por cliente, ver boleta desde el historial, cambiar el estado de
+un pedido y ver actualizarse el badge, y completar una compra en la
+tienda hasta confirmar (consultando el backend directamente) que el
+pedido quedó registrado con el nombre y los productos correctos. Sin
+overflow horizontal en escritorio ni en 393px. 17 tests nuevos
+(`pedidosWeb.test.js` + ampliaciones a `ventas.test.js`). Suite completa:
+89/89.
 
 ## Tienda Virtual (`public/tienda.html`)
 
@@ -551,6 +638,9 @@ solo se usa un valor por defecto de 0 cuando la combinación es nueva.
 - `public/punto-venta.html` — registra ventas de mostrador y descuenta
   stock (ver sección "Punto de Venta" más arriba). Disponible para `admin`
   y `operador`, igual que la gestión de precios.
+- `public/ventas.html` — historial de ventas de mostrador y pedidos de la
+  tienda virtual, en dos pestañas (ver sección "Fase A" más arriba).
+  Disponible para `admin` y `operador`.
 - `public/proveedores.html` — directorio de proveedores con contacto,
   calificación (1-5 estrellas) y cantidad de productos que suministra.
   Mismas reglas de acceso que productos.

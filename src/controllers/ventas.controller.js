@@ -1,6 +1,6 @@
 const PDFDocument = require('pdfkit');
 const pool = require('../config/db');
-const { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId } = require('../services/ventas');
+const { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId, obtenerKpisVentas } = require('../services/ventas');
 
 async function crearVenta(req, res) {
     try {
@@ -16,9 +16,20 @@ async function crearVenta(req, res) {
 
 async function listar(req, res) {
     try {
-        const limite = req.query.limite ? Number(req.query.limite) : 20;
-        const ventas = await listarVentas({ limite });
+        const { desde, hasta, cliente, metodoPago } = req.query;
+        const limite = req.query.limite ? Number(req.query.limite) : 50;
+        const ventas = await listarVentas({ limite, desde, hasta, cliente, metodoPago });
         res.json({ ok: true, data: ventas });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+async function kpis(req, res) {
+    try {
+        const data = await obtenerKpisVentas();
+        res.json({ ok: true, data });
     } catch (err) {
         console.error(err);
         res.status(500).json({ ok: false, error: err.message });
@@ -148,4 +159,4 @@ async function generarBoletaPdf(req, res) {
     }
 }
 
-module.exports = { crearVenta, listar, listarDisponibles, generarBoletaPdf };
+module.exports = { crearVenta, listar, listarDisponibles, generarBoletaPdf, kpis };

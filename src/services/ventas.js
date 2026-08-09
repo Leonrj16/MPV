@@ -143,7 +143,30 @@ async function listarProductosDisponibles() {
     });
 }
 
-async function listarVentas({ limite = 20 } = {}) {
+async function listarVentas({ limite = 50, desde, hasta, cliente, metodoPago } = {}) {
+    const condiciones = [];
+    const valores = [];
+
+    if (desde) {
+        valores.push(desde);
+        condiciones.push(`v.created_at >= $${valores.length}::date`);
+    }
+    if (hasta) {
+        valores.push(hasta);
+        condiciones.push(`v.created_at < ($${valores.length}::date + interval '1 day')`);
+    }
+    if (cliente) {
+        valores.push(`%${cliente}%`);
+        condiciones.push(`v.cliente ILIKE $${valores.length}`);
+    }
+    if (metodoPago) {
+        valores.push(metodoPago);
+        condiciones.push(`v.metodo_pago = $${valores.length}`);
+    }
+
+    const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
+    valores.push(limite);
+
     const { rows } = await pool.query(
         `SELECT v.*, u.nombre AS usuario_nombre,
                 COALESCE(json_agg(json_build_object(
@@ -158,12 +181,54 @@ async function listarVentas({ limite = 20 } = {}) {
          LEFT JOIN usuarios u ON u.id = v.usuario_id
          LEFT JOIN venta_detalle vd ON vd.venta_id = v.id
          LEFT JOIN productos p ON p.id = vd.producto_id
+         ${where}
          GROUP BY v.id, u.nombre
          ORDER BY v.created_at DESC
-         LIMIT $1`,
-        [limite]
+         LIMIT $${valores.length}`,
+        valores
     );
     return rows;
+}
+
+/**
+ * Métricas de ventas reales para el dashboard — hasta esta fase el
+ * dashboard solo miraba precios/márgenes, nunca lo que efectivamente se
+ * vendió en el Punto de Venta.
+ */
+async function obtenerKpisVentas() {
+    const { rows: resumenRows } = await pool.query(
+        `SELECT
+            COALESCE(SUM(total) FILTER (WHERE created_at >= CURRENT_DATE), 0) AS ingresos_hoy,
+            COALESCE(SUM(total) FILTER (WHERE created_at >= date_trunc('week', CURRENT_DATE)), 0) AS ingresos_semana,
+            COALESCE(SUM(total) FILTER (WHERE created_at >= date_trunc('month', CURRENT_DATE)), 0) AS ingresos_mes,
+            COUNT(*) FILTER (WHERE created_at >= CURRENT_DATE) AS ventas_hoy
+         FROM ventas`
+    );
+    const resumen = resumenRows[0];
+
+    const { rows: topProductos } = await pool.query(
+        `SELECT p.nombre, p.sku, SUM(vd.cantidad) AS cantidad_vendida, SUM(vd.subtotal) AS ingreso_total
+         FROM venta_detalle vd
+         JOIN productos p ON p.id = vd.producto_id
+         JOIN ventas v ON v.id = vd.venta_id
+         WHERE v.created_at >= date_trunc('month', CURRENT_DATE)
+         GROUP BY p.id, p.nombre, p.sku
+         ORDER BY cantidad_vendida DESC
+         LIMIT 5`
+    );
+
+    return {
+        ingresosHoy: Number(resumen.ingresos_hoy),
+        ingresosSemana: Number(resumen.ingresos_semana),
+        ingresosMes: Number(resumen.ingresos_mes),
+        ventasHoy: Number(resumen.ventas_hoy),
+        topProductos: topProductos.map((fila) => ({
+            nombre: fila.nombre,
+            sku: fila.sku,
+            cantidadVendida: Number(fila.cantidad_vendida),
+            ingresoTotal: Number(fila.ingreso_total),
+        })),
+    };
 }
 
 /** Una venta puntual con su detalle, para generar la boleta provisional. */
@@ -190,4 +255,4 @@ async function obtenerVentaPorId(id) {
     return rows[0] || null;
 }
 
-module.exports = { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId };
+module.exports = { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId, obtenerKpisVentas };

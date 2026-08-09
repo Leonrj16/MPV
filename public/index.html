@@ -26,6 +26,7 @@
         <a href="index.html" class="nav-link active" title="Dashboard"><i class="bi bi-grid-1x2-fill"></i> <span class="nav-label">Dashboard</span></a>
         <a href="pricing.html" class="nav-link" title="Gestión de Precios"><i class="bi bi-tags-fill"></i> <span class="nav-label">Gestión de Precios</span></a>
         <a href="punto-venta.html" class="nav-link" title="Punto de Venta"><i class="bi bi-cash-coin"></i> <span class="nav-label">Punto de Venta</span></a>
+        <a href="ventas.html" class="nav-link" title="Ventas"><i class="bi bi-receipt-cutoff"></i> <span class="nav-label">Ventas</span></a>
         <a href="productos.html" class="nav-link" title="Productos"><i class="bi bi-box-seam-fill"></i> <span class="nav-label">Productos</span></a>
         <a href="proveedores.html" class="nav-link" title="Proveedores"><i class="bi bi-truck"></i> <span class="nav-label">Proveedores</span></a>
         <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
@@ -98,6 +99,55 @@
                     <div class="kpi-icon bg-red"><i class="bi bi-exclamation-triangle-fill"></i></div>
                     <div class="kpi-value" data-kpi="alertasSubidaPrecio">—</div>
                     <div class="kpi-label">Alertas de Alza de Precio</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resumen de Ventas: ingresos reales del Punto de Venta, no solo precios/márgenes -->
+        <div class="row g-3 mb-4">
+            <div class="col-12 col-xl-8">
+                <div class="row g-3 h-100">
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100">
+                            <div class="kpi-icon bg-emerald"><i class="bi bi-currency-dollar"></i></div>
+                            <div class="kpi-value kpi-value-money" data-venta-kpi="ingresosHoy">—</div>
+                            <div class="kpi-label">Ingresos Hoy</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100">
+                            <div class="kpi-icon bg-chart-blue"><i class="bi bi-calendar-week"></i></div>
+                            <div class="kpi-value kpi-value-money" data-venta-kpi="ingresosSemana">—</div>
+                            <div class="kpi-label">Ingresos Semana</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100">
+                            <div class="kpi-icon bg-purple"><i class="bi bi-calendar-month"></i></div>
+                            <div class="kpi-value kpi-value-money" data-venta-kpi="ingresosMes">—</div>
+                            <div class="kpi-label">Ingresos del Mes</div>
+                        </div>
+                    </div>
+                    <div class="col-6 col-lg-3">
+                        <div class="kpi-card h-100">
+                            <div class="kpi-icon bg-amber"><i class="bi bi-receipt"></i></div>
+                            <div class="kpi-value" data-venta-kpi="ventasHoy">—</div>
+                            <div class="kpi-label">Ventas Hoy</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-12 col-xl-4">
+                <div class="mpv-panel h-100">
+                    <div class="mpv-panel-header">
+                        <div>
+                            <h2>Top Productos del Mes</h2>
+                            <div class="panel-sub">Más vendidos por cantidad</div>
+                        </div>
+                    </div>
+                    <div class="p-3" id="topProductosVendidos" style="min-height: 180px;">
+                        <div class="mpv-empty"><i class="bi bi-hourglass-split"></i>Cargando…</div>
+                    </div>
                 </div>
             </div>
         </div>

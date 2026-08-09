@@ -33,6 +33,19 @@
         console.error('Error cargando KPIs:', err);
     }
 
+    try {
+        const { data: ventasKpis } = await MPV.getVentasKpis();
+        document.querySelector('[data-venta-kpi="ingresosHoy"]').textContent = MPV.formatCurrency(ventasKpis.ingresosHoy);
+        document.querySelector('[data-venta-kpi="ingresosSemana"]').textContent = MPV.formatCurrency(ventasKpis.ingresosSemana);
+        document.querySelector('[data-venta-kpi="ingresosMes"]').textContent = MPV.formatCurrency(ventasKpis.ingresosMes);
+        document.querySelector('[data-venta-kpi="ventasHoy"]').textContent = ventasKpis.ventasHoy;
+        renderTopProductos(ventasKpis.topProductos);
+    } catch (err) {
+        console.error('Error cargando KPIs de ventas:', err);
+        document.getElementById('topProductosVendidos').innerHTML =
+            `<div class="mpv-empty"><i class="bi bi-plug-fill"></i>No se pudieron cargar las ventas.</div>`;
+    }
+
     let tablero = [];
     try {
         ({ data: tablero } = await MPV.getTableroPrecios());
@@ -84,6 +97,27 @@
         console.error('Error cargando tablero:', err);
         document.getElementById('actividadTableBody').innerHTML =
             `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-plug-fill"></i>No se pudo conectar con la API. Verifica que el servidor esté activo.</td></tr>`;
+    }
+
+    /** Lista compacta de los 5 productos más vendidos del mes (por cantidad). */
+    function renderTopProductos(topProductos) {
+        const contenedor = document.getElementById('topProductosVendidos');
+        if (!contenedor) return;
+        if (!topProductos || topProductos.length === 0) {
+            contenedor.innerHTML = `<div class="mpv-empty"><i class="bi bi-receipt"></i>Sin ventas este mes todavía.</div>`;
+            return;
+        }
+
+        contenedor.innerHTML = topProductos.map((p, i) => `
+            <div class="d-flex align-items-center gap-2 py-2" style="${i > 0 ? 'border-top:1px solid var(--mpv-gray-100);' : ''}">
+                <div style="width:26px;height:26px;border-radius:50%;background:var(--mpv-blue-soft);color:var(--mpv-blue-dark);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;flex-shrink:0;">${i + 1}</div>
+                <div class="flex-grow-1" style="min-width:0;">
+                    <div class="product-name text-truncate" style="font-size:0.85rem;">${p.nombre}</div>
+                    <div class="product-sku">${p.cantidadVendida} vendidos</div>
+                </div>
+                <div class="pvp-value" style="font-size:0.85rem; flex-shrink:0;">${MPV.formatCurrency(p.ingresoTotal)}</div>
+            </div>
+        `).join('');
     }
 
     /**

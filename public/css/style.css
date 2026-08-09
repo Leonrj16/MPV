@@ -375,6 +375,10 @@ body {
     font-variant-numeric: tabular-nums;
 }
 
+/* Los montos en soles ("S/ 1,234.50") son más largos que un conteo o un
+   porcentaje — se reduce el tamaño para que no se corten en tarjetas angostas. */
+.kpi-card .kpi-value.kpi-value-money { font-size: 1.5rem; }
+
 .kpi-card .kpi-label {
     font-size: 0.82rem;
     color: var(--mpv-ink-soft);
