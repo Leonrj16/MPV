@@ -76,6 +76,13 @@ const MPV = (() => {
             request(`/precios/${proveedorProductoId}/proveedor-principal`, { method: 'PUT' }),
         exportarExcel: (params) => descargarArchivo('/precios/exportar/excel', params),
         exportarPDF: (params) => descargarArchivo('/precios/exportar/pdf', params),
+        getUsuarios: () => request('/usuarios'),
+        crearUsuario: (payload) => request('/usuarios', { method: 'POST', body: JSON.stringify(payload) }),
+        actualizarUsuario: (id, payload) => request(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+        cambiarPasswordUsuario: (id, password) =>
+            request(`/usuarios/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
+        getConfiguracion: () => request('/configuracion'),
+        actualizarConfiguracion: (payload) => request('/configuracion', { method: 'PUT', body: JSON.stringify(payload) }),
         formatCurrency,
     };
 })();

@@ -32,6 +32,14 @@ window.MPVAuth = (() => {
         }
     }
 
+    // Bloquea el acceso a páginas exclusivas de un rol (ej. usuarios.html).
+    function exigirRol(...rolesPermitidos) {
+        const usuario = getUsuario();
+        if (!usuario || !rolesPermitidos.includes(usuario.rol)) {
+            window.location.href = 'index.html';
+        }
+    }
+
     function pintarUsuarioEnSidebar() {
         const usuario = getUsuario();
         if (!usuario) return;
@@ -47,9 +55,13 @@ window.MPVAuth = (() => {
         if (nombreEl) nombreEl.textContent = usuario.nombre;
         if (rolEl) rolEl.textContent = usuario.rol === 'admin' ? 'Administrador' : 'Operador de Compras';
         if (avatarEl) avatarEl.textContent = iniciales;
+
+        if (usuario.rol !== 'admin') {
+            document.querySelectorAll('[data-rol="admin"]').forEach((el) => el.remove());
+        }
     }
 
-    return { getToken, getUsuario, guardarSesion, cerrarSesion, exigirSesion, pintarUsuarioEnSidebar };
+    return { getToken, getUsuario, guardarSesion, cerrarSesion, exigirSesion, exigirRol, pintarUsuarioEnSidebar };
 })();
 
 MPVAuth.exigirSesion();

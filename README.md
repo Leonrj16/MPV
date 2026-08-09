@@ -98,6 +98,9 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | PUT | `/api/precios/:proveedorProductoId/proveedor-principal` | admin, operador | Marca proveedor principal |
 | POST | `/api/productos`, `/api/proveedores` | admin | Alta de catálogo |
 | GET | `/api/productos`, `/api/proveedores`, `/api/categorias` | cualquiera | Lectura de catálogo |
+| GET/POST | `/api/usuarios` | admin | Lista/crea cuentas del sistema |
+| PUT | `/api/usuarios/:id`, `/api/usuarios/:id/password` | admin | Edita rol/estado o resetea contraseña |
+| GET/PUT | `/api/configuracion` | admin | Lee/actualiza el margen, costo operativo, unidades estimadas e impuesto activos |
 
 ### Frontend
 
@@ -110,10 +113,29 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
   precios con gráfico de tendencia (Chart.js)**, edición rápida de precios
   vía modal y **exportación a Excel/PDF** (respeta los filtros activos de
   la tabla; el dashboard exporta el tablero completo sin filtrar).
+- `public/usuarios.html` — solo para `admin`: alta de usuarios, cambio de
+  rol/estado y reseteo de contraseña. Un admin no puede desactivarse ni
+  quitarse el rol a sí mismo (bloqueado también en el backend).
+- `public/configuracion.html` — solo para `admin`: edita el margen de
+  utilidad por defecto, costo operativo mensual, unidades estimadas e
+  impuesto, con una vista previa en vivo del cálculo de PVP sobre un precio
+  de ejemplo (misma fórmula que `pricingEngine.js`, duplicada en el cliente
+  para no ir al servidor en cada tecla).
 - `public/js/auth.js` — expone `window.MPVAuth`; redirige a `login.html` si
-  no hay sesión y pinta nombre/rol/avatar en el sidebar.
+  no hay sesión, pinta nombre/rol/avatar en el sidebar y oculta con
+  `MPVAuth.exigirRol('admin')` los enlaces/páginas exclusivos de admin
+  (`[data-rol="admin"]`) para el rol operador.
 - `public/js/api.js` — adjunta el `Authorization: Bearer <token>` a cada
   llamada y cierra la sesión automáticamente ante un 401.
+
+### Responsivo
+
+El layout (sidebar, topbar, tarjetas KPI, tablas, modales) fue verificado
+sin scroll horizontal de página en 320px, 390px (móvil) y 768px (tablet):
+el topbar envuelve sus acciones a una segunda fila en pantallas angostas
+(`.mpv-topbar-title` / `.mpv-topbar-actions`), y las tablas anchas
+desplazan su propio contenedor (`.mpv-table-wrap { overflow-x: auto }`)
+en vez de romper el ancho de la página.
 
 Bootstrap 5, Bootstrap Icons y Chart.js están vendorizados en
 `public/vendor/` en vez de cargarse desde un CDN, para que el sistema

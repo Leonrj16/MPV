@@ -197,6 +197,21 @@ body {
     .mpv-main { margin-left: 0; }
 }
 
+@media (max-width: 575.98px) {
+    .mpv-topbar {
+        flex-wrap: wrap;
+        padding: 0.85rem 1rem;
+    }
+    .mpv-topbar-title { width: 100%; }
+    .mpv-topbar-actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+    .mpv-topbar-actions > * { flex: 1 1 auto; }
+    .mpv-content { padding: 1rem; }
+    .kpi-card { padding: 1.1rem 1.2rem; }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Tarjetas KPI                                                            */
 /* ---------------------------------------------------------------------- */
