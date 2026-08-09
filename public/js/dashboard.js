@@ -89,7 +89,7 @@
                         <div class="pvp-sub">antes de impuestos: ${MPV.formatCurrency(fila.subtotalSinImpuesto)}</div>
                     </td>
                     <td data-label="Margen"><span class="badge-margin ${fila.rentabilidad}">${fila.margenRealPct.toFixed(1)}%</span></td>
-                    <td class="text-end"><a href="pricing.html" class="btn-icon-sm"><i class="bi bi-arrow-up-right"></i></a></td>
+                    <td class="text-end"><a href="pricing.html" class="btn-icon-sm" aria-label="Ver ${fila.producto} en Gestión de Precios"><i class="bi bi-arrow-up-right"></i></a></td>
                 </tr>
             `).join('');
         }

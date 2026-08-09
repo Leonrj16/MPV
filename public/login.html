@@ -58,22 +58,22 @@
 </head>
 <body>
 
-<div class="login-card">
+<main class="login-card">
     <div class="login-brand">
         <div class="icon-badge"><i class="bi bi-clipboard2-pulse"></i></div>
         <div>
-            <div class="fw-bold fs-5">MPV Dental</div>
+            <h1 class="fw-bold fs-5 m-0">MPV Dental</h1>
             <div class="text-muted small">Plataforma de Gestión de Precios</div>
         </div>
     </div>
 
     <form id="loginForm">
         <div class="mb-3">
-            <label class="form-label small fw-semibold">Correo electrónico</label>
+            <label class="form-label small fw-semibold" for="email">Correo electrónico</label>
             <input type="email" class="form-control" id="email" required autofocus placeholder="admin@mpvdental.com">
         </div>
         <div class="mb-3">
-            <label class="form-label small fw-semibold">Contraseña</label>
+            <label class="form-label small fw-semibold" for="password">Contraseña</label>
             <input type="password" class="form-control" id="password" required placeholder="••••••••">
         </div>
         <div class="alert alert-danger py-2 small d-none" id="loginError"></div>
@@ -84,7 +84,7 @@
         <i class="bi bi-info-circle me-1"></i>
         Cuenta de demostración: <strong>admin@mpvdental.com</strong> / <strong>Admin123!</strong>
     </div>
-</div>
+</main>
 
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="js/api.js"></script>

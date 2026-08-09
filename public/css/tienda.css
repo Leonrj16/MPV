@@ -24,6 +24,13 @@
     --focus-ring: var(--tienda-azul);
 }
 
+html, body {
+    /* El offcanvas del carrito es position:fixed + transform para quedar
+       fuera de pantalla mientras está cerrado; en algunos navegadores esa
+       geometría igual cuenta para el ancho de scroll del documento y deja
+       "colar" unos pixeles de scroll horizontal fantasma. */
+    overflow-x: hidden;
+}
 body {
     background: #ffffff;
     color: var(--tienda-ink);
@@ -129,7 +136,7 @@ body {
     position: absolute;
     top: -4px;
     right: -4px;
-    background: var(--tienda-verde);
+    background: var(--tienda-verde-oscuro);
     color: #fff;
     font-size: 0.68rem;
     font-weight: 800;
@@ -256,17 +263,19 @@ body {
 .btn-hero-primary {
     display: inline-flex;
     align-items: center;
-    background: var(--tienda-verde);
+    /* var(--tienda-verde) con texto blanco da 3.13:1 (por debajo del 4.5:1
+       de WCAG AA a este tamaño/peso) — se usa el tono oscuro, que sí pasa. */
+    background: var(--tienda-verde-oscuro);
     color: #fff;
     font-weight: 700;
     font-size: 0.88rem;
     border-radius: 999px;
     padding: 0.65rem 1.4rem;
     box-shadow: 0 10px 22px -10px rgba(40, 167, 69, 0.55);
-    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 .btn-hero-primary:hover {
-    background: var(--tienda-verde-oscuro);
+    filter: brightness(0.92);
     color: #fff;
     transform: translateY(-1px);
     box-shadow: 0 14px 26px -10px rgba(40, 167, 69, 0.6);
@@ -417,6 +426,10 @@ body {
     gap: var(--sp-3);
     color: #e2e8f0;
 }
+/* El bloque de texto es un flex item sin min-width:0, así que por defecto
+   (min-width:auto) no se encoge por debajo del ancho de su línea más larga
+   y desborda en pantallas angostas — bug clásico de flexbox. */
+.confianza-item > div:last-child { min-width: 0; }
 .confianza-item .icono {
     width: 42px;
     height: 42px;
@@ -456,8 +469,10 @@ body {
 }
 .chip-categoria:hover { border-color: var(--tienda-azul); color: var(--tienda-azul); }
 .chip-categoria.activo {
-    background: var(--tienda-azul);
-    border-color: var(--tienda-azul);
+    /* var(--tienda-azul) con texto blanco da 3.97:1 — se usa el tono
+       oscuro para cumplir el 4.5:1 de WCAG AA. */
+    background: var(--tienda-azul-oscuro);
+    border-color: var(--tienda-azul-oscuro);
     color: #fff;
 }
 
@@ -597,6 +612,16 @@ body {
     flex: 1;
 }
 .card-producto-nombre {
+    /* Es un <button> real (no un <div>) para que abrir el detalle del
+       producto sea alcanzable con teclado, no solo con clic/toque —
+       reseteado para verse igual que el texto que reemplazó. */
+    background: none;
+    border: none;
+    padding: 0;
+    width: 100%;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
     font-weight: 700;
     font-size: 0.98rem;
     line-height: 1.3;
@@ -625,7 +650,9 @@ body {
 .card-producto-unidad { font-size: 0.72rem; color: var(--tienda-ink-soft); font-weight: 500; }
 
 .btn-agregar {
-    background: var(--tienda-verde);
+    /* Mismo caso que .btn-hero-primary: el verde base no cumple 4.5:1 con
+       texto blanco a este tamaño/peso, se usa el tono oscuro. */
+    background: var(--tienda-verde-oscuro);
     border: none;
     color: #fff;
     font-weight: 700;
@@ -634,12 +661,12 @@ body {
     font-size: 0.85rem;
     width: 100%;
     margin-top: 0.85rem;
-    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    transition: filter 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
     box-shadow: 0 4px 10px -4px rgba(40, 167, 69, 0.5);
 }
-.btn-agregar:hover { background: var(--tienda-verde-oscuro); color: #fff; transform: translateY(-1px); }
+.btn-agregar:hover { filter: brightness(0.92); color: #fff; transform: translateY(-1px); }
 .btn-agregar:active { transform: translateY(0); }
-.btn-agregar.agregado { background: var(--tienda-azul); box-shadow: 0 4px 10px -4px rgba(0, 123, 255, 0.5); }
+.btn-agregar.agregado { background: var(--tienda-azul-oscuro); box-shadow: 0 4px 10px -4px rgba(0, 123, 255, 0.5); }
 
 /* ---------------------------------------------------------------------- */
 /* Carrito (offcanvas)                                                     */
@@ -746,7 +773,7 @@ body {
     padding: 3rem 0 1.5rem;
     margin-top: 3rem;
 }
-.tienda-footer h6 { color: #fff; font-weight: 700; font-size: 0.92rem; margin-bottom: 1rem; }
+.tienda-footer h3 { color: #fff; font-weight: 700; font-size: 0.92rem; margin-bottom: 1rem; }
 .tienda-footer a { color: #cbd5e1; text-decoration: none; font-size: 0.87rem; }
 .tienda-footer a:hover { color: var(--tienda-verde); }
 .tienda-footer .footer-item {
@@ -769,7 +796,7 @@ body {
     color: #fff;
     transition: background 0.15s ease;
 }
-.tienda-footer .footer-social:hover { background: var(--tienda-verde); }
+.tienda-footer .footer-social:hover { background: var(--tienda-verde-oscuro); }
 .tienda-footer-bottom {
     border-top: 1px solid rgba(255, 255, 255, 0.1);
     margin-top: 2rem;

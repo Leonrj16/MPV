@@ -102,20 +102,20 @@
             <form id="formNuevoUsuario">
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Nombre completo</label>
+                        <label class="form-label small fw-semibold" for="nuevoNombre">Nombre completo</label>
                         <input type="text" class="form-control" id="nuevoNombre" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Correo electrónico</label>
+                        <label class="form-label small fw-semibold" for="nuevoEmail">Correo electrónico</label>
                         <input type="email" class="form-control" id="nuevoEmail" required>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold">Contraseña</label>
+                        <label class="form-label small fw-semibold" for="nuevoPassword">Contraseña</label>
                         <input type="password" class="form-control" id="nuevoPassword" minlength="8" required>
                         <div class="form-text">Mínimo 8 caracteres.</div>
                     </div>
                     <div class="mb-2">
-                        <label class="form-label small fw-semibold">Rol</label>
+                        <label class="form-label small fw-semibold" for="nuevoRol">Rol</label>
                         <select class="form-select" id="nuevoRol">
                             <option value="operador">Operador de Compras</option>
                             <option value="admin">Administrador</option>
@@ -143,11 +143,11 @@
             <div class="modal-body">
                 <input type="hidden" id="editarId">
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold">Nombre completo</label>
+                    <label class="form-label small fw-semibold" for="editarNombre">Nombre completo</label>
                     <input type="text" class="form-control" id="editarNombre" required>
                 </div>
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold">Rol</label>
+                    <label class="form-label small fw-semibold" for="editarRol">Rol</label>
                     <select class="form-select" id="editarRol">
                         <option value="operador">Operador de Compras</option>
                         <option value="admin">Administrador</option>
@@ -158,7 +158,7 @@
                     <label class="form-check-label small fw-semibold" for="editarActivo">Cuenta activa</label>
                 </div>
                 <hr>
-                <label class="form-label small fw-semibold">Restablecer contraseña (opcional)</label>
+                <label class="form-label small fw-semibold" for="editarPassword">Restablecer contraseña (opcional)</label>
                 <input type="password" class="form-control" id="editarPassword" minlength="8" placeholder="Dejar en blanco para no cambiarla">
                 <div class="alert alert-danger py-2 small d-none mt-3" id="editarUsuarioError"></div>
             </div>

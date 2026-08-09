@@ -70,7 +70,7 @@
                         ${imagenHtml}
                     </div>
                     <div class="card-producto-body">
-                        <div class="card-producto-nombre">${nombre}</div>
+                        <button type="button" class="card-producto-nombre" data-id="${p.id}">${nombre}</button>
                         <div class="card-producto-desc">${escaparHtml(p.descripcion) || 'Producto dental de calidad, con precio verificado.'}</div>
                         <div class="d-flex align-items-end justify-content-between mt-auto">
                             <div>
@@ -362,7 +362,7 @@
             ? `<img src="${escaparHtml(p.imagenUrl)}" alt="${escaparHtml(p.nombre)}" loading="lazy" onerror="manejarErrorImagen(this)">`
             : `<i class="bi bi-capsule"></i>`;
         return `
-            <div class="mini-producto" data-id="${p.id}">
+            <div class="mini-producto" data-id="${p.id}" role="button" tabindex="0" aria-label="Ver detalle de ${escaparHtml(p.nombre)}">
                 <div class="mini-producto-imagen">${imagenHtml}</div>
                 <div class="mini-producto-nombre">${escaparHtml(p.nombre)}</div>
                 <div class="mini-producto-precio">${formatCurrency(p.precio)}</div>
@@ -477,6 +477,18 @@
         }
         const mini = e.target.closest('.mini-producto');
         if (mini) abrirDetalle(Number(mini.dataset.id));
+    });
+
+    // .mini-producto es un <div role="button"> (no un elemento nativo), así
+    // que necesita su propio manejo de Enter/Espacio para ser operable con
+    // teclado — los <button> reales (Agregar, Favorito, Compartir) ya lo
+    // hacen de forma nativa.
+    document.getElementById('modalDetalleContent')?.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        const mini = e.target.closest('.mini-producto');
+        if (!mini) return;
+        e.preventDefault();
+        abrirDetalle(Number(mini.dataset.id));
     });
 
     // -------- SEO: datos estructurados del catálogo real ya renderizado --------

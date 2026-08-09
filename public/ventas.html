@@ -83,9 +83,9 @@
                             <i class="bi bi-search"></i>
                             <input type="text" id="filtroCliente" class="form-control" placeholder="Buscar por cliente…">
                         </div>
-                        <input type="date" id="filtroDesde" class="form-control mpv-filter-select" style="width:auto;" title="Desde">
-                        <input type="date" id="filtroHasta" class="form-control mpv-filter-select" style="width:auto;" title="Hasta">
-                        <select id="filtroMetodoPago" class="form-select mpv-filter-select">
+                        <input type="date" id="filtroDesde" class="form-control mpv-filter-select" style="width:auto;" title="Desde" aria-label="Filtrar ventas desde esta fecha">
+                        <input type="date" id="filtroHasta" class="form-control mpv-filter-select" style="width:auto;" title="Hasta" aria-label="Filtrar ventas hasta esta fecha">
+                        <select id="filtroMetodoPago" class="form-select mpv-filter-select" aria-label="Filtrar por método de pago">
                             <option value="">Todos los métodos</option>
                             <option value="efectivo">Efectivo</option>
                             <option value="tarjeta">Tarjeta</option>
@@ -124,7 +124,7 @@
                         <h2>Pedidos Web</h2>
                         <div class="panel-sub" id="pedidosResultCount">Cargando…</div>
                     </div>
-                    <select id="filtroEstadoPedido" class="form-select mpv-filter-select">
+                    <select id="filtroEstadoPedido" class="form-select mpv-filter-select" aria-label="Filtrar por estado del pedido">
                         <option value="">Todos los estados</option>
                         <option value="pendiente">Pendientes</option>
                         <option value="atendido">Atendidos</option>

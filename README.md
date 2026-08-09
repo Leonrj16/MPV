@@ -476,6 +476,78 @@ correcto, y una auditoría de 8 páginas del panel × 2 anchos (375px y
 768px) más `tienda.html`/`carrito.html`, confirmando visualmente el
 antes/después de las tablas en tarjetas.
 
+## Auditoría de accesibilidad y UX (WCAG 2 A/AA)
+
+Pedido explícito: revisar la UX/UI de **todo** el sistema (no solo la
+tienda) para que sea accesible en cualquier dispositivo y no se vea
+"feo" en ningún tamaño de pantalla. Se corrió `axe-core` (reglas
+`wcag2a` + `wcag2aa` + `best-practice`) contra las 11 páginas del
+sistema con Playwright, más una revisión visual manual en 320px (el
+celular más angosto de uso común), 1920px (escritorio grande) y
+landscape móvil (844×390). Resultado final: **0 violaciones en las 11
+páginas**. Lo que se encontró y corrigió:
+
+- **Contraste de color (WCAG 1.4.3, serio)**: `.supplier-badge.optimo`,
+  `.alert-price-up`, `.chip-categoria.activo`, `.btn-hero-primary`,
+  `.btn-agregar` y el badge del carrito usaban el tono "claro" de la
+  paleta (verde/azul/rojo) con texto blanco a tamaños pequeños — entre
+  3.13:1 y 3.98:1, todos por debajo del 4.5:1 mínimo. Se cambiaron a los
+  tonos oscuros ya existentes en la paleta (`--tienda-verde-oscuro`,
+  `--tienda-azul-oscuro`, `#047857`, `#b91c1c`), que sí pasan. Aparte,
+  `.pos-product-card.disabled` (producto sin stock en Punto de Venta)
+  usaba `opacity: 0.55` sobre **todo** el texto de la tarjeta —incluido
+  el mensaje "no se puede vender"—, aplastando el contraste de
+  información que el usuario sí necesita leer; se reemplazó por un fondo
+  gris con solo el ícono atenuado, dejando el texto a contraste completo.
+- **Nombres accesibles (WCAG 4.1.2, crítico)**: 6 `<select>` de filtro
+  (`filtroCategoria`, `filtroProveedor`, `filtroRentabilidad`,
+  `posMetodoPago`, `filtroMetodoPago`, `filtroEstadoPedido`,
+  `ordenSelect`) no tenían nombre accesible para lectores de pantalla —
+  se les agregó `aria-label`. El enlace de "ver producto" en la tabla del
+  dashboard solo tenía un ícono sin texto — se agregó `aria-label`
+  dinámico con el nombre del producto.
+- **Labels de formulario (WCAG 1.3.1/4.1.2, crítico)**: 53 pares
+  `<label>`/`<input|select|textarea>` en todo el sistema (formularios de
+  Productos, Proveedores, Usuarios, Configuración, Login) no estaban
+  asociados con `for`/`id` — un script determinista los corrigió todos a
+  la vez emparejando cada label con el control inmediatamente siguiente;
+  los 2 casos con estructura más compleja (subir logo/imagen de portada,
+  con preview + botón de archivo de por medio) se asociaron a mano.
+- **Estructura semántica (landmarks, encabezados)**: `login.html` no
+  tenía `<main>` ni un `<h1>` real (el nombre de marca era un `<div>`) —
+  se corrigió. `tienda.html`/`carrito.html` tenían secciones (`topstrip`,
+  hero, franja de confianza, destacados) fuera de cualquier landmark —
+  se les dio `role="region"`/`aria-label`/`aria-labelledby` (reutilizando
+  los `<h1>`/`<h2>` que ya existían donde se pudo). Los `<h6>` de pie de
+  página y de los paneles de "Tienda Virtual" en Configuración saltaban
+  niveles de encabezado (h1→h6, h2→h6) — se corrigieron a `h3`
+  manteniendo el tamaño visual original vía clases utilitarias
+  (`fs-6`), no cambiando el CSS del selector de etiqueta.
+- **Operabilidad por teclado (WCAG 2.1.1)**: el rediseño de Fase B
+  agregó tarjetas de producto clicables (`.card-producto`) y productos
+  relacionados (`.mini-producto`) dentro del modal — ninguno de los dos
+  era alcanzable con teclado. El nombre del producto en cada tarjeta pasó
+  de `<div>` a `<button>` real (foco + Enter/Espacio nativos, sin JS
+  extra); los relacionados del modal son `<div role="button"
+  tabindex="0">` con un manejador de `keydown` propio para Enter/Espacio,
+  ya que ahí sí hacía falta.
+- **Scroll horizontal fantasma en 320px**: el offcanvas del carrito
+  (`position: fixed` + `transform` para quedar fuera de pantalla cuando
+  está cerrado) hacía que el documento creyera tener ~3px de ancho de
+  scroll de más — confirmado que era real y no solo de medición
+  (`window.scrollX` cambiaba de 0 a 3 al intentar hacer scroll horizontal
+  con la rueda del mouse). Se agregó `overflow-x: hidden` en `html,body`
+  de la tienda, patrón estándar para contener elementos transformados
+  fuera de pantalla. De paso se encontró y corrigió un bug de flexbox
+  clásico en la franja de confianza (`.confianza-item`): el bloque de
+  texto, sin `min-width: 0`, no se encogía por debajo del ancho de su
+  línea más larga y desbordaba en pantallas angostas.
+
+Verificado con `npx jest` (98/98) y con Playwright: 0 violaciones de
+axe-core en las 11 páginas, sin overflow horizontal en 320/375/768/1920px
+ni en landscape móvil, y una prueba de navegación por teclado real (Tab
+hasta el nombre del producto → Enter → el modal de detalle se abre).
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación

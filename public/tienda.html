@@ -56,7 +56,7 @@
 <body>
 
 <!-- Barra superior de contacto -->
-<div class="tienda-topstrip">
+<div class="tienda-topstrip" role="region" aria-label="Información de contacto">
     <div class="container d-flex justify-content-between align-items-center flex-wrap gap-1">
         <div class="d-none d-sm-flex gap-3">
             <span><i class="bi bi-telephone-fill me-1"></i> <span id="topstripTelefono">+51 999 000 111</span></span>
@@ -95,7 +95,7 @@
 </header>
 
 <!-- Hero -->
-<section class="tienda-hero">
+<section class="tienda-hero" aria-labelledby="heroTitulo">
     <div class="container reveal">
         <div class="tienda-hero-grid">
             <div class="tienda-hero-copy">
@@ -145,7 +145,7 @@
 </section>
 
 <!-- Franja de confianza -->
-<section class="tienda-confianza">
+<section class="tienda-confianza" aria-label="Por qué elegirnos">
     <div class="container">
         <div class="row g-4">
             <div class="col-6 col-lg-3 reveal">
@@ -190,7 +190,7 @@
 
 
 <!-- Los Más Vendidos / Recién Llegados -->
-<section class="seccion-destacados d-none" id="seccionDestacados">
+<section class="seccion-destacados d-none" id="seccionDestacados" aria-labelledby="tituloDestacados">
     <div class="container">
         <h2 class="destacados-titulo reveal" id="tituloDestacados">Los Más Vendidos</h2>
         <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 g-md-4" id="gridDestacados"></div>
@@ -206,7 +206,7 @@
     <!-- Resultado / contador + orden -->
     <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div class="text-muted small" id="resultCount">Cargando catálogo…</div>
-        <select class="form-select form-select-sm select-orden" id="ordenSelect">
+        <select class="form-select form-select-sm select-orden" id="ordenSelect" aria-label="Ordenar productos">
             <option value="">Relevancia</option>
             <option value="vendidos">Más vendidos</option>
             <option value="precio_asc">Precio: menor a mayor</option>
@@ -257,7 +257,7 @@
 </div>
 
 <!-- Toast de confirmación -->
-<div class="toast-agregado" id="toastAgregado">
+<div class="toast-agregado" id="toastAgregado" role="status" aria-live="polite" aria-atomic="true">
     <i class="bi bi-check-circle-fill"></i>
     <span id="toastAgregadoTexto">Producto agregado al carrito</span>
 </div>
@@ -282,14 +282,14 @@
                 </div>
             </div>
             <div class="col-6 col-md-4">
-                <h6>Contacto</h6>
+                <h3>Contacto</h3>
                 <div class="footer-item"><i class="bi bi-geo-alt-fill"></i><span id="footerDireccion">Av. Principal 123, San Isidro, Lima, Perú</span></div>
                 <div class="footer-item"><i class="bi bi-telephone-fill"></i><span id="footerTelefono">+51 999 000 111</span></div>
                 <div class="footer-item"><i class="bi bi-envelope-fill"></i><span id="footerEmail">contacto@sanjudastadeo.dental</span></div>
                 <div class="footer-item"><i class="bi bi-clock-fill"></i><span id="footerHorario">Lunes a sábado, 9:00 a. m. – 7:00 p. m.</span></div>
             </div>
             <div class="col-6 col-md-4">
-                <h6>Enlaces</h6>
+                <h3>Enlaces</h3>
                 <div class="mb-2"><a href="tienda.html">Catálogo completo</a></div>
                 <div class="mb-2"><a href="#contacto">Contacto y ubicación</a></div>
                 <div class="mb-2"><a href="login.html">Acceso interno del consultorio</a></div>

@@ -607,7 +607,10 @@ body {
 }
 
 .supplier-badge.optimo {
-    color: var(--mpv-emerald);
+    /* var(--mpv-emerald) da 3.38:1 sobre blanco a este tamaño de texto —
+       por debajo del mínimo 4.5:1 de WCAG AA; se usa el mismo verde oscuro
+       que ya pasa en .badge-margin.alto. */
+    color: #047857;
 }
 
 .supplier-badge .dot {
@@ -638,7 +641,9 @@ body {
     gap: 0.3rem;
     font-size: 0.72rem;
     font-weight: 700;
-    color: var(--mpv-red);
+    /* var(--mpv-red) da 3.19:1 sobre var(--mpv-red-soft) — igual que
+       .badge-margin.bajo, que ya usa este rojo más oscuro y sí pasa AA. */
+    color: #b91c1c;
     background: var(--mpv-red-soft);
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
@@ -727,7 +732,13 @@ body {
 }
 
 .pos-product-card:hover { box-shadow: var(--mpv-shadow); border-color: var(--mpv-gray-300); }
-.pos-product-card.disabled { opacity: 0.55; }
+/* opacity reduce el contraste de TODO el texto de adentro por debajo de lo
+   legible (el botón "Agregar" ya lleva el atributo disabled real y por eso
+   está exento, pero el texto informativo — "sin stock" — no lo está y debe
+   seguir siendo legible). En vez de atenuar, se usa un fondo gris y solo el
+   ícono se apaga. */
+.pos-product-card.disabled { background: var(--mpv-gray-50); cursor: not-allowed; }
+.pos-product-card.disabled .product-thumb { opacity: 0.5; }
 
 .pos-cart-panel { position: sticky; top: 90px; }
 
