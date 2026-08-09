@@ -282,6 +282,103 @@ overflow horizontal en escritorio ni en 393px. 17 tests nuevos
 (`pedidosWeb.test.js` + ampliaciones a `ventas.test.js`). Suite completa:
 89/89.
 
+## Fase B — Detalle de producto, stock, orden, destacados y carrito dedicado
+
+Cierra la parte de "tienda que se siente premium y completa" desde el
+punto de vista del cliente final: antes el catálogo era una grilla plana
+sin forma de ver más detalle de un producto, sin saber si quedaba stock,
+sin poder ordenar por precio/popularidad, sin una vitrina de lo más
+vendido, y el único lugar para revisar el pedido antes de mandarlo por
+WhatsApp era un offcanvas angosto.
+
+### Backend: `stockActual` y `vendidosTotal` viajan con cada producto
+
+`src/controllers/tienda.controller.js` se reescribió para que **todo el
+filtrado/orden siga ocurriendo en el cliente** (mismo principio ya usado
+en `tienda.js`: el catálogo se carga una sola vez), agregando los datos
+que el frontend necesita para eso sin pedir nada más al servidor:
+
+- `stockActual` ya venía en la fila de `productos`, ahora se expone en
+  la respuesta pública.
+- `vendidosTotal` se calcula con una segunda consulta agregada
+  (`SELECT producto_id, SUM(cantidad) FROM venta_detalle GROUP BY producto_id`)
+  y se mapea en memoria — así el catálogo puede ordenarse por popularidad
+  sin tocar el servidor de nuevo.
+- **`GET /api/tienda/productos/:id`** (nuevo, público): detalle completo
+  de un producto + hasta 4 "relacionados" de la misma categoría
+  (excluyéndose a sí mismo). 404 si no existe o no tiene oferta activa.
+- **`GET /api/tienda/destacados`** (nuevo, público): "Los Más Vendidos"
+  calculado con datos reales de `venta_detalle` (top 8 por cantidad
+  vendida), **no una bandera manual de "destacado" inventada**. Si el
+  negocio todavía no registró ninguna venta (caso típico al arrancar),
+  cae a los 8 productos activos más recientes en vez de mostrar una
+  sección vacía — el `criterio` devuelto (`mas_vendidos` | `recientes` |
+  `ninguno`) le dice al frontend qué título usar. Si algún id ya no tiene
+  oferta activa para cuando se resuelve la segunda consulta, se descarta
+  en silencio en vez de romper la respuesta.
+- 9 tests nuevos en `tests/tiendaController.test.js` (nunca expone
+  `precioCompraUnitario` ni proveedor, relacionados excluye al propio
+  producto, destacados cae a recientes sin ventas y conserva el orden de
+  popularidad cuando sí las hay).
+
+### Badges de stock y tope de cantidad en el carrito
+
+`tienda.js` pinta un badge sobre la imagen del producto según
+`stockActual`: **"Agotado"** (gris oscuro, botón "Agregar" deshabilitado)
+o **"Últimas N unidades"** (ámbar, con N ≤ 5). El tope de cantidad no es
+solo visual: `Carrito.agregar()`/`actualizarCantidad()` en
+`public/js/carrito.js` ahora guardan `stockActual` dentro de cada item
+del carrito y **topan la cantidad a ese valor** — así ningún lugar de la
+app (offcanvas, modal de detalle, página de carrito) deja pedir más
+unidades de las que hay, sin necesitar volver a consultar el catálogo
+completo en cada página.
+
+### Orden del catálogo y "Los Más Vendidos"
+
+Un `<select>` junto al contador de resultados ordena por Relevancia
+(orden del servidor), Más vendidos (`vendidosTotal`), Precio (asc/desc) o
+Nombre A-Z — todo client-side sobre el array ya cargado. Entre la franja
+de confianza y el catálogo se agregó una sección "Los Más Vendidos" (o
+"Recién Llegados" si aún no hay ventas) que reutiliza exactamente las
+mismas tarjetas de producto del grid principal; si el backend devuelve
+`criterio: 'ninguno'` (sin productos activos), la sección completa se
+oculta con `d-none` en vez de mostrarse vacía.
+
+### Modal de detalle de producto
+
+Un clic en cualquier tarjeta (fuera del botón "Agregar") abre un modal de
+Bootstrap con imagen grande, categoría, descripción completa, precio,
+badge de stock y su propio botón "Agregar al Carrito", más una fila
+"También te puede interesar" con los relacionados devueltos por
+`GET /api/tienda/productos/:id` — hacer clic en un relacionado vuelve a
+pedir el detalle y refresca el mismo modal en vez de abrir uno nuevo. El
+click-to-add del grid y del modal comparten la misma función
+(`agregarAlCarritoConTope`) para que el tope de stock se respete
+igual en los dos lugares.
+
+### `public/carrito.html` — página dedicada de carrito
+
+El offcanvas del header sigue existiendo para agregar rápido sin salir
+del catálogo, pero ahora tiene un enlace "Ver carrito completo" hacia
+`carrito.html`: una página de ancho completo con la lista de productos a
+la izquierda (imagen, stepper de cantidad, subtotal, eliminar) y un panel
+de resumen fijo a la derecha (cantidad de productos, total, nombre
+opcional del cliente, y el mismo flujo de "Finalizar Pedido por
+WhatsApp" + registro best-effort en `pedidos_web` que ya usaba el
+offcanvas). `public/js/carrito-pagina.js` es un script nuevo e
+independiente de `tienda.js` — cuando el carrito está vacío, la página
+muestra un estado vacío con un enlace de vuelta al catálogo en vez de un
+resumen en blanco.
+
+Verificado con `npx jest` (98/98, suite completa sin regresiones — este
+trabajo fue 100% frontend, no tocó tests existentes salvo el archivo
+nuevo) y con Playwright en escritorio (1440×900) y móvil (393×852): sin
+overflow horizontal en `tienda.html` ni en `carrito.html`, badge "Últimas
+N unidades"/"Agotado" confirmado bajando el stock de un producto real en
+la base de datos y restaurándolo después, orden por precio funcionando,
+modal de detalle abriendo y agregando al carrito, y flujo completo hasta
+la página de carrito dedicada.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación

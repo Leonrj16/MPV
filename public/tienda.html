@@ -140,15 +140,31 @@
     </div>
 </section>
 
+
+<!-- Los Más Vendidos / Recién Llegados -->
+<section class="seccion-destacados d-none" id="seccionDestacados">
+    <div class="container">
+        <h2 class="destacados-titulo reveal" id="tituloDestacados">Los Más Vendidos</h2>
+        <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 g-md-4" id="gridDestacados"></div>
+    </div>
+</section>
+
 <main class="container" id="catalogo">
     <!-- Filtros de categoría -->
     <div class="tienda-categorias" id="categoriasNav">
         <button class="chip-categoria activo" data-categoria="">Todos los productos</button>
     </div>
 
-    <!-- Resultado / contador -->
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <!-- Resultado / contador + orden -->
+    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
         <div class="text-muted small" id="resultCount">Cargando catálogo…</div>
+        <select class="form-select form-select-sm select-orden" id="ordenSelect">
+            <option value="">Relevancia</option>
+            <option value="vendidos">Más vendidos</option>
+            <option value="precio_asc">Precio: menor a mayor</option>
+            <option value="precio_desc">Precio: mayor a menor</option>
+            <option value="nombre">Nombre A-Z</option>
+        </select>
     </div>
 
     <!-- Grid de productos -->
@@ -179,6 +195,9 @@
                 <span class="fw-semibold">Total</span>
                 <span class="fs-4 fw-bold" id="totalCarrito">S/ 0.00</span>
             </div>
+            <a class="btn btn-outline-secondary w-100 btn-sm mb-2" href="carrito.html">
+                <i class="bi bi-cart3 me-1"></i> Ver carrito completo
+            </a>
             <button class="btn btn-agregar mb-2" id="btnFinalizarPedido" disabled>
                 <i class="bi bi-whatsapp me-1"></i> Finalizar Pedido por WhatsApp
             </button>
@@ -233,6 +252,15 @@
         </div>
     </div>
 </footer>
+
+<!-- Modal: detalle de producto -->
+<div class="modal fade" id="modalDetalleProducto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" id="modalDetalleContent">
+            <!-- Se llena por JS -->
+        </div>
+    </div>
+</div>
 
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="js/scroll-reveal.js"></script>

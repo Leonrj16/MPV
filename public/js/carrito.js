@@ -27,12 +27,21 @@ window.Carrito = (() => {
         callback(obtener()); // estado inicial
     }
 
+    // stockActual viaja con cada item para poder topar la cantidad al stock
+    // disponible en cualquier página (tienda.html o carrito.html) sin volver
+    // a pedir el catálogo completo. null significa "sin dato de stock".
+    function tope(cantidad, stockActual) {
+        return typeof stockActual === 'number' && stockActual > 0 ? Math.min(cantidad, stockActual) : cantidad;
+    }
+
     function agregar(producto, cantidad = 1) {
         const items = obtener();
         const existente = items.find((i) => i.id === producto.id);
+        const stockActual = typeof producto.stockActual === 'number' ? producto.stockActual : null;
 
         if (existente) {
-            existente.cantidad += cantidad;
+            existente.stockActual = stockActual;
+            existente.cantidad = tope(existente.cantidad + cantidad, stockActual);
         } else {
             items.push({
                 id: producto.id,
@@ -41,7 +50,8 @@ window.Carrito = (() => {
                 precio: producto.precio,
                 imagenUrl: producto.imagenUrl || null,
                 unidadMedida: producto.unidadMedida || 'unidad',
-                cantidad,
+                stockActual,
+                cantidad: tope(cantidad, stockActual),
             });
         }
         guardar(items);
@@ -52,7 +62,7 @@ window.Carrito = (() => {
         const item = items.find((i) => i.id === id);
         if (!item) return;
 
-        item.cantidad += delta;
+        item.cantidad = tope(item.cantidad + delta, item.stockActual);
         const resultado = item.cantidad <= 0 ? items.filter((i) => i.id !== id) : items;
         guardar(resultado);
     }

@@ -13,6 +13,7 @@
     const resultCount = document.getElementById('resultCount');
     const buscador = document.getElementById('buscador');
     const categoriasNav = document.getElementById('categoriasNav');
+    const ordenSelect = document.getElementById('ordenSelect');
 
     function escaparHtml(texto) {
         const div = document.createElement('div');
@@ -37,17 +38,30 @@
         img.closest('.hero-media-card').innerHTML = '<div class="hero-media-emblem"><i class="bi bi-clipboard2-pulse"></i></div>';
     };
 
+    // "Últimas unidades" a partir de este umbral (inclusive) y hasta 1; en 0
+    // o menos el producto se considera agotado.
+    const UMBRAL_STOCK_BAJO = 5;
+
+    function badgeStockHtml(p) {
+        if (typeof p.stockActual !== 'number') return '';
+        if (p.stockActual <= 0) return '<span class="badge-stock badge-agotado">Agotado</span>';
+        if (p.stockActual <= UMBRAL_STOCK_BAJO) return `<span class="badge-stock badge-pocas">Últimas ${p.stockActual} unidades</span>`;
+        return '';
+    }
+
     function tarjetaProductoHtml(p) {
         const nombre = escaparHtml(p.nombre);
         const imagenHtml = p.imagenUrl
             ? `<img src="${escaparHtml(p.imagenUrl)}" alt="${nombre}" loading="lazy" onerror="manejarErrorImagen(this)">`
             : `<i class="bi bi-capsule placeholder-icono"></i>`;
+        const agotado = typeof p.stockActual === 'number' && p.stockActual <= 0;
 
         return `
             <div class="col reveal">
-                <div class="card-producto">
+                <div class="card-producto" data-id="${p.id}">
                     <div class="card-producto-imagen">
                         ${p.categoria ? `<span class="card-producto-categoria">${escaparHtml(p.categoria)}</span>` : ''}
+                        ${badgeStockHtml(p)}
                         ${imagenHtml}
                     </div>
                     <div class="card-producto-body">
@@ -59,8 +73,8 @@
                                 <div class="card-producto-unidad">por ${escaparHtml(p.unidadMedida)}</div>
                             </div>
                         </div>
-                        <button class="btn-agregar" data-id="${p.id}">
-                            <i class="bi bi-bag-plus-fill me-1"></i>Agregar al Carrito
+                        <button class="btn-agregar${agotado ? ' agotado' : ''}" data-id="${p.id}" ${agotado ? 'disabled' : ''}>
+                            <i class="bi ${agotado ? 'bi-x-circle' : 'bi-bag-plus-fill'} me-1"></i>${agotado ? 'Agotado' : 'Agregar al Carrito'}
                         </button>
                     </div>
                 </div>
@@ -78,6 +92,19 @@
         window.MPVScrollReveal?.iniciar();
     }
 
+    // Todo el orden ocurre en el cliente (el catálogo ya viaja completo con
+    // precio y vendidosTotal), sin volver a pedir nada al servidor.
+    function ordenarProductos(lista, orden) {
+        const copia = [...lista];
+        switch (orden) {
+            case 'precio_asc': return copia.sort((a, b) => a.precio - b.precio);
+            case 'precio_desc': return copia.sort((a, b) => b.precio - a.precio);
+            case 'nombre': return copia.sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'));
+            case 'vendidos': return copia.sort((a, b) => (b.vendidosTotal || 0) - (a.vendidosTotal || 0));
+            default: return copia;
+        }
+    }
+
     function aplicarFiltros() {
         const texto = buscador.value.trim().toLowerCase();
         const filtrados = catalogoCompleto.filter((p) => {
@@ -87,7 +114,7 @@
             const matchCat = !categoriaActiva || p.categoria === categoriaActiva;
             return matchTexto && matchCat;
         });
-        renderGrid(filtrados);
+        renderGrid(ordenarProductos(filtrados, ordenSelect ? ordenSelect.value : ''));
     }
 
     function renderCategorias(categorias) {
@@ -106,6 +133,7 @@
     });
 
     buscador.addEventListener('input', aplicarFiltros);
+    ordenSelect?.addEventListener('change', aplicarFiltros);
 
     // -------- Toast de confirmación --------
     let toastTimeout;
@@ -117,24 +145,47 @@
         toastTimeout = setTimeout(() => toast.classList.remove('mostrar'), 2200);
     }
 
-    grid.addEventListener('click', (e) => {
-        const btn = e.target.closest('.btn-agregar');
-        if (!btn) return;
-        const id = Number(btn.dataset.id);
-        const producto = catalogoCompleto.find((p) => p.id === id);
-        if (!producto) return;
+    function agregarAlCarritoConTope(producto, btn) {
+        const enCarrito = Carrito.obtener().find((i) => i.id === producto.id);
+        const cantidadActual = enCarrito ? enCarrito.cantidad : 0;
+        if (typeof producto.stockActual === 'number' && producto.stockActual > 0 && cantidadActual >= producto.stockActual) {
+            mostrarToast(`Ya tienes las ${producto.stockActual} unidades disponibles en tu carrito`);
+            return;
+        }
 
         Carrito.agregar(producto, 1);
         mostrarToast(`${producto.nombre} agregado al carrito`);
 
-        const textoOriginal = btn.innerHTML;
-        btn.classList.add('agregado');
-        btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Agregado';
-        setTimeout(() => {
-            btn.classList.remove('agregado');
-            btn.innerHTML = textoOriginal;
-        }, 1200);
-    });
+        if (btn) {
+            const textoOriginal = btn.innerHTML;
+            btn.classList.add('agregado');
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Agregado';
+            setTimeout(() => {
+                btn.classList.remove('agregado');
+                btn.innerHTML = textoOriginal;
+            }, 1200);
+        }
+    }
+
+    // Se reutiliza tanto para el grid principal como para "Los Más Vendidos":
+    // ambos usan las mismas tarjetas (tarjetaProductoHtml) y solo cambia de
+    // qué lista viva se toma el producto al hacer clic.
+    function crearManejadorGrid(obtenerListaActual) {
+        return (e) => {
+            const btn = e.target.closest('.btn-agregar');
+            if (btn) {
+                if (btn.disabled) return;
+                const producto = obtenerListaActual().find((p) => p.id === Number(btn.dataset.id));
+                if (producto) agregarAlCarritoConTope(producto, btn);
+                return;
+            }
+
+            const card = e.target.closest('.card-producto');
+            if (card) abrirDetalle(Number(card.dataset.id));
+        };
+    }
+
+    grid.addEventListener('click', crearManejadorGrid(() => catalogoCompleto));
 
     // -------- Carrito: badge + offcanvas --------
     function itemCarritoHtml(item) {
@@ -226,6 +277,121 @@
     });
 
     Carrito.suscribir(renderCarrito);
+
+    // -------- "Los Más Vendidos" (portada) --------
+    let destacadosProductos = [];
+    const seccionDestacados = document.getElementById('seccionDestacados');
+    const gridDestacados = document.getElementById('gridDestacados');
+    const tituloDestacados = document.getElementById('tituloDestacados');
+
+    async function cargarDestacados() {
+        if (!seccionDestacados || !gridDestacados) return;
+        try {
+            const res = await fetch('/api/tienda/destacados').then((r) => r.json());
+            if (!res.ok || res.data.criterio === 'ninguno' || res.data.productos.length === 0) {
+                seccionDestacados.classList.add('d-none');
+                return;
+            }
+            destacadosProductos = res.data.productos;
+            if (tituloDestacados) {
+                tituloDestacados.textContent = res.data.criterio === 'mas_vendidos' ? 'Los Más Vendidos' : 'Recién Llegados';
+            }
+            gridDestacados.innerHTML = destacadosProductos.map(tarjetaProductoHtml).join('');
+            seccionDestacados.classList.remove('d-none');
+            window.MPVScrollReveal?.iniciar();
+        } catch {
+            seccionDestacados.classList.add('d-none');
+        }
+    }
+
+    gridDestacados?.addEventListener('click', crearManejadorGrid(() => destacadosProductos));
+
+    // -------- Modal de detalle de producto --------
+    let productoDetalleActual = null;
+    let modalDetalleInstance = null;
+
+    function getModalDetalle() {
+        if (!modalDetalleInstance) {
+            const el = document.getElementById('modalDetalleProducto');
+            modalDetalleInstance = new bootstrap.Modal(el);
+        }
+        return modalDetalleInstance;
+    }
+
+    function miniProductoHtml(p) {
+        const imagenHtml = p.imagenUrl
+            ? `<img src="${escaparHtml(p.imagenUrl)}" alt="${escaparHtml(p.nombre)}" loading="lazy" onerror="manejarErrorImagen(this)">`
+            : `<i class="bi bi-capsule"></i>`;
+        return `
+            <div class="mini-producto" data-id="${p.id}">
+                <div class="mini-producto-imagen">${imagenHtml}</div>
+                <div class="mini-producto-nombre">${escaparHtml(p.nombre)}</div>
+                <div class="mini-producto-precio">${formatCurrency(p.precio)}</div>
+            </div>
+        `;
+    }
+
+    function renderDetalleModal(p) {
+        productoDetalleActual = p;
+        const content = document.getElementById('modalDetalleContent');
+        const imagenHtml = p.imagenUrl
+            ? `<img src="${escaparHtml(p.imagenUrl)}" alt="${escaparHtml(p.nombre)}" onerror="manejarErrorImagen(this)">`
+            : `<i class="bi bi-capsule placeholder-icono"></i>`;
+        const agotado = typeof p.stockActual === 'number' && p.stockActual <= 0;
+
+        content.innerHTML = `
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body pt-0">
+                <div class="row g-4">
+                    <div class="col-12 col-md-5">
+                        <div class="detalle-imagen">
+                            ${badgeStockHtml(p)}
+                            ${imagenHtml}
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-7">
+                        ${p.categoria ? `<span class="card-producto-categoria detalle-categoria">${escaparHtml(p.categoria)}</span>` : ''}
+                        <h3 class="fw-bold mt-2">${escaparHtml(p.nombre)}</h3>
+                        <p class="text-muted">${escaparHtml(p.descripcion) || 'Producto dental de calidad, con precio verificado.'}</p>
+                        <div class="card-producto-precio mb-1" style="font-size:1.7rem;">${formatCurrency(p.precio)}</div>
+                        <div class="card-producto-unidad mb-4">por ${escaparHtml(p.unidadMedida)}</div>
+                        <button class="btn-agregar${agotado ? ' agotado' : ''}" id="btnAgregarDetalle" ${agotado ? 'disabled' : ''} style="max-width:320px;">
+                            <i class="bi ${agotado ? 'bi-x-circle' : 'bi-bag-plus-fill'} me-1"></i>${agotado ? 'Agotado' : 'Agregar al Carrito'}
+                        </button>
+                    </div>
+                </div>
+                ${p.relacionados && p.relacionados.length ? `
+                    <hr class="my-4">
+                    <div class="fw-bold mb-3">También te puede interesar</div>
+                    <div class="mini-productos-grid">${p.relacionados.map(miniProductoHtml).join('')}</div>
+                ` : ''}
+            </div>
+        `;
+    }
+
+    async function abrirDetalle(id) {
+        try {
+            const res = await fetch(`/api/tienda/productos/${id}`).then((r) => r.json());
+            if (!res.ok) return;
+            renderDetalleModal(res.data);
+            getModalDetalle().show();
+        } catch {
+            // Silencioso: si falla la carga del detalle, el usuario simplemente no ve el modal.
+        }
+    }
+
+    document.getElementById('modalDetalleContent')?.addEventListener('click', (e) => {
+        const btnAgregar = e.target.closest('#btnAgregarDetalle');
+        if (btnAgregar) {
+            if (btnAgregar.disabled || !productoDetalleActual) return;
+            agregarAlCarritoConTope(productoDetalleActual, btnAgregar);
+            return;
+        }
+        const mini = e.target.closest('.mini-producto');
+        if (mini) abrirDetalle(Number(mini.dataset.id));
+    });
 
     // -------- Carga inicial del catálogo (API pública, sin autenticación) --------
     async function cargar() {
@@ -344,4 +510,5 @@
     document.getElementById('anioActual').textContent = new Date().getFullYear();
     cargarConfiguracionTienda();
     cargar();
+    cargarDestacados();
 })();

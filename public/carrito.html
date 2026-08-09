@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tu Carrito | San Judas Tadeo Botica Dental</title>
+    <meta name="description" content="Revisa tu pedido antes de enviarlo por WhatsApp a San Judas Tadeo Botica Dental.">
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/base.css" rel="stylesheet">
+    <link href="css/tienda.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- Barra superior de contacto -->
+<div class="tienda-topstrip">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-1">
+        <div class="d-none d-sm-flex gap-3">
+            <span><i class="bi bi-telephone-fill me-1"></i> <span id="topstripTelefono">+51 999 000 111</span></span>
+            <span><i class="bi bi-clock-fill me-1"></i> <span id="topstripHorario">Lun–Sáb, 9:00–19:00</span></span>
+        </div>
+        <a href="tienda.html#contacto"><i class="bi bi-geo-alt-fill me-1"></i> <span id="topstripDireccion">Av. Principal 123, Lima</span> — Ver ubicación</a>
+    </div>
+</div>
+
+<!-- Header -->
+<header class="tienda-header">
+    <div class="container d-flex align-items-center gap-3">
+        <a href="tienda.html" class="tienda-brand">
+            <div class="logo-badge" id="logoBadge"><i class="bi bi-clipboard2-pulse"></i></div>
+            <div class="d-none d-md-block">
+                <div class="brand-title" id="brandTitulo">San Judas Tadeo</div>
+                <div class="brand-sub" id="brandEslogan">Botica Dental</div>
+            </div>
+        </a>
+
+        <a href="tienda.html#catalogo" class="btn-hero-outline ms-auto">
+            <i class="bi bi-arrow-left me-1"></i> Seguir comprando
+        </a>
+    </div>
+</header>
+
+<main class="container py-5">
+    <h1 class="fw-bold mb-4"><i class="bi bi-cart3 me-2"></i>Tu carrito</h1>
+
+    <div id="carritoPaginaVacio" class="mpv-empty d-none">
+        <i class="bi bi-bag-x"></i>
+        Tu carrito está vacío.
+        <div class="mt-3">
+            <a href="tienda.html#catalogo" class="btn-hero-primary">Ir al catálogo</a>
+        </div>
+    </div>
+
+    <div class="row g-4" id="carritoPaginaContenido">
+        <div class="col-12 col-lg-8">
+            <div id="listaCarritoPagina"></div>
+        </div>
+        <div class="col-12 col-lg-4">
+            <div class="resumen-pedido">
+                <h5 class="fw-bold mb-3">Resumen del pedido</h5>
+                <div class="d-flex justify-content-between small text-muted mb-2">
+                    <span id="resumenCantidadItems">0 productos</span>
+                    <span id="resumenSubtotal">S/ 0.00</span>
+                </div>
+                <hr>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="fw-semibold">Total</span>
+                    <span class="fs-4 fw-bold" id="resumenTotal">S/ 0.00</span>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold mb-1" for="carritoPaginaNombre">Tu nombre (opcional)</label>
+                    <input type="text" class="form-control form-control-sm" id="carritoPaginaNombre" placeholder="Para identificar tu pedido">
+                </div>
+
+                <button class="btn btn-agregar w-100 mb-2" id="btnFinalizarPedidoPagina">
+                    <i class="bi bi-whatsapp me-1"></i> Finalizar Pedido por WhatsApp
+                </button>
+                <button class="btn btn-outline-secondary w-100 btn-sm" id="btnVaciarCarritoPagina">
+                    Vaciar carrito
+                </button>
+                <p class="small text-muted mt-3 mb-0">
+                    <i class="bi bi-info-circle me-1"></i>
+                    Al finalizar se abrirá WhatsApp con el detalle de tu pedido para coordinar el pago y la entrega.
+                </p>
+            </div>
+        </div>
+    </div>
+</main>
+
+<!-- Footer -->
+<footer class="tienda-footer">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-12 col-md-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="logo-badge" id="footerLogoBadge"><i class="bi bi-clipboard2-pulse"></i></div>
+                    <div>
+                        <div class="fw-bold text-white" id="footerBrandTitulo">San Judas Tadeo</div>
+                        <div class="fw-bold text-white" id="footerBrandEslogan">Botica Dental</div>
+                    </div>
+                </div>
+                <p class="small">Insumos y equipamiento dental de calidad, con precios justos y actualizados, para consultorios y clínicas.</p>
+                <div class="d-flex gap-2 mt-3">
+                    <a href="#" class="footer-social d-none" title="Facebook" id="footerFacebook" target="_blank" rel="noopener"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="footer-social d-none" title="Instagram" id="footerInstagram" target="_blank" rel="noopener"><i class="bi bi-instagram"></i></a>
+                    <a href="https://wa.me/51999000111" class="footer-social" title="WhatsApp" id="footerWhatsapp" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i></a>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <h6>Contacto</h6>
+                <div class="footer-item"><i class="bi bi-geo-alt-fill"></i><span id="footerDireccion">Av. Principal 123, San Isidro, Lima, Perú</span></div>
+                <div class="footer-item"><i class="bi bi-telephone-fill"></i><span id="footerTelefono">+51 999 000 111</span></div>
+                <div class="footer-item"><i class="bi bi-envelope-fill"></i><span id="footerEmail">contacto@sanjudastadeo.dental</span></div>
+                <div class="footer-item"><i class="bi bi-clock-fill"></i><span id="footerHorario">Lunes a sábado, 9:00 a. m. – 7:00 p. m.</span></div>
+            </div>
+            <div class="col-6 col-md-4">
+                <h6>Enlaces</h6>
+                <div class="mb-2"><a href="tienda.html">Catálogo completo</a></div>
+                <div class="mb-2"><a href="tienda.html#contacto">Contacto y ubicación</a></div>
+                <div class="mb-2"><a href="login.html">Acceso interno del consultorio</a></div>
+            </div>
+        </div>
+        <div class="tienda-footer-bottom text-center">
+            © <span id="anioActual"></span> <span id="footerCopyrightNombre">San Judas Tadeo Botica Dental</span>. Todos los derechos reservados.
+        </div>
+    </div>
+</footer>
+
+<!-- Toast de confirmación -->
+<div class="toast-agregado" id="toastAgregado">
+    <i class="bi bi-check-circle-fill"></i>
+    <span id="toastAgregadoTexto">Producto agregado al carrito</span>
+</div>
+
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/carrito.js"></script>
+<script src="js/carrito-pagina.js"></script>
+</body>
+</html>
