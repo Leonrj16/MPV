@@ -85,7 +85,7 @@ body {
 .tienda-search {
     position: relative;
     flex: 1;
-    max-width: 480px;
+    max-width: 560px;
 }
 .tienda-search i {
     position: absolute;
