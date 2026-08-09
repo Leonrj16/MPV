@@ -160,9 +160,17 @@
                                     <div class="form-text">Se combina con el nombre para el título de la pestaña y el copyright.</div>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-semibold">URL del logo (opcional)</label>
-                                    <input type="url" class="form-control" id="tiendaLogoUrl" placeholder="https://…">
-                                    <div class="form-text">Si se deja vacío, se muestra el ícono de marca por defecto.</div>
+                                    <label class="form-label small fw-semibold">Logo (opcional)</label>
+                                    <div class="d-flex gap-2 align-items-start">
+                                        <img id="previewLogo" class="d-none" alt="Vista previa del logo" style="width:44px;height:44px;object-fit:cover;border-radius:10px;border:1px solid var(--mpv-gray-200); flex-shrink:0;">
+                                        <input type="text" class="form-control" id="tiendaLogoUrl" placeholder="https://… o sube un archivo">
+                                        <button type="button" class="btn btn-mpv-outline flex-shrink-0" id="btnSubirLogo" title="Subir archivo">
+                                            <i class="bi bi-upload"></i>
+                                        </button>
+                                    </div>
+                                    <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" id="inputLogoArchivo" class="d-none">
+                                    <div class="form-text">Si se deja vacío, se muestra el ícono de marca por defecto. PNG, JPG, WEBP o GIF, máx. 3 MB.</div>
+                                    <div class="alert alert-danger py-2 small d-none mt-2" id="logoUploadError"></div>
                                 </div>
                             </div>
                             <div class="col-12 col-lg-6">
@@ -176,9 +184,17 @@
                                     <textarea class="form-control" id="tiendaHeroDescripcion" rows="2"></textarea>
                                 </div>
                                 <div class="mb-3">
-                                    <label class="form-label small fw-semibold">URL de imagen de portada (opcional)</label>
-                                    <input type="url" class="form-control" id="tiendaHeroImagenUrl" placeholder="https://…">
-                                    <div class="form-text">Si se deja vacío, se muestra una ilustración genérica.</div>
+                                    <label class="form-label small fw-semibold">Imagen de portada (opcional)</label>
+                                    <div class="d-flex gap-2 align-items-start">
+                                        <img id="previewHeroImagen" class="d-none" alt="Vista previa de la portada" style="width:44px;height:44px;object-fit:cover;border-radius:10px;border:1px solid var(--mpv-gray-200); flex-shrink:0;">
+                                        <input type="text" class="form-control" id="tiendaHeroImagenUrl" placeholder="https://… o sube un archivo">
+                                        <button type="button" class="btn btn-mpv-outline flex-shrink-0" id="btnSubirHeroImagen" title="Subir archivo">
+                                            <i class="bi bi-upload"></i>
+                                        </button>
+                                    </div>
+                                    <input type="file" accept="image/png,image/jpeg,image/webp,image/gif" id="inputHeroImagenArchivo" class="d-none">
+                                    <div class="form-text">Si se deja vacío, se muestra una ilustración genérica. PNG, JPG, WEBP o GIF, máx. 3 MB.</div>
+                                    <div class="alert alert-danger py-2 small d-none mt-2" id="heroImagenUploadError"></div>
                                 </div>
                             </div>
                             <div class="col-12 col-lg-6">

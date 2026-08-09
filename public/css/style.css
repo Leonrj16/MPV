@@ -200,7 +200,8 @@ body {
 
 .mpv-main {
     margin-left: calc(var(--sidebar-width) + var(--sidebar-inset) * 2);
-    min-height: 100vh;
+    height: 100vh;
+    overflow-y: auto;
     display: flex;
     flex-direction: column;
     transition: margin-left 0.25s ease;

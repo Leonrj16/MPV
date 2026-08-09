@@ -99,17 +99,79 @@ MPVAuth.exigirRol('admin');
         instagramUrl: document.getElementById('tiendaInstagram'),
     };
 
+    function actualizarPreview(imgEl, url) {
+        if (url) {
+            imgEl.src = url;
+            imgEl.classList.remove('d-none');
+        } else {
+            imgEl.classList.add('d-none');
+            imgEl.removeAttribute('src');
+        }
+    }
+
+    const previewLogo = document.getElementById('previewLogo');
+    const previewHeroImagen = document.getElementById('previewHeroImagen');
+
     async function cargarTienda() {
         try {
             const { data } = await MPV.getConfiguracionTienda();
             Object.entries(tiendaInputs).forEach(([campo, el]) => {
                 el.value = data[campo] || '';
             });
+            actualizarPreview(previewLogo, data.logoUrl);
+            actualizarPreview(previewHeroImagen, data.heroImagenUrl);
         } catch (err) {
             document.getElementById('tiendaConfigError').textContent = err.message;
             document.getElementById('tiendaConfigError').classList.remove('d-none');
         }
     }
+
+    // Subir archivo: reemplaza el valor del campo de URL con la ruta que
+    // devuelve el servidor (/uploads/<archivo>), sin que el admin tenga que
+    // hostear la imagen en otro sitio y pegar el link a mano.
+    function conectarSubidaArchivo({ botonId, inputArchivoId, campoUrl, previewEl, errorBoxId }) {
+        const boton = document.getElementById(botonId);
+        const inputArchivo = document.getElementById(inputArchivoId);
+        const errorBox = document.getElementById(errorBoxId);
+
+        boton.addEventListener('click', () => inputArchivo.click());
+
+        inputArchivo.addEventListener('change', async (e) => {
+            const archivo = e.target.files[0];
+            if (!archivo) return;
+            errorBox.classList.add('d-none');
+            boton.disabled = true;
+            boton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+
+            try {
+                const url = await MPV.subirImagen(archivo);
+                campoUrl.value = url;
+                actualizarPreview(previewEl, url);
+            } catch (err) {
+                errorBox.textContent = err.message;
+                errorBox.classList.remove('d-none');
+            } finally {
+                boton.disabled = false;
+                boton.innerHTML = '<i class="bi bi-upload"></i>';
+                inputArchivo.value = ''; // permite volver a elegir el mismo archivo
+            }
+        });
+    }
+
+    conectarSubidaArchivo({
+        botonId: 'btnSubirLogo',
+        inputArchivoId: 'inputLogoArchivo',
+        campoUrl: tiendaInputs.logoUrl,
+        previewEl: previewLogo,
+        errorBoxId: 'logoUploadError',
+    });
+    conectarSubidaArchivo({
+        botonId: 'btnSubirHeroImagen',
+        inputArchivoId: 'inputHeroImagenArchivo',
+        campoUrl: tiendaInputs.heroImagenUrl,
+        previewEl: previewHeroImagen,
+        errorBoxId: 'heroImagenUploadError',
+    });
 
     formTienda.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -130,6 +192,8 @@ MPVAuth.exigirRol('admin');
             Object.entries(tiendaInputs).forEach(([campo, el]) => {
                 el.value = data[campo] || '';
             });
+            actualizarPreview(previewLogo, data.logoUrl);
+            actualizarPreview(previewHeroImagen, data.heroImagenUrl);
             exitoBox.classList.remove('d-none');
             setTimeout(() => exitoBox.classList.add('d-none'), 3000);
         } catch (err) {

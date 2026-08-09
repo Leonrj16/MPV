@@ -2,3 +2,9 @@ node_modules/
 .env
 npm-debug.log*
 .DS_Store
+
+# Imágenes subidas desde Configuración > Tienda Virtual (logo, portada).
+# Se sirven desde public/uploads/ pero no se versionan; solo se guarda la
+# carpeta (.gitkeep) para que exista al clonar el repo.
+public/uploads/*
+!public/uploads/.gitkeep

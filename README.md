@@ -113,6 +113,7 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET | `/api/tienda/productos`, `/api/tienda/categorias` | **pública, sin token** | Catálogo para la tienda virtual (ver abajo) |
 | GET | `/api/tienda/configuracion` | **pública, sin token** | Marca/imágenes/textos/contacto de la tienda (ver "Tienda Virtual configurable") |
 | PUT | `/api/tienda/configuracion` | admin | Edita la configuración de marca de la tienda |
+| POST | `/api/uploads/imagen` | admin | Sube un logo o imagen de portada (multipart, campo `imagen`, máx. 3 MB) |
 
 ## Punto de Venta (`public/punto-venta.html`)
 
@@ -260,6 +261,67 @@ hero, topstrip, footer, botones de WhatsApp) refleja los cambios sin
 recargar código — solo datos. 8 tests nuevos en `tests/configuracionTienda.test.js`
 (mapeo de campos, validaciones, limpieza del número de WhatsApp). Suite
 completa: 76/76.
+
+#### Subir el logo/portada como archivo (no solo pegar un link)
+
+Los campos de logo e imagen de portada aceptan **una URL o un archivo**:
+un botón junto a cada campo abre el selector de archivos, sube la imagen a
+`POST /api/uploads/imagen` (multipart, `admin` únicamente) y reemplaza el
+campo de texto con la URL pública que devuelve el servidor
+(`/uploads/<nombre-aleatorio>.ext`) — el admin nunca necesita hostear la
+imagen en otro sitio para poder usarla.
+
+- `multer.diskStorage` guarda el archivo directamente en
+  `public/uploads/` (servida por el `express.static` que ya existía) con
+  un **nombre aleatorio** (`crypto.randomUUID()`), no el nombre original
+  — evita colisiones entre dos admins subiendo "logo.png" el mismo día y
+  cualquier intento de path traversal vía el nombre que mande el cliente.
+- `fileFilter` solo acepta `image/png|jpeg|webp|gif`, con un límite de 3
+  MB; los errores de multer (tipo no soportado, archivo muy grande) se
+  capturan explícitamente y se devuelven como JSON — sin ese manejo,
+  Express serviría su página de error HTML por defecto y rompería el
+  contrato de `/api`.
+- Cada campo muestra una miniatura de vista previa (44×44) que se
+  actualiza al cargar la configuración, al subir un archivo y al guardar.
+- `public/uploads/` no se versiona (solo `.gitkeep`, ver `.gitignore`) —
+  las imágenes reales viven en el servidor donde corre la app, no en el
+  repositorio.
+
+Verificado con Playwright subiendo un archivo real (`setInputFiles`):
+confirma que el archivo queda accesible públicamente (`200`,
+`image/png`), que el campo de texto se actualiza con la ruta devuelta, y
+que la tienda pública termina mostrando la imagen subida.
+
+*Nota de depuración*: la primera versión de este fix no funcionaba — el
+campo de texto se llenaba con `/uploads/…png` pero "Guardar Cambios" no
+hacía nada. Causa: el input era `type="url"`, y la validación nativa de
+HTML5 para ese tipo exige una URL absoluta con esquema (`https://…`); una
+ruta relativa como `/uploads/…png` la rechaza en silencio con un tooltip
+del navegador, y el evento `submit` nunca llega al JavaScript. Se cambió
+a `type="text"` en ambos campos (siguen aceptando URLs absolutas también,
+simplemente ya no las exige).
+
+### El contenido largo ya no "estira" el sidebar
+
+Al agregar el panel "Tienda Virtual" (harto más largo que "Márgenes e
+Impuestos"), una captura de verificación tomada en un viewport
+inusualmente alto mostró el sidebar oscuro con un hueco enorme de espacio
+vacío entre el último link y el pie de usuario — porque `.mpv-sidebar` es
+`position: fixed` y siempre ocupa el alto completo del *viewport*, nunca
+el del contenido. En un viewport normal esto no se nota, pero es información
+real: cuanto más largo el contenido, más "flotante" y desconectado se ve
+un sidebar que no scrollea con nada.
+
+Fix: `.mpv-main` pasó de `min-height: 100vh` a `height: 100vh; overflow-y: auto` —
+ahora el contenido scrollea **dentro de su propio contenedor**, capado a
+la altura del viewport, en vez de estirar `<body>` completo. El sidebar
+(fixed) y el contenedor de contenido (capado a 100vh) miden exactamente
+lo mismo siempre, sin importar cuánto contenido tenga la página. El
+topbar sigue `position: sticky` correctamente porque `.mpv-main` es ahora
+su ancestro con scroll. Verificado con Playwright en un viewport normal
+(900px) y uno deliberadamente alto (1400px, el mismo que causó el bug):
+`document.body.scrollHeight` nunca excede `window.innerHeight` en
+ninguno de los dos casos.
 
 ## Sistema de diseño (`public/css/base.css`)
 

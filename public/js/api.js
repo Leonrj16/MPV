@@ -80,6 +80,29 @@ const MPV = (() => {
         return body;
     }
 
+    async function subirImagen(archivo) {
+        const token = window.MPVAuth?.getToken?.();
+        const formData = new FormData();
+        formData.append('imagen', archivo);
+
+        const res = await fetch(`${BASE_URL}/uploads/imagen`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+        });
+
+        if (res.status === 401) {
+            window.MPVAuth?.cerrarSesion?.();
+            throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+        }
+
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || body.ok === false) {
+            throw new Error(body.error || `No se pudo subir la imagen (${res.status})`);
+        }
+        return body.data.url;
+    }
+
     return {
         getKpis: () => request('/dashboard/kpis'),
         getTableroPrecios: (params = {}) => {
@@ -118,6 +141,7 @@ const MPV = (() => {
         actualizarConfiguracion: (payload) => request('/configuracion', { method: 'PUT', body: JSON.stringify(payload) }),
         getConfiguracionTienda: () => request('/tienda/configuracion'),
         actualizarConfiguracionTienda: (payload) => request('/tienda/configuracion', { method: 'PUT', body: JSON.stringify(payload) }),
+        subirImagen,
         getProductosDisponiblesVenta: () => request('/ventas/productos-disponibles'),
         crearVenta: (payload) => request('/ventas', { method: 'POST', body: JSON.stringify(payload) }),
         getVentas: (params = {}) => {
