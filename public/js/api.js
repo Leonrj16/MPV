@@ -57,6 +57,29 @@ const MPV = (() => {
         URL.revokeObjectURL(url);
     }
 
+    async function importarPrecios(archivo) {
+        const token = window.MPVAuth?.getToken?.();
+        const formData = new FormData();
+        formData.append('archivo', archivo);
+
+        const res = await fetch(`${BASE_URL}/precios/importar`, {
+            method: 'POST',
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+            body: formData,
+        });
+
+        if (res.status === 401) {
+            window.MPVAuth?.cerrarSesion?.();
+            throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+        }
+
+        const body = await res.json().catch(() => ({}));
+        if (!res.ok || body.ok === false) {
+            throw new Error(body.error || `Error al importar (${res.status})`);
+        }
+        return body;
+    }
+
     return {
         getKpis: () => request('/dashboard/kpis'),
         getTableroPrecios: (params = {}) => {
@@ -81,6 +104,8 @@ const MPV = (() => {
             request(`/precios/${proveedorProductoId}/proveedor-principal`, { method: 'PUT' }),
         exportarExcel: (params) => descargarArchivo('/precios/exportar/excel', params),
         exportarPDF: (params) => descargarArchivo('/precios/exportar/pdf', params),
+        descargarPlantillaCarga: () => descargarArchivo('/precios/plantilla-carga'),
+        importarPrecios,
         getUsuarios: () => request('/usuarios'),
         crearUsuario: (payload) => request('/usuarios', { method: 'POST', body: JSON.stringify(payload) }),
         actualizarUsuario: (id, payload) => request(`/usuarios/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),

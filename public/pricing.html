@@ -58,6 +58,9 @@
                     <li><a class="dropdown-item" href="#" id="exportarPdf"><i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>Descargar PDF</a></li>
                 </ul>
             </div>
+            <button class="btn btn-mpv-primary" data-bs-toggle="modal" data-bs-target="#modalImportar">
+                <i class="bi bi-upload me-1"></i> Importar Precios
+            </button>
         </div>
     </header>
 
@@ -165,6 +168,39 @@
             </div>
             <div class="modal-body" id="modalHistorialBody">
                 <div class="text-center py-4"><div class="spinner-border text-primary"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Importar Precios -->
+<div class="modal fade" id="modalImportar" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--mpv-radius); border:none;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Importar Precios</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="text-muted small mb-3">
+                    Sube un archivo <strong>.csv</strong> o <strong>.xlsx</strong> con las columnas
+                    <code>SKU</code>, <code>Proveedor</code>, <code>PrecioCompra</code> y opcionalmente
+                    <code>TiempoEntregaDias</code>. El SKU y el proveedor deben coincidir con un registro
+                    ya existente.
+                </p>
+                <button type="button" class="btn btn-mpv-outline btn-sm mb-3" id="btnDescargarPlantilla">
+                    <i class="bi bi-download me-1"></i> Descargar plantilla de ejemplo
+                </button>
+
+                <input type="file" class="form-control" id="inputArchivoImportar" accept=".csv,.xlsx">
+
+                <div id="importarResultado" class="mt-3"></div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-mpv-outline" data-bs-dismiss="modal">Cerrar</button>
+                <button type="button" class="btn btn-mpv-primary" id="btnImportar">
+                    <i class="bi bi-upload me-1"></i> Importar
+                </button>
             </div>
         </div>
     </div>

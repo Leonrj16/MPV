@@ -94,6 +94,8 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET | `/api/precios/historial/:proveedorProductoId` | cualquiera | Serie histórica de precios de compra |
 | GET | `/api/precios/exportar/excel` | cualquiera | Descarga el tablero en `.xlsx` (acepta los mismos filtros que `/api/precios`) |
 | GET | `/api/precios/exportar/pdf` | cualquiera | Descarga el tablero en `.pdf` (mismos filtros) |
+| GET | `/api/precios/plantilla-carga` | admin, operador | Descarga un `.xlsx` de ejemplo para la carga masiva |
+| POST | `/api/precios/importar` | admin, operador | Carga masiva de precios desde `.csv`/`.xlsx` (campo `archivo`, multipart) |
 | PUT | `/api/precios/:proveedorProductoId` | admin, operador | Actualiza el precio de compra |
 | PUT | `/api/precios/:proveedorProductoId/proveedor-principal` | admin, operador | Marca proveedor principal |
 | POST | `/api/productos`, `/api/proveedores` | admin | Alta de catálogo |
@@ -102,6 +104,23 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET/POST | `/api/usuarios` | admin | Lista/crea cuentas del sistema |
 | PUT | `/api/usuarios/:id`, `/api/usuarios/:id/password` | admin | Edita rol/estado o resetea contraseña |
 | GET/PUT | `/api/configuracion` | admin | Lee/actualiza el margen, costo operativo, unidades estimadas e impuesto activos |
+
+### Carga masiva de precios (`src/services/importarPrecios.js`)
+
+Acepta `.csv` o `.xlsx` con columnas `SKU`, `Proveedor`, `PrecioCompra` y,
+opcionalmente, `TiempoEntregaDias`. Los encabezados se normalizan (sin
+acentos/mayúsculas y sin preposiciones como "de"), así que `"Precio de
+Compra"`, `"PrecioCompra"` y `"Precio"` son equivalentes.
+
+Cada fila se procesa de forma independiente — si una fila falla (SKU o
+proveedor inexistente, precio inválido) el resto se sigue procesando; la
+respuesta trae `{ totalFilas, exitosas, fallidas, errores: [{ fila, motivo }] }`.
+La combinación proveedor-producto se actualiza si ya existe o se crea si
+no (`INSERT ... ON CONFLICT (proveedor_id, producto_id) DO UPDATE`), lo
+que dispara los mismos triggers que una edición manual (respaldo del
+precio anterior, alerta de alza, registro en `historial_precios`). Si una
+fila no trae `TiempoEntregaDias`, ese campo no se toca en un `UPDATE` —
+solo se usa un valor por defecto de 0 cuando la combinación es nueva.
 
 ### Frontend
 
@@ -112,8 +131,9 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
   en tiempo real, filtros por categoría/proveedor/rentabilidad, badges de
   margen (verde/amarillo/rojo), comparación de proveedores, **historial de
   precios con gráfico de tendencia (Chart.js)**, edición rápida de precios
-  vía modal y **exportación a Excel/PDF** (respeta los filtros activos de
-  la tabla; el dashboard exporta el tablero completo sin filtrar).
+  vía modal, **exportación a Excel/PDF** (respeta los filtros activos de
+  la tabla; el dashboard exporta el tablero completo sin filtrar) y
+  **carga masiva de precios** desde `.csv`/`.xlsx`.
 - `public/productos.html` — catálogo de productos (SKU, categoría, unidad,
   cantidad de proveedores que lo ofrecen, estado). Lectura para cualquier
   usuario autenticado; alta/edición y activar-desactivar solo para `admin`.

@@ -268,5 +268,69 @@
         }
     });
 
+    // -------- Importar precios --------
+    const modalImportar = new bootstrap.Modal(document.getElementById('modalImportar'));
+    const inputArchivo = document.getElementById('inputArchivoImportar');
+    const resultadoBox = document.getElementById('importarResultado');
+
+    document.getElementById('modalImportar').addEventListener('hidden.bs.modal', () => {
+        inputArchivo.value = '';
+        resultadoBox.innerHTML = '';
+    });
+
+    document.getElementById('btnDescargarPlantilla').addEventListener('click', async (e) => {
+        const link = e.currentTarget;
+        const textoOriginal = link.innerHTML;
+        link.disabled = true;
+        link.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Generando…';
+        try {
+            await MPV.descargarPlantillaCarga();
+        } catch (err) {
+            resultadoBox.innerHTML = `<div class="alert alert-danger py-2 small mb-0">${err.message}</div>`;
+        } finally {
+            link.disabled = false;
+            link.innerHTML = textoOriginal;
+        }
+    });
+
+    document.getElementById('btnImportar').addEventListener('click', async () => {
+        const archivo = inputArchivo.files[0];
+        if (!archivo) {
+            resultadoBox.innerHTML = `<div class="alert alert-danger py-2 small mb-0">Selecciona un archivo primero.</div>`;
+            return;
+        }
+
+        const btn = document.getElementById('btnImportar');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Importando…';
+        resultadoBox.innerHTML = '';
+
+        try {
+            const r = await MPV.importarPrecios(archivo);
+            const colorResumen = r.fallidas === 0 ? 'alert-success' : (r.exitosas === 0 ? 'alert-danger' : 'alert-warning');
+            let html = `
+                <div class="alert ${colorResumen} py-2 small mb-2">
+                    <strong>${r.exitosas}</strong> de <strong>${r.totalFilas}</strong> filas importadas correctamente
+                    ${r.fallidas > 0 ? `— <strong>${r.fallidas}</strong> con errores` : ''}.
+                </div>
+            `;
+            if (r.errores.length > 0) {
+                html += `<div style="max-height: 200px; overflow-y: auto;" class="border rounded-3 p-2">` +
+                    r.errores.map((e) => `<div class="small text-danger">Fila ${e.fila}: ${e.motivo}</div>`).join('') +
+                    `</div>`;
+            }
+            resultadoBox.innerHTML = html;
+
+            if (r.exitosas > 0) {
+                await cargarDatos();
+            }
+        } catch (err) {
+            resultadoBox.innerHTML = `<div class="alert alert-danger py-2 small mb-0">${err.message}</div>`;
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-upload me-1"></i> Importar';
+        }
+    });
+
     cargarDatos();
 })();
