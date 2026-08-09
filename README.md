@@ -190,6 +190,58 @@ necesita percibir limpieza y confianza, no estética "tech/IA"):
   (`.reveal`) — es una herramienta que el staff abre decenas de veces al
   día; la inmediatez importa más que el efecto.
 
+### Rediseño visual del panel interno — paleta salvia + sidebar flotante
+
+A partir de una referencia visual (mockup de dashboard con sidebar oscuro
+flotante, KPIs con íconos de color, gráfico de barras y anillos de
+porcentaje), se rediseñó `public/css/style.css` — que alimenta las 7
+páginas del panel interno (dashboard, precios, productos, proveedores,
+usuarios, configuración, login) — sin tocar backend ni lógica JS más allá
+de dos gráficos nuevos:
+
+- **Paleta**: de azul/esmeralda clínico a **verde salvia** profundo
+  (`--mpv-blue: #2f5445` — el nombre de variable se conserva por
+  compatibilidad, pero ahora es verde) sobre fondo menta claro (`#e9f0ea`).
+  Los colores semánticos de rentabilidad (alto/medio/bajo → verde/ámbar/rojo)
+  se mantienen intactos porque ya se usaban en toda la tabla de precios.
+- **Sidebar flotante**: pasó de ser un panel pegado al borde a un panel
+  oscuro con esquinas redondeadas y separación de 14px de los bordes de la
+  ventana (`position: fixed` + inset), con degradado sutil y sombra
+  proyectada. El indicador de link activo cambió de una barra de
+  degradado a la izquierda a un **punto** a la derecha del texto,
+  replicando el mockup. En móvil (`<991.98px`) el panel se ancla al borde
+  izquierdo como un drawer deslizante, redondeando solo las esquinas
+  derechas.
+- **Truco de variables CSS**: en vez de tocar el HTML de las 8 páginas
+  para poner texto claro dentro del sidebar oscuro, `.mpv-sidebar`
+  **redefine** `--mpv-ink`/`--mpv-ink-soft` a valores claros dentro de su
+  propio scope — cualquier elemento hijo (incluyendo los que usan
+  `style="color:var(--mpv-ink-soft)"` inline en el HTML) hereda
+  automáticamente el valor correcto sin necesitar una clase nueva.
+- **Nuevos acentos de datos**: `--mpv-chart-purple` y `--mpv-chart-blue`,
+  reservados exclusivamente para íconos de KPI y gráficos — nunca para
+  estado/semántica, que sigue usando la paleta verde/ámbar/rojo existente.
+- **Dashboard con analítica real**: se agregaron dos paneles nuevos entre
+  los KPIs y la tabla de actividad reciente, ambos con Chart.js (ya
+  vendorizado) y datos reales del tablero de precios, no inventados:
+  - *Productos por Categoría* — barras con el conteo de productos
+    distintos por categoría (deduplicados, porque un producto puede
+    aparecer varias veces si tiene más de un proveedor).
+  - *Rentabilidad del Catálogo* — tres anillos de dona (recorte del 72%)
+    con el % de combinaciones producto-proveedor en cada nivel de
+    rentabilidad, con la etiqueta de porcentaje centrada mediante un
+    `<div>` posicionado en absoluto sobre el canvas (Chart.js no soporta
+    texto central nativamente sin plugin).
+- **Fondo de login corregido**: `login.html` tenía un degradado radial
+  con un azul (`#eff6ff`) que quedó huérfano tras el cambio de paleta —
+  se corrigió a `var(--mpv-emerald-soft)` para que combine con el resto
+  del sistema.
+
+Verificado con Playwright en desktop (1440×900) y móvil (393×852,
+iPhone-16-equivalente) en las 7 páginas del panel: sin overflow
+horizontal, sidebar y drawer móvil legibles, gráficos renderizando datos
+reales, y sin errores de consola nuevos.
+
 ### Carga masiva de precios (`src/services/importarPrecios.js`)
 
 Acepta `.csv` o `.xlsx` con columnas `SKU`, `Proveedor`, `PrecioCompra` y,

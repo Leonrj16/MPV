@@ -1,32 +1,39 @@
 /* ============================================================================
    MPV Dental — Estilos corporativos SaaS
-   Paleta: blancos puros + grises modernos + azul clínico + verde esmeralda
+   Paleta: verde salvia profundo + neutros cálidos + acentos de dato
+   (naranja/morado/azul reservados para gráficos, nunca para estado)
    ============================================================================ */
 
 :root {
-    --mpv-blue: #2563eb;
-    --mpv-blue-dark: #1d4ed8;
-    --mpv-blue-soft: #eff6ff;
-    --mpv-emerald: #10b981;
-    --mpv-emerald-soft: #ecfdf5;
-    --mpv-amber: #f59e0b;
-    --mpv-amber-soft: #fffbeb;
-    --mpv-red: #ef4444;
-    --mpv-red-soft: #fef2f2;
+    --mpv-blue: #2f5445;
+    --mpv-blue-dark: #1e3b2f;
+    --mpv-blue-soft: #e6ede8;
+    --mpv-emerald: #3f9c72;
+    --mpv-emerald-soft: #eaf5ee;
+    --mpv-amber: #e8935c;
+    --mpv-amber-soft: #fdf1e8;
+    --mpv-red: #e0574c;
+    --mpv-red-soft: #fbeae8;
 
-    --mpv-ink: #0f172a;
-    --mpv-ink-soft: #475569;
-    --mpv-gray-50: #f8fafc;
-    --mpv-gray-100: #f1f5f9;
-    --mpv-gray-200: #e2e8f0;
-    --mpv-gray-300: #cbd5e1;
+    /* Acentos reservados exclusivamente para visualización de datos (gráficos) */
+    --mpv-chart-orange: #e8935c;
+    --mpv-chart-purple: #8b6fd9;
+    --mpv-chart-blue: #6fa8dc;
 
-    --mpv-radius: 14px;
-    --mpv-radius-sm: 10px;
-    --mpv-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 8px 24px -12px rgba(15, 23, 42, 0.10);
-    --mpv-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.06), 0 16px 32px -12px rgba(15, 23, 42, 0.16);
+    --mpv-ink: #172420;
+    --mpv-ink-soft: #5c6b62;
+    --mpv-gray-50: #f4f7f4;
+    --mpv-gray-100: #eaf0ea;
+    --mpv-gray-200: #dbe4db;
+    --mpv-gray-300: #aebcaf;
+
+    --mpv-radius: 20px;
+    --mpv-radius-sm: 14px;
+    --mpv-shadow: 0 1px 2px rgba(23, 36, 32, 0.04), 0 8px 24px -12px rgba(23, 36, 32, 0.10);
+    --mpv-shadow-hover: 0 4px 12px rgba(23, 36, 32, 0.06), 0 16px 32px -12px rgba(23, 36, 32, 0.16);
 
     --sidebar-width: 260px;
+    --sidebar-inset: 14px;
 
     /* Mapeo a los tokens genéricos de base.css */
     --empty-color: var(--mpv-ink-soft);
@@ -36,7 +43,7 @@
 }
 
 body {
-    background: var(--mpv-gray-50);
+    background: #e9f0ea;
     color: var(--mpv-ink);
     font-size: 0.9375rem;
 }
@@ -46,16 +53,18 @@ body {
 /* ---------------------------------------------------------------------- */
 .mpv-sidebar {
     position: fixed;
-    top: 0;
-    left: 0;
-    bottom: 0;
+    top: var(--sidebar-inset);
+    left: var(--sidebar-inset);
+    bottom: var(--sidebar-inset);
     width: var(--sidebar-width);
-    background: #ffffff;
-    border-right: 1px solid var(--mpv-gray-200);
+    background: linear-gradient(165deg, var(--mpv-blue), var(--mpv-blue-dark));
+    border-radius: var(--mpv-radius);
+    box-shadow: 0 20px 44px -20px rgba(23, 36, 32, 0.35);
     display: flex;
     flex-direction: column;
     z-index: 1030;
     transition: transform 0.25s ease;
+    overflow: hidden;
 }
 
 .mpv-sidebar-brand {
@@ -63,14 +72,14 @@ body {
     align-items: center;
     gap: 0.65rem;
     padding: 1.35rem 1.25rem;
-    border-bottom: 1px solid var(--mpv-gray-100);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .mpv-sidebar-brand .icon-badge {
     width: 40px;
     height: 40px;
     border-radius: 12px;
-    background: linear-gradient(135deg, var(--mpv-blue), var(--mpv-emerald));
+    background: rgba(255, 255, 255, 0.14);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,12 +92,12 @@ body {
     font-weight: 700;
     font-size: 1.02rem;
     line-height: 1.1;
-    color: var(--mpv-ink);
+    color: #fff;
 }
 
 .mpv-sidebar-brand .brand-sub {
     font-size: 0.72rem;
-    color: var(--mpv-ink-soft);
+    color: rgba(255, 255, 255, 0.6);
     font-weight: 500;
     letter-spacing: 0.02em;
 }
@@ -104,7 +113,7 @@ body {
     text-transform: uppercase;
     letter-spacing: 0.08em;
     font-weight: 700;
-    color: var(--mpv-gray-300);
+    color: rgba(255, 255, 255, 0.35);
     padding: 0.5rem 0.75rem 0.4rem;
 }
 
@@ -115,7 +124,7 @@ body {
     gap: 0.7rem;
     padding: 0.62rem 0.8rem;
     border-radius: var(--mpv-radius-sm);
-    color: var(--mpv-ink-soft);
+    color: rgba(255, 255, 255, 0.68);
     font-weight: 550;
     font-size: 0.875rem;
     margin-bottom: 0.15rem;
@@ -125,31 +134,32 @@ body {
 .mpv-nav .nav-link i { font-size: 1.05rem; }
 
 .mpv-nav .nav-link:hover {
-    background: var(--mpv-gray-100);
-    color: var(--mpv-ink);
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
 }
 
 .mpv-nav .nav-link.active {
-    background: var(--mpv-blue-soft);
-    color: var(--mpv-blue-dark);
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
     font-weight: 700;
 }
 
-.mpv-nav .nav-link.active::before {
+.mpv-nav .nav-link.active::after {
     content: '';
     position: absolute;
-    left: -0.9rem;
+    right: 0.85rem;
     top: 50%;
     transform: translateY(-50%);
-    width: 3px;
-    height: 18px;
-    border-radius: 0 3px 3px 0;
-    background: linear-gradient(180deg, var(--mpv-blue), var(--mpv-emerald));
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--mpv-emerald);
+    box-shadow: 0 0 0 4px rgba(63, 156, 114, 0.25);
 }
 
 .mpv-sidebar-footer {
-    padding: 1rem 1.1rem;
-    border-top: 1px solid var(--mpv-gray-100);
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     display: flex;
     align-items: center;
     gap: 0.65rem;
@@ -159,18 +169,37 @@ body {
     width: 34px;
     height: 34px;
     border-radius: 50%;
-    background: var(--mpv-gray-100);
+    background: rgba(255, 255, 255, 0.14);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 700;
     font-size: 0.8rem;
-    color: var(--mpv-ink-soft);
+    color: #fff;
     flex-shrink: 0;
 }
 
+/* Redefine los tokens de tinta dentro del sidebar: cualquier texto que use
+   var(--mpv-ink)/var(--mpv-ink-soft) —incluso vía style="" inline en el
+   HTML de cada página— se vuelve claro automáticamente sobre el fondo
+   oscuro, sin tener que tocar los 8 archivos que usan el sidebar. */
+.mpv-sidebar {
+    --mpv-ink: #ffffff;
+    --mpv-ink-soft: rgba(255, 255, 255, 0.55);
+}
+.mpv-sidebar .btn-icon-sm {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.14);
+    color: rgba(255, 255, 255, 0.75);
+}
+.mpv-sidebar .btn-icon-sm:hover {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
 .mpv-main {
-    margin-left: var(--sidebar-width);
+    margin-left: calc(var(--sidebar-width) + var(--sidebar-inset) * 2);
     min-height: 100vh;
     display: flex;
     flex-direction: column;
@@ -180,7 +209,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 1020;
-    background: rgba(248, 250, 252, 0.85);
+    background: rgba(233, 240, 234, 0.85);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--mpv-gray-200);
     padding: 1rem 1.75rem;
@@ -206,12 +235,18 @@ body {
     padding: 1.75rem;
     flex: 1;
     background:
-        radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.035), transparent 40%),
-        radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.03), transparent 40%);
+        radial-gradient(circle at 100% 0%, rgba(47, 84, 69, 0.05), transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(63, 156, 114, 0.04), transparent 40%);
 }
 
 @media (max-width: 991.98px) {
-    .mpv-sidebar { transform: translateX(-100%); }
+    .mpv-sidebar {
+        top: 0;
+        left: 0;
+        bottom: 0;
+        border-radius: 0 var(--mpv-radius) var(--mpv-radius) 0;
+        transform: translateX(-100%);
+    }
     .mpv-sidebar.show { transform: translateX(0); }
     .mpv-main { margin-left: 0; }
 }
@@ -277,6 +312,8 @@ body {
 .kpi-icon.bg-emerald { background: var(--mpv-emerald-soft); color: var(--mpv-emerald); }
 .kpi-icon.bg-amber { background: var(--mpv-amber-soft); color: var(--mpv-amber); }
 .kpi-icon.bg-red { background: var(--mpv-red-soft); color: var(--mpv-red); }
+.kpi-icon.bg-purple { background: #f1edfb; color: var(--mpv-chart-purple); }
+.kpi-icon.bg-chart-blue { background: #eaf3fa; color: var(--mpv-chart-blue); }
 
 .kpi-card .kpi-value {
     font-size: 2.05rem;
