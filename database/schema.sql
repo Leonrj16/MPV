@@ -72,12 +72,12 @@ CREATE TRIGGER trg_productos_updated_at
     BEFORE UPDATE ON productos
     FOR EACH ROW EXECUTE FUNCTION fn_set_updated_at();
 
+CREATE EXTENSION IF NOT EXISTS pg_trgm;
+
 CREATE INDEX idx_productos_categoria ON productos(categoria_id);
 CREATE INDEX idx_productos_activo ON productos(activo);
 CREATE INDEX idx_productos_sku ON productos(sku);
-CREATE INDEX idx_productos_nombre_trgm ON productos USING gin (nombre gin_trgm_ops); -- requiere pg_trgm
-
-CREATE EXTENSION IF NOT EXISTS pg_trgm;
+CREATE INDEX idx_productos_nombre_trgm ON productos USING gin (nombre gin_trgm_ops);
 
 -- ============================================================================
 -- 4. PROVEEDOR_PRODUCTO (Relación N:M — costos de compra por proveedor)
@@ -190,7 +190,7 @@ SELECT
     pp.tiempo_entrega_dias,
     pp.fecha_ultima_actualizacion,
     pp.es_proveedor_principal,
-    (opt.proveedor_id = pv.proveedor_id) AS es_proveedor_optimo,
+    (opt.proveedor_id = pv.id) AS es_proveedor_optimo,
     CASE
         WHEN pp.precio_compra_anterior IS NOT NULL
              AND pp.precio_compra_unitario > pp.precio_compra_anterior

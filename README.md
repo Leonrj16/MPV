@@ -76,8 +76,24 @@ marca la más conveniente como **Proveedor Óptimo**.
   margen (verde/amarillo/rojo), comparación de proveedores y edición rápida
   de precios vía modal.
 
+Bootstrap 5 y Bootstrap Icons están vendorizados en `public/vendor/` en vez
+de cargarse desde un CDN, para que el sistema funcione sin depender de
+internet (útil detrás de firewalls corporativos). Para actualizar de
+versión, reemplaza los archivos en `public/vendor/bootstrap/` y
+`public/vendor/bootstrap-icons/` por los de la nueva release.
+
 Ambas vistas consumen la API mediante `public/js/api.js` y no requieren build
 step: se sirven como estáticos desde el propio Express (`npm run dev`).
+
+## Estado de verificación
+
+El esquema y la API fueron probados de extremo a extremo contra una
+instancia real de PostgreSQL 16: carga del `schema.sql`, arranque del
+servidor Express, y validación funcional de los endpoints (KPIs, tablero de
+precios, comparación de proveedores, actualización de precio con
+respaldo automático del precio anterior vía trigger). El frontend fue
+verificado visualmente en navegador (dashboard, tabla de precios, buscador,
+filtros, modal de comparación y modal de actualización de precio).
 
 ## Próximas fases sugeridas
 
