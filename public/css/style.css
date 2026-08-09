@@ -639,6 +639,45 @@ body {
     color: var(--mpv-ink);
 }
 
+/* ---------------------------------------------------------------------- */
+/* Punto de Venta                                                          */
+/* ---------------------------------------------------------------------- */
+.pos-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+    gap: 0.75rem;
+}
+
+.pos-product-card {
+    border: 1px solid var(--mpv-gray-200);
+    border-radius: var(--mpv-radius-sm);
+    padding: 0.9rem 1rem;
+    background: #fff;
+    transition: box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pos-product-card:hover { box-shadow: var(--mpv-shadow); border-color: var(--mpv-gray-300); }
+.pos-product-card.disabled { opacity: 0.55; }
+
+.pos-cart-panel { position: sticky; top: 90px; }
+
+.pos-cart-item {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--mpv-gray-100);
+}
+.pos-cart-item:last-child { border-bottom: none; }
+
+.pos-cart-item input[data-qty] {
+    -moz-appearance: textfield;
+}
+
+@media (max-width: 1199.98px) {
+    .pos-cart-panel { position: static; }
+}
+
 /* Skeleton loading (@keyframes skeleton-shine vive en base.css) */
 .skeleton-row td {
     padding: 1rem 1.1rem;

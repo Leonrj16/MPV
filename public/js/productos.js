@@ -26,6 +26,9 @@
                 <td>${p.categoria_nombre || '<span class="pvp-sub">Sin categoría</span>'}</td>
                 <td>${p.unidad_medida}</td>
                 <td>
+                    <span class="badge-margin ${p.stock_actual > p.stock_minimo ? 'alto' : (p.stock_actual > 0 ? 'medio' : 'bajo')}">${p.stock_actual}</span>
+                </td>
+                <td>
                     <span class="supplier-badge ${p.proveedores_count > 0 ? 'optimo' : ''}">
                         <span class="dot"></span> ${p.proveedores_count} proveedor${p.proveedores_count === '1' ? '' : 'es'}
                     </span>
@@ -53,7 +56,7 @@
     function renderTabla(productos) {
         resultCount.textContent = `${productos.length} producto${productos.length === 1 ? '' : 's'} en el catálogo`;
         if (productos.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-search"></i>No se encontraron productos.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-search"></i>No se encontraron productos.</td></tr>`;
             return;
         }
         tbody.innerHTML = productos.map(filaHtml).join('');
@@ -73,7 +76,7 @@
             poblarSelectCategorias(document.getElementById('editarCategoria'));
             renderTabla(productosCompletos);
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
             resultCount.textContent = 'Sin conexión';
         }
     }
@@ -91,6 +94,8 @@
             document.getElementById('editarSku').value = p.sku;
             document.getElementById('editarUnidad').value = p.unidad_medida;
             document.getElementById('editarNombre').value = p.nombre;
+            document.getElementById('editarStock').value = p.stock_actual;
+            document.getElementById('editarStockMinimo').value = p.stock_minimo;
             document.getElementById('editarCategoria').value = p.categoria_id || '';
             document.getElementById('editarDescripcion').value = p.descripcion || '';
             document.getElementById('editarImagenUrl').value = p.imagen_url || '';
@@ -115,6 +120,7 @@
                 categoriaId: document.getElementById('nuevoCategoria').value || null,
                 unidadMedida: document.getElementById('nuevoUnidad').value || 'unidad',
                 imagenUrl: document.getElementById('nuevoImagenUrl').value || null,
+                stockActual: Number(document.getElementById('nuevoStock').value) || 0,
             });
             modalNuevo.hide();
             document.getElementById('formNuevoProducto').reset();
@@ -142,6 +148,8 @@
                 unidadMedida: document.getElementById('editarUnidad').value,
                 activo: document.getElementById('editarActivo').checked,
                 imagenUrl: document.getElementById('editarImagenUrl').value || null,
+                stockActual: Number(document.getElementById('editarStock').value),
+                stockMinimo: Number(document.getElementById('editarStockMinimo').value),
             });
             modalEditar.hide();
             await cargar();

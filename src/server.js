@@ -9,6 +9,7 @@ const preciosRoutes = require('./routes/precios.routes');
 const usuariosRoutes = require('./routes/usuarios.routes');
 const configuracionRoutes = require('./routes/configuracion.routes');
 const tiendaRoutes = require('./routes/tienda.routes');
+const ventasRoutes = require('./routes/ventas.routes');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -23,6 +24,7 @@ app.use('/api', preciosRoutes);
 app.use('/api', usuariosRoutes);
 app.use('/api', configuracionRoutes);
 app.use('/api', tiendaRoutes);
+app.use('/api', ventasRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true, service: 'mpv-dental-api' }));
 

@@ -29,6 +29,7 @@ npm install
 cp .env.example .env        # ajustar credenciales de PostgreSQL y JWT_SECRET
 psql -U postgres -d mpv_dental -f database/schema.sql
 psql -U postgres -d mpv_dental -f database/migrations/002_auth_historial.sql
+psql -U postgres -d mpv_dental -f database/migrations/003_ventas.sql
 npm run dev                 # http://localhost:3000 (redirige a /login.html)
 ```
 
@@ -99,12 +100,47 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | PUT | `/api/precios/:proveedorProductoId` | admin, operador | Actualiza el precio de compra |
 | PUT | `/api/precios/:proveedorProductoId/proveedor-principal` | admin, operador | Marca proveedor principal |
 | POST | `/api/productos`, `/api/proveedores` | admin | Alta de catálogo |
-| PUT | `/api/productos/:id`, `/api/proveedores/:id` | admin | Edita catálogo (incluye activar/desactivar) |
+| PUT | `/api/productos/:id`, `/api/proveedores/:id` | admin | Edita catálogo (incluye stock, activar/desactivar) |
 | GET | `/api/productos`, `/api/proveedores`, `/api/categorias` | cualquiera | Lectura de catálogo (con conteo de proveedores/productos relacionados) |
 | GET/POST | `/api/usuarios` | admin | Lista/crea cuentas del sistema |
 | PUT | `/api/usuarios/:id`, `/api/usuarios/:id/password` | admin | Edita rol/estado o resetea contraseña |
 | GET/PUT | `/api/configuracion` | admin | Lee/actualiza el margen, costo operativo, unidades estimadas e impuesto activos |
+| GET | `/api/ventas/productos-disponibles` | cualquiera | Productos activos con stock y PVP vigente, listos para vender |
+| GET | `/api/ventas` | cualquiera | Historial de ventas (parámetro `limite`, por defecto 20) |
+| POST | `/api/ventas` | admin, operador | Registra una venta de mostrador y descuenta stock (ver abajo) |
 | GET | `/api/tienda/productos`, `/api/tienda/categorias` | **pública, sin token** | Catálogo para la tienda virtual (ver abajo) |
+
+## Punto de Venta (`public/punto-venta.html`)
+
+Registra ventas de mostrador (walk-in, no las de la tienda virtual) y
+descuenta el stock real del producto, algo que antes no existía: `productos`
+solo tenía `stock_minimo` (umbral de alerta) pero ningún contador de
+existencias. La migración `003_ventas.sql` agrega `stock_actual` y las
+tablas `ventas` / `venta_detalle`.
+
+- **Flujo**: el staff busca un producto en el catálogo (grid de tarjetas con
+  stock y PVP vigente), lo agrega a la "Venta Actual" con un stepper de
+  cantidad, opcionalmente anota cliente y método de pago, y confirma. El
+  precio de cada línea es el mismo PVP sugerido que ya calcula el motor de
+  precios a partir del proveedor óptimo — nunca se captura un precio a mano,
+  para que la venta siempre refleje el margen configurado.
+- **Transacción atómica** (`src/services/ventas.js`): toda la venta corre
+  dentro de un `BEGIN`/`COMMIT` con `SELECT ... FOR UPDATE` sobre cada
+  producto antes de descontar. Esto evita que dos ventas simultáneas del
+  mismo producto dejen el stock en negativo — la segunda transacción espera
+  a que la primera libere el bloqueo y ve el stock ya actualizado. Si
+  cualquier línea falla (stock insuficiente, producto sin proveedor activo),
+  se hace `ROLLBACK` completo: una venta con 3 productos donde el tercero
+  falla no descuenta stock de los dos primeros.
+- Un producto sin proveedor activo (por lo tanto sin PVP calculable) se
+  muestra en el catálogo del punto de venta pero deshabilitado, con el
+  motivo visible, en vez de desaparecer silenciosamente.
+- Verificado con `curl` contra PostgreSQL real: venta válida con dos líneas,
+  venta rechazada por stock insuficiente, venta rechazada por falta de
+  proveedor activo, y confirmación de que el `ROLLBACK` deja el stock
+  intacto en ambos casos de error. Suite de 8 tests nuevos en
+  `tests/ventas.test.js` (transacción completa, cada rama de error,
+  cálculo del PVP con el motor de precios existente).
 
 ## Tienda Virtual (`public/tienda.html`)
 
@@ -308,8 +344,12 @@ solo se usa un valor por defecto de 0 cuando la combinación es nueva.
   la tabla; el dashboard exporta el tablero completo sin filtrar) y
   **carga masiva de precios** desde `.csv`/`.xlsx`.
 - `public/productos.html` — catálogo de productos (SKU, categoría, unidad,
-  cantidad de proveedores que lo ofrecen, estado). Lectura para cualquier
-  usuario autenticado; alta/edición y activar-desactivar solo para `admin`.
+  **stock actual**, cantidad de proveedores que lo ofrecen, estado). Lectura
+  para cualquier usuario autenticado; alta/edición, stock y
+  activar-desactivar solo para `admin`.
+- `public/punto-venta.html` — registra ventas de mostrador y descuenta
+  stock (ver sección "Punto de Venta" más arriba). Disponible para `admin`
+  y `operador`, igual que la gestión de precios.
 - `public/proveedores.html` — directorio de proveedores con contacto,
   calificación (1-5 estrellas) y cantidad de productos que suministra.
   Mismas reglas de acceso que productos.
