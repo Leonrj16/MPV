@@ -3,6 +3,26 @@
         document.getElementById('mpvSidebar').classList.toggle('show');
     });
 
+    async function exportar(formato, link) {
+        const textoOriginal = link.innerHTML;
+        link.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando…';
+        try {
+            await (formato === 'excel' ? MPV.exportarExcel() : MPV.exportarPDF());
+        } catch (err) {
+            alert(`No se pudo generar el archivo: ${err.message}`);
+        } finally {
+            link.innerHTML = textoOriginal;
+        }
+    }
+    document.getElementById('exportarExcel')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        exportar('excel', e.currentTarget);
+    });
+    document.getElementById('exportarPdf')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        exportar('pdf', e.currentTarget);
+    });
+
     try {
         const { data: kpis } = await MPV.getKpis();
         document.querySelector('[data-kpi="totalProductos"]').textContent = kpis.totalProductos;

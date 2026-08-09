@@ -123,6 +123,36 @@
         el.addEventListener('input', aplicarFiltros)
     );
 
+    // -------- Exportación --------
+    function filtrosActivos() {
+        const filtros = {};
+        if (buscador.value.trim()) filtros.busqueda = buscador.value.trim();
+        if (filtroCategoria.value) filtros.categoria = filtroCategoria.value;
+        if (filtroProveedor.value) filtros.proveedor = filtroProveedor.value;
+        return filtros;
+    }
+
+    async function exportar(formato, link) {
+        const textoOriginal = link.innerHTML;
+        link.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando…';
+        try {
+            await (formato === 'excel' ? MPV.exportarExcel(filtrosActivos()) : MPV.exportarPDF(filtrosActivos()));
+        } catch (err) {
+            alert(`No se pudo generar el archivo: ${err.message}`);
+        } finally {
+            link.innerHTML = textoOriginal;
+        }
+    }
+
+    document.getElementById('exportarExcel')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        exportar('excel', e.currentTarget);
+    });
+    document.getElementById('exportarPdf')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        exportar('pdf', e.currentTarget);
+    });
+
     // -------- Modales --------
     const modalActualizar = new bootstrap.Modal(document.getElementById('modalActualizarPrecio'));
     const modalComparar = new bootstrap.Modal(document.getElementById('modalComparar'));
@@ -190,7 +220,7 @@
                     data: {
                         labels,
                         datasets: [{
-                            label: 'Precio de compra (USD)',
+                            label: 'Precio de compra (S/)',
                             data: valores,
                             borderColor: '#2563eb',
                             backgroundColor: 'rgba(37, 99, 235, 0.08)',
@@ -207,7 +237,7 @@
                         maintainAspectRatio: false,
                         plugins: { legend: { display: false } },
                         scales: {
-                            y: { ticks: { callback: (v) => `$${Number(v).toFixed(2)}` }, grid: { color: '#f1f5f9' } },
+                            y: { ticks: { callback: (v) => `S/ ${Number(v).toFixed(2)}` }, grid: { color: '#f1f5f9' } },
                             x: { grid: { display: false } },
                         },
                     },

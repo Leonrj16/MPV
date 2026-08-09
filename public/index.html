@@ -49,7 +49,15 @@
             </div>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-mpv-outline"><i class="bi bi-download me-1"></i> Exportar</button>
+            <div class="dropdown">
+                <button class="btn btn-mpv-outline dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="bi bi-download me-1"></i> Exportar
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+                    <li><a class="dropdown-item" href="#" id="exportarExcel"><i class="bi bi-file-earmark-excel-fill text-success me-2"></i>Descargar Excel (.xlsx)</a></li>
+                    <li><a class="dropdown-item" href="#" id="exportarPdf"><i class="bi bi-file-earmark-pdf-fill text-danger me-2"></i>Descargar PDF</a></li>
+                </ul>
+            </div>
             <a href="pricing.html" class="btn btn-mpv-primary"><i class="bi bi-plus-lg me-1"></i> Actualizar Precios</a>
         </div>
     </header>

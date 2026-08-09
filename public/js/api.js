@@ -24,7 +24,38 @@ const MPV = (() => {
     }
 
     const formatCurrency = (n) =>
-        new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'USD' }).format(n ?? 0);
+        new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(n ?? 0);
+
+    async function descargarArchivo(path, params = {}) {
+        const token = window.MPVAuth?.getToken?.();
+        const qs = new URLSearchParams(params).toString();
+        const res = await fetch(`${BASE_URL}${path}${qs ? `?${qs}` : ''}`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (res.status === 401) {
+            window.MPVAuth?.cerrarSesion?.();
+            throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+        }
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || `No se pudo generar el archivo (${res.status})`);
+        }
+
+        const disposicion = res.headers.get('Content-Disposition') || '';
+        const match = disposicion.match(/filename="([^"]+)"/);
+        const nombreArchivo = match ? match[1] : 'descarga';
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = nombreArchivo;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    }
 
     return {
         getKpis: () => request('/dashboard/kpis'),
@@ -43,6 +74,8 @@ const MPV = (() => {
             }),
         marcarProveedorPrincipal: (proveedorProductoId) =>
             request(`/precios/${proveedorProductoId}/proveedor-principal`, { method: 'PUT' }),
+        exportarExcel: (params) => descargarArchivo('/precios/exportar/excel', params),
+        exportarPDF: (params) => descargarArchivo('/precios/exportar/pdf', params),
         formatCurrency,
     };
 })();

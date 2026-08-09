@@ -89,7 +89,7 @@ CREATE TABLE proveedor_producto (
     producto_id             INTEGER NOT NULL REFERENCES productos(id) ON DELETE CASCADE,
     precio_compra_unitario  NUMERIC(12,4) NOT NULL CHECK (precio_compra_unitario >= 0),
     precio_compra_anterior  NUMERIC(12,4), -- para detectar alzas de precio
-    moneda                  CHAR(3) NOT NULL DEFAULT 'USD',
+    moneda                  CHAR(3) NOT NULL DEFAULT 'PEN',
     tiempo_entrega_dias     SMALLINT NOT NULL DEFAULT 0,
     costo_logistico_unitario NUMERIC(12,4) DEFAULT NULL, -- override opcional del costo logístico global
     cantidad_minima_pedido  INTEGER DEFAULT 1,

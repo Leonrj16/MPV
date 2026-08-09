@@ -6,7 +6,7 @@ de productos dentales.
 
 ## Fase 1 — Arquitectura, Base de Datos y Motor de Precios
 
-**Stack:** Node.js + Express + PostgreSQL (API REST) · Bootstrap 5 + Bootstrap Icons (frontend estático).
+**Stack:** Node.js + Express + PostgreSQL (API REST) · Bootstrap 5 + Bootstrap Icons + Chart.js (frontend estático) · ExcelJS + PDFKit (exportación de reportes).
 
 ### Estructura del proyecto
 
@@ -75,6 +75,10 @@ proveedor-producto tenga un override propio. `compararProveedores()` ordena
 las ofertas por precio de compra (y tiempo de entrega como desempate) y
 marca la más conveniente como **Proveedor Óptimo**.
 
+Moneda: todos los montos se manejan en **Soles peruanos (PEN)** — la columna
+`moneda` de `proveedor_producto` por defecto es `'PEN'` y el frontend
+formatea con `Intl.NumberFormat('es-PE', { currency: 'PEN' })`.
+
 ### API REST
 
 Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
@@ -88,6 +92,8 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET | `/api/precios` | cualquiera | Tablero de precios (filtros: `categoria`, `proveedor`, `busqueda`) |
 | GET | `/api/precios/comparar/:productoId` | cualquiera | Compara proveedores de un producto |
 | GET | `/api/precios/historial/:proveedorProductoId` | cualquiera | Serie histórica de precios de compra |
+| GET | `/api/precios/exportar/excel` | cualquiera | Descarga el tablero en `.xlsx` (acepta los mismos filtros que `/api/precios`) |
+| GET | `/api/precios/exportar/pdf` | cualquiera | Descarga el tablero en `.pdf` (mismos filtros) |
 | PUT | `/api/precios/:proveedorProductoId` | admin, operador | Actualiza el precio de compra |
 | PUT | `/api/precios/:proveedorProductoId/proveedor-principal` | admin, operador | Marca proveedor principal |
 | POST | `/api/productos`, `/api/proveedores` | admin | Alta de catálogo |
@@ -101,8 +107,9 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 - `public/pricing.html` — Tabla avanzada de gestión de precios con buscador
   en tiempo real, filtros por categoría/proveedor/rentabilidad, badges de
   margen (verde/amarillo/rojo), comparación de proveedores, **historial de
-  precios con gráfico de tendencia (Chart.js)** y edición rápida de precios
-  vía modal.
+  precios con gráfico de tendencia (Chart.js)**, edición rápida de precios
+  vía modal y **exportación a Excel/PDF** (respeta los filtros activos de
+  la tabla; el dashboard exporta el tablero completo sin filtrar).
 - `public/js/auth.js` — expone `window.MPVAuth`; redirige a `login.html` si
   no hay sesión y pinta nombre/rol/avatar en el sidebar.
 - `public/js/api.js` — adjunta el `Authorization: Bearer <token>` a cada
