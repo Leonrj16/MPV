@@ -141,6 +141,55 @@ el resumen para que el consultorio confirme el pedido manualmente. Una
 pasarela de pago real y una bandeja de pedidos son evoluciones naturales
 si el volumen lo justifica.
 
+## Sistema de diseño (`public/css/base.css`)
+
+Panel interno y tienda virtual tenían cada uno su propia hoja de estilos
+(`style.css` / `tienda.css`) con bloques **idénticos** duplicados (estado
+vacío, scrollbar, animación de skeleton) y ninguna de las dos cargaba
+realmente la tipografía que declaraban — `font-family: 'Inter', ...` caía
+en silencio a la fuente del sistema porque Inter nunca se auto-hospedó ni
+se cargó desde ningún lado. `base.css` (cargado antes que ambas hojas en
+las 8 páginas) resuelve esto:
+
+- **Inter real, auto-hospedada** — variable font (pesos 100–900) en
+  `public/vendor/fonts/inter/Inter-Variable.woff2`, un solo archivo de
+  ~48 KB para todos los pesos, sin depender de Google Fonts en producción.
+- **Tokens compartidos** — escala de espaciado (`--sp-1`…`--sp-8`), radios,
+  y curvas de easing (`--ease-out`, `--ease-spring`) para que las
+  micro-interacciones (hover de tarjetas, botones, sidebar) se sientan
+  consistentes entre ambos productos sin ser idénticas visualmente.
+- **Componentes comunes** — estado vacío, scrollbar y skeleton viven una
+  sola vez; `style.css`/`tienda.css` los personalizan vía variables CSS
+  (`--empty-color`, `--scrollbar-thumb`, `--focus-ring`) en vez de
+  redeclarar las reglas.
+- **`.reveal` con mejora progresiva real** — el fade-up al hacer scroll
+  (`public/js/scroll-reveal.js`, IntersectionObserver) solo oculta contenido
+  bajo `html.js-reveal-ready`, una clase que el propio script agrega al
+  confirmar que puede observar los elementos; si el script no corre
+  (bloqueado, error previo, sin soporte), el contenido nunca queda
+  atrapado en `opacity:0`. Además hay una red de seguridad: cualquier
+  elemento no revelado en 2.5s se fuerza a visible. *(Esto corrigió un bug
+  real encontrado en pruebas: sin este resguardo, el grid de productos
+  podía quedar invisible en ciertos escenarios de carga.)*
+
+Dirección visual (inspirada en el lenguaje de landings premium tipo
+Magnific — tipografía grande y audaz, gradientes sutiles, ritmo de
+secciones claro/oscuro, micro-interacciones — adaptada a una paleta clara
+y clínica en vez de oscura, porque un comprador de insumos dentales
+necesita percibir limpieza y confianza, no estética "tech/IA"):
+
+- **Tienda**: hero con tipografía más grande y blobs de gradiente
+  animados de fondo, estadísticas en vivo (productos/categorías reales,
+  no inventados), una franja oscura de "confianza" entre el hero y el
+  catálogo (ritmo claro→oscuro→claro), zoom sutil de imagen al pasar el
+  mouse sobre una tarjeta, y header que se compacta al hacer scroll.
+- **Panel interno**: números de KPI más grandes, barra de acento con
+  degradado en el ítem activo del sidebar y al hacer hover sobre una
+  tarjeta KPI, fondo con un degradado radial casi imperceptible para dar
+  profundidad sin distraer. Deliberadamente **sin** animaciones de entrada
+  (`.reveal`) — es una herramienta que el staff abre decenas de veces al
+  día; la inmediatez importa más que el efecto.
+
 ### Carga masiva de precios (`src/services/importarPrecios.js`)
 
 Acepta `.csv` o `.xlsx` con columnas `SKU`, `Proveedor`, `PrecioCompra` y,

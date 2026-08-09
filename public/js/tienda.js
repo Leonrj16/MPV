@@ -31,7 +31,7 @@
             : `<i class="bi bi-capsule placeholder-icono"></i>`;
 
         return `
-            <div class="col">
+            <div class="col reveal">
                 <div class="card-producto">
                     <div class="card-producto-imagen">
                         ${p.categoria ? `<span class="card-producto-categoria">${escaparHtml(p.categoria)}</span>` : ''}
@@ -62,6 +62,7 @@
             return;
         }
         grid.innerHTML = productos.map(tarjetaProductoHtml).join('');
+        window.MPVScrollReveal?.iniciar();
     }
 
     function aplicarFiltros() {
@@ -207,12 +208,24 @@
             if (!resProductos.ok) throw new Error(resProductos.error || 'No se pudo cargar el catálogo');
 
             catalogoCompleto = resProductos.data;
-            renderCategorias(resCategorias.ok ? resCategorias.data : []);
+            const categorias = resCategorias.ok ? resCategorias.data : [];
+            renderCategorias(categorias);
             renderGrid(catalogoCompleto);
+
+            document.getElementById('statProductos').textContent = catalogoCompleto.length;
+            document.getElementById('statCategorias').textContent = categorias.length;
         } catch (err) {
             grid.innerHTML = `<div class="col-12"><div class="mpv-empty"><i class="bi bi-plug-fill"></i>No se pudo cargar el catálogo. Intenta de nuevo más tarde.</div></div>`;
             resultCount.textContent = 'Sin conexión';
         }
+    }
+
+    // -------- Header compacto al hacer scroll --------
+    const header = document.querySelector('.tienda-header');
+    if (header) {
+        window.addEventListener('scroll', () => {
+            header.classList.toggle('compacto', window.scrollY > 24);
+        }, { passive: true });
     }
 
     document.getElementById('anioActual').textContent = new Date().getFullYear();

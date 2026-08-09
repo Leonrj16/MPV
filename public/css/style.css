@@ -27,16 +27,18 @@
     --mpv-shadow-hover: 0 4px 12px rgba(15, 23, 42, 0.06), 0 16px 32px -12px rgba(15, 23, 42, 0.16);
 
     --sidebar-width: 260px;
-}
 
-* { box-sizing: border-box; }
+    /* Mapeo a los tokens genéricos de base.css */
+    --empty-color: var(--mpv-ink-soft);
+    --empty-icon-color: var(--mpv-gray-300);
+    --scrollbar-thumb: var(--mpv-gray-300);
+    --focus-ring: var(--mpv-blue);
+}
 
 body {
     background: var(--mpv-gray-50);
     color: var(--mpv-ink);
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
     font-size: 0.9375rem;
-    -webkit-font-smoothing: antialiased;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -107,6 +109,7 @@ body {
 }
 
 .mpv-nav .nav-link {
+    position: relative;
     display: flex;
     align-items: center;
     gap: 0.7rem;
@@ -116,7 +119,7 @@ body {
     font-weight: 550;
     font-size: 0.875rem;
     margin-bottom: 0.15rem;
-    transition: background 0.15s ease, color 0.15s ease;
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
 }
 
 .mpv-nav .nav-link i { font-size: 1.05rem; }
@@ -129,6 +132,19 @@ body {
 .mpv-nav .nav-link.active {
     background: var(--mpv-blue-soft);
     color: var(--mpv-blue-dark);
+    font-weight: 700;
+}
+
+.mpv-nav .nav-link.active::before {
+    content: '';
+    position: absolute;
+    left: -0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 18px;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, var(--mpv-blue), var(--mpv-emerald));
 }
 
 .mpv-sidebar-footer {
@@ -189,6 +205,9 @@ body {
 .mpv-content {
     padding: 1.75rem;
     flex: 1;
+    background:
+        radial-gradient(circle at 100% 0%, rgba(37, 99, 235, 0.035), transparent 40%),
+        radial-gradient(circle at 0% 100%, rgba(16, 185, 129, 0.03), transparent 40%);
 }
 
 @media (max-width: 991.98px) {
@@ -216,19 +235,32 @@ body {
 /* Tarjetas KPI                                                            */
 /* ---------------------------------------------------------------------- */
 .kpi-card {
+    position: relative;
     background: #fff;
     border: 1px solid var(--mpv-gray-200);
     border-radius: var(--mpv-radius);
     padding: 1.35rem 1.5rem;
     box-shadow: var(--mpv-shadow);
-    transition: box-shadow 0.2s ease, transform 0.2s ease;
+    transition: box-shadow var(--dur-base) var(--ease-out), transform var(--dur-base) var(--ease-out);
     height: 100%;
+    overflow: hidden;
+}
+
+.kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--mpv-blue), var(--mpv-emerald));
+    opacity: 0;
+    transition: opacity var(--dur-base) var(--ease-out);
 }
 
 .kpi-card:hover {
     box-shadow: var(--mpv-shadow-hover);
-    transform: translateY(-2px);
+    transform: translateY(-3px);
 }
+.kpi-card:hover::before { opacity: 1; }
 
 .kpi-card .kpi-icon {
     width: 44px;
@@ -247,11 +279,12 @@ body {
 .kpi-icon.bg-red { background: var(--mpv-red-soft); color: var(--mpv-red); }
 
 .kpi-card .kpi-value {
-    font-size: 1.85rem;
+    font-size: 2.05rem;
     font-weight: 800;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
     color: var(--mpv-ink);
     line-height: 1.1;
+    font-variant-numeric: tabular-nums;
 }
 
 .kpi-card .kpi-label {
@@ -519,7 +552,7 @@ body {
     color: var(--mpv-ink);
 }
 
-/* Skeleton loading */
+/* Skeleton loading (@keyframes skeleton-shine vive en base.css) */
 .skeleton-row td {
     padding: 1rem 1.1rem;
 }
@@ -528,22 +561,7 @@ body {
     border-radius: 6px;
     background: linear-gradient(90deg, var(--mpv-gray-100) 25%, var(--mpv-gray-200) 37%, var(--mpv-gray-100) 63%);
     background-size: 400% 100%;
-    animation: skeleton-loading 1.4s ease infinite;
-}
-@keyframes skeleton-loading {
-    0% { background-position: 100% 50%; }
-    100% { background-position: 0 50%; }
+    animation: skeleton-shine 1.4s ease infinite;
 }
 
-/* Empty state */
-.mpv-empty {
-    padding: 3.5rem 1rem;
-    text-align: center;
-    color: var(--mpv-ink-soft);
-}
-.mpv-empty i { font-size: 2.2rem; color: var(--mpv-gray-300); margin-bottom: 0.75rem; display: block; }
-
-/* Scrollbar refinado */
-::-webkit-scrollbar { height: 8px; width: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--mpv-gray-300); border-radius: 999px; }
+/* .mpv-empty y el scrollbar viven en base.css (compartidos con la tienda virtual) */

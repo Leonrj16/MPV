@@ -16,15 +16,17 @@
     --tienda-radius: 16px;
     --tienda-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 28px -14px rgba(15, 23, 42, 0.16);
     --tienda-shadow-hover: 0 18px 36px -16px rgba(0, 123, 255, 0.28);
-}
 
-* { box-sizing: border-box; }
+    /* Mapeo a los tokens genéricos de base.css */
+    --empty-color: var(--tienda-ink-soft);
+    --empty-icon-color: var(--tienda-gray-200);
+    --scrollbar-thumb: var(--tienda-gray-200);
+    --focus-ring: var(--tienda-azul);
+}
 
 body {
     background: #ffffff;
     color: var(--tienda-ink);
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
 }
 
 /* ---------------------------------------------------------------------- */
@@ -48,8 +50,14 @@ body {
     z-index: 1030;
     background: rgba(255, 255, 255, 0.92);
     backdrop-filter: blur(10px);
-    border-bottom: 1px solid var(--tienda-gray-200);
+    border-bottom: 1px solid transparent;
     padding: 0.85rem 0;
+    transition: padding var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out);
+}
+.tienda-header.compacto {
+    padding: 0.55rem 0;
+    border-bottom-color: var(--tienda-gray-200);
+    box-shadow: 0 4px 20px -12px rgba(15, 23, 42, 0.12);
 }
 
 .tienda-brand {
@@ -142,22 +150,59 @@ body {
 }
 
 /* ---------------------------------------------------------------------- */
-/* Hero                                                                      */
+/* Hero — tipografía grande y bloques de gradiente animados suavemente,     */
+/* inspirado en el ritmo visual de landings premium (Magnific), adaptado   */
+/* a una paleta clara y clínica en vez de oscura.                          */
 /* ---------------------------------------------------------------------- */
 .tienda-hero {
-    background:
-        radial-gradient(circle at 15% 20%, rgba(0, 123, 255, 0.08), transparent 55%),
-        radial-gradient(circle at 85% 80%, rgba(40, 167, 69, 0.08), transparent 55%),
-        var(--tienda-gray-50);
-    padding: 2.75rem 0 2.25rem;
+    position: relative;
+    overflow: hidden;
+    padding: var(--sp-8) 0 var(--sp-7);
     border-bottom: 1px solid var(--tienda-gray-200);
+    background: var(--tienda-gray-50);
 }
+.tienda-hero::before,
+.tienda-hero::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(60px);
+    z-index: 0;
+    animation: hero-blob-float 14s ease-in-out infinite;
+}
+.tienda-hero::before {
+    width: 420px;
+    height: 420px;
+    top: -160px;
+    left: -80px;
+    background: radial-gradient(circle, rgba(0, 123, 255, 0.16), transparent 70%);
+}
+.tienda-hero::after {
+    width: 380px;
+    height: 380px;
+    bottom: -180px;
+    right: -60px;
+    background: radial-gradient(circle, rgba(40, 167, 69, 0.14), transparent 70%);
+    animation-delay: -7s;
+    animation-direction: reverse;
+}
+@keyframes hero-blob-float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(30px, -20px) scale(1.08); }
+}
+@media (prefers-reduced-motion: reduce) {
+    .tienda-hero::before, .tienda-hero::after { animation: none; }
+}
+.tienda-hero .container { position: relative; z-index: 1; }
+
 .tienda-hero h1 {
     font-weight: 800;
-    font-size: clamp(1.5rem, 2.4vw, 2.1rem);
-    letter-spacing: -0.02em;
+    font-size: clamp(1.9rem, 4vw, 3rem);
+    letter-spacing: -0.03em;
+    line-height: 1.08;
+    max-width: 720px;
 }
-.tienda-hero p { color: var(--tienda-ink-soft); font-size: 0.98rem; max-width: 620px; }
+.tienda-hero p { color: var(--tienda-ink-soft); font-size: 1.02rem; max-width: 600px; margin-top: var(--sp-3); }
 .tienda-hero-badge {
     display: inline-flex;
     align-items: center;
@@ -169,8 +214,56 @@ body {
     font-size: 0.76rem;
     font-weight: 700;
     color: var(--tienda-verde-oscuro);
-    margin-bottom: 0.9rem;
+    margin-bottom: var(--sp-4);
+    box-shadow: var(--tienda-shadow);
 }
+
+.tienda-hero-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--sp-6);
+    margin-top: var(--sp-6);
+}
+.tienda-hero-stats .stat-num {
+    font-size: 1.7rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--tienda-azul), var(--tienda-verde));
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+}
+.tienda-hero-stats .stat-label { font-size: 0.78rem; color: var(--tienda-ink-soft); font-weight: 600; }
+
+/* ---------------------------------------------------------------------- */
+/* Franja de confianza (banda oscura) — rompe el ritmo claro/claro con un  */
+/* acento oscuro entre el hero y el catálogo, igual que hacen las landings */
+/* premium de producto (alternar secciones claras y oscuras).              */
+/* ---------------------------------------------------------------------- */
+.tienda-confianza {
+    background: var(--tienda-ink);
+    padding: var(--sp-6) 0;
+}
+.confianza-item {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-3);
+    color: #e2e8f0;
+}
+.confianza-item .icono {
+    width: 42px;
+    height: 42px;
+    border-radius: var(--rad-md);
+    background: rgba(255, 255, 255, 0.08);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: var(--tienda-verde);
+    flex-shrink: 0;
+}
+.confianza-item .titulo { font-weight: 700; font-size: 0.88rem; color: #fff; }
+.confianza-item .desc { font-size: 0.78rem; color: #94a3b8; }
 
 /* ---------------------------------------------------------------------- */
 /* Filtros por categoría                                                   */
@@ -191,7 +284,7 @@ body {
     padding: 0.5rem 1.1rem;
     font-size: 0.85rem;
     font-weight: 650;
-    transition: all 0.15s ease;
+    transition: all var(--dur-base) var(--ease-out);
     white-space: nowrap;
 }
 .chip-categoria:hover { border-color: var(--tienda-azul); color: var(--tienda-azul); }
@@ -209,13 +302,13 @@ body {
     border-radius: var(--tienda-radius);
     overflow: hidden;
     background: #fff;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform var(--dur-base) var(--ease-out), box-shadow var(--dur-base) var(--ease-out), border-color var(--dur-base) var(--ease-out);
     height: 100%;
     display: flex;
     flex-direction: column;
 }
 .card-producto:hover {
-    transform: translateY(-4px);
+    transform: translateY(-6px);
     box-shadow: var(--tienda-shadow-hover);
     border-color: rgba(0, 123, 255, 0.3);
 }
@@ -233,10 +326,14 @@ body {
     width: 100%;
     height: 100%;
     object-fit: cover;
+    transition: transform var(--dur-slow) var(--ease-out);
 }
+.card-producto:hover .card-producto-imagen img { transform: scale(1.08); }
+.card-producto:hover .placeholder-icono { transform: scale(1.1); }
 .card-producto-imagen .placeholder-icono {
     font-size: 2.4rem;
     color: rgba(0, 123, 255, 0.35);
+    transition: transform var(--dur-slow) var(--ease-out);
 }
 .card-producto-categoria {
     position: absolute;
@@ -444,6 +541,7 @@ body {
 .toast-agregado i { color: var(--tienda-verde); flex-shrink: 0; }
 .toast-agregado span { overflow: hidden; text-overflow: ellipsis; }
 
+/* .skeleton-shine, .mpv-empty y el scrollbar viven en base.css (compartidos con el panel interno) */
 .skeleton-card {
     border-radius: var(--tienda-radius);
     border: 1px solid var(--tienda-gray-200);
@@ -454,14 +552,3 @@ body {
     background-size: 400% 100%;
     animation: skeleton-shine 1.4s ease infinite;
 }
-@keyframes skeleton-shine {
-    0% { background-position: 100% 50%; }
-    100% { background-position: 0 50%; }
-}
-
-.mpv-empty { text-align: center; padding: 3.5rem 1rem; color: var(--tienda-ink-soft); }
-.mpv-empty i { font-size: 2.2rem; color: var(--tienda-gray-200); margin-bottom: 0.75rem; display: block; }
-
-::-webkit-scrollbar { height: 8px; width: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--tienda-gray-200); border-radius: 999px; }

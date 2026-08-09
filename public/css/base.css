@@ -1,0 +1,113 @@
+/* ============================================================================
+   MPV Dental — Fundamentos de diseño compartidos
+   Cargado antes de style.css (panel interno) y tienda.css (tienda virtual)
+   para que ambos partan de la misma tipografía, escala y componentes base
+   en vez de duplicarlos (ver README, sección "Arquitectura de diseño").
+   ============================================================================ */
+
+@font-face {
+    font-family: 'Inter';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../vendor/fonts/inter/Inter-Variable.woff2') format('woff2');
+    unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215,
+        U+FEFF, U+FFFD;
+}
+
+:root {
+    /* Escala de espaciado — ritmo consistente en ambos productos */
+    --sp-1: 0.25rem;
+    --sp-2: 0.5rem;
+    --sp-3: 0.75rem;
+    --sp-4: 1rem;
+    --sp-5: 1.5rem;
+    --sp-6: 2rem;
+    --sp-7: 3rem;
+    --sp-8: 4.5rem;
+
+    /* Escala de radios */
+    --rad-sm: 8px;
+    --rad-md: 12px;
+    --rad-lg: 16px;
+    --rad-xl: 22px;
+
+    /* Curvas de easing — micro-interacciones consistentes */
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --dur-fast: 0.15s;
+    --dur-base: 0.25s;
+    --dur-slow: 0.45s;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    font-feature-settings: 'cv11', 'ss01', 'tnum' 1;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Scroll-reveal: se activa agregando la clase .visible vía IntersectionObserver
+   (ver public/js/scroll-reveal.js).
+   IMPORTANTE: el estado oculto solo se aplica bajo html.js-reveal-ready, una
+   clase que scroll-reveal.js agrega recién cuando confirma que puede observar
+   el elemento. Así, si el script no corre (bloqueado, error previo, navegador
+   sin IntersectionObserver) o si el observer tarda más que la captura/lectura
+   de la página, el contenido queda visible por defecto en vez de atascado en
+   opacity:0 — nunca depende de que el JS "llegue a tiempo".              */
+/* ---------------------------------------------------------------------- */
+html.js-reveal-ready .reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity var(--dur-slow) var(--ease-out), transform var(--dur-slow) var(--ease-out);
+}
+html.js-reveal-ready .reveal.visible { opacity: 1; transform: translateY(0); }
+
+@media (prefers-reduced-motion: reduce) {
+    html.js-reveal-ready .reveal { opacity: 1; transform: none; transition: none; }
+    html { scroll-behavior: auto; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Skeleton de carga — un solo keyframe para todo el proyecto              */
+/* ---------------------------------------------------------------------- */
+@keyframes skeleton-shine {
+    0% { background-position: 100% 50%; }
+    100% { background-position: 0 50%; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Estado vacío genérico                                                    */
+/* ---------------------------------------------------------------------- */
+.mpv-empty {
+    padding: var(--sp-7) var(--sp-4);
+    text-align: center;
+    color: var(--empty-color, #64748b);
+}
+.mpv-empty i {
+    font-size: 2.2rem;
+    color: var(--empty-icon-color, #cbd5e1);
+    margin-bottom: var(--sp-3);
+    display: block;
+}
+
+/* ---------------------------------------------------------------------- */
+/* Scrollbar refinado (WebKit)                                             */
+/* ---------------------------------------------------------------------- */
+::-webkit-scrollbar { height: 8px; width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--scrollbar-thumb, #cbd5e1); border-radius: 999px; }
+
+/* ---------------------------------------------------------------------- */
+/* Foco visible accesible — mismo anillo en toda la plataforma             */
+/* ---------------------------------------------------------------------- */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+    outline: 2px solid var(--focus-ring, #2563eb);
+    outline-offset: 2px;
+}

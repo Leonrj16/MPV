@@ -7,6 +7,7 @@
     <meta name="description" content="Insumos, resinas e instrumental dental de calidad, con precios claros y entrega rápida.">
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/base.css" rel="stylesheet">
     <link href="css/tienda.css" rel="stylesheet">
 </head>
 <body>
@@ -47,10 +48,69 @@
 
 <!-- Hero -->
 <section class="tienda-hero">
-    <div class="container">
+    <div class="container reveal">
         <div class="tienda-hero-badge"><i class="bi bi-patch-check-fill"></i> Precios actualizados en tiempo real</div>
         <h1>Todo lo que tu consultorio necesita, en un solo lugar</h1>
         <p>Resinas, instrumental rotatorio, bioseguridad y anestesia de proveedores certificados, con el mejor precio calculado automáticamente por nuestro sistema.</p>
+
+        <div class="tienda-hero-stats">
+            <div>
+                <div class="stat-num" id="statProductos">—</div>
+                <div class="stat-label">Productos disponibles</div>
+            </div>
+            <div>
+                <div class="stat-num" id="statCategorias">—</div>
+                <div class="stat-label">Categorías</div>
+            </div>
+            <div>
+                <div class="stat-num">100%</div>
+                <div class="stat-label">Precios verificados por sistema</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Franja de confianza -->
+<section class="tienda-confianza">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-6 col-lg-3 reveal">
+                <div class="confianza-item">
+                    <div class="icono"><i class="bi bi-shield-check"></i></div>
+                    <div>
+                        <div class="titulo">Proveedores certificados</div>
+                        <div class="desc">Insumos verificados</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 reveal">
+                <div class="confianza-item">
+                    <div class="icono"><i class="bi bi-graph-up-arrow"></i></div>
+                    <div>
+                        <div class="titulo">Precio siempre al día</div>
+                        <div class="desc">Calculado en tiempo real</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 reveal">
+                <div class="confianza-item">
+                    <div class="icono"><i class="bi bi-whatsapp"></i></div>
+                    <div>
+                        <div class="titulo">Pedido por WhatsApp</div>
+                        <div class="desc">Confirmación directa</div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-6 col-lg-3 reveal">
+                <div class="confianza-item">
+                    <div class="icono"><i class="bi bi-headset"></i></div>
+                    <div>
+                        <div class="titulo">Atención personalizada</div>
+                        <div class="desc">Lun–Sáb, 9:00–19:00</div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 
@@ -145,6 +205,7 @@
 </footer>
 
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/scroll-reveal.js"></script>
 <script src="js/carrito.js"></script>
 <script src="js/tienda.js"></script>
 </body>
