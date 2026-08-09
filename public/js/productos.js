@@ -24,17 +24,17 @@
                         </div>
                     </div>
                 </td>
-                <td>${p.categoria_nombre || '<span class="pvp-sub">Sin categoría</span>'}</td>
-                <td>${p.unidad_medida}</td>
-                <td>
+                <td data-label="Categoría">${p.categoria_nombre || '<span class="pvp-sub">Sin categoría</span>'}</td>
+                <td data-label="Unidad">${p.unidad_medida}</td>
+                <td data-label="Stock">
                     <span class="badge-margin ${p.stock_actual > p.stock_minimo ? 'alto' : (p.stock_actual > 0 ? 'medio' : 'bajo')}">${p.stock_actual}</span>
                 </td>
-                <td>
+                <td data-label="Proveedores">
                     <span class="supplier-badge ${p.proveedores_count > 0 ? 'optimo' : ''}">
                         <span class="dot"></span> ${p.proveedores_count} proveedor${p.proveedores_count === '1' ? '' : 'es'}
                     </span>
                 </td>
-                <td>${p.activo ? '<span class="supplier-badge optimo"><span class="dot"></span> Activo</span>' : '<span class="supplier-badge"><span class="dot"></span> Inactivo</span>'}</td>
+                <td data-label="Estado">${p.activo ? '<span class="supplier-badge optimo"><span class="dot"></span> Activo</span>' : '<span class="supplier-badge"><span class="dot"></span> Inactivo</span>'}</td>
                 <td class="text-end">
                     ${esAdmin ? `
                         <button class="btn-icon-sm" title="Editar producto" onclick="ProductosUI.abrirEditar(${p.id})">

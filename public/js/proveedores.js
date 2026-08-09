@@ -28,18 +28,18 @@
                         </div>
                     </div>
                 </td>
-                <td>${p.contacto || '<span class="pvp-sub">Sin contacto</span>'}</td>
-                <td>
+                <td data-label="Contacto">${p.contacto || '<span class="pvp-sub">Sin contacto</span>'}</td>
+                <td data-label="Teléfono / Email">
                     <div>${p.telefono || '—'}</div>
                     <div class="pvp-sub">${p.email || 'Sin email'}</div>
                 </td>
-                <td>${estrellas(p.calificacion)}</td>
-                <td>
+                <td data-label="Calificación">${estrellas(p.calificacion)}</td>
+                <td data-label="Productos">
                     <span class="supplier-badge ${p.productos_count > 0 ? 'optimo' : ''}">
                         <span class="dot"></span> ${p.productos_count} producto${p.productos_count === '1' ? '' : 's'}
                     </span>
                 </td>
-                <td>${p.activo ? '<span class="supplier-badge optimo"><span class="dot"></span> Activo</span>' : '<span class="supplier-badge"><span class="dot"></span> Inactivo</span>'}</td>
+                <td data-label="Estado">${p.activo ? '<span class="supplier-badge optimo"><span class="dot"></span> Activo</span>' : '<span class="supplier-badge"><span class="dot"></span> Inactivo</span>'}</td>
                 <td class="text-end">
                     ${esAdmin ? `
                         <button class="btn-icon-sm" title="Editar proveedor" onclick="ProveedoresUI.abrirEditar(${p.id})">

@@ -32,20 +32,20 @@
                         </div>
                     </div>
                 </td>
-                <td>
+                <td data-label="Proveedor Actual">
                     <span class="supplier-badge ${fila.esProveedorOptimo ? 'optimo' : ''}">
                         <span class="dot"></span> ${fila.proveedor}
                         ${fila.esProveedorOptimo ? '<i class="bi bi-patch-check-fill" title="Proveedor óptimo"></i>' : ''}
                     </span><br>
                     ${fila.alertaSubidaPrecio ? '<span class="alert-price-up"><i class="bi bi-arrow-up-short"></i>Precio subió</span>' : ''}
                 </td>
-                <td>${MPV.formatCurrency(fila.precioCompra)}</td>
-                <td>
+                <td data-label="Precio de Compra">${MPV.formatCurrency(fila.precioCompra)}</td>
+                <td data-label="Costo Total">
                     ${MPV.formatCurrency(fila.costoTotalUnitario)}
                     <div class="pvp-sub">incl. logística ${MPV.formatCurrency(fila.costoLogisticoUnitario)}</div>
                 </td>
-                <td><span class="badge-margin ${fila.rentabilidad}"><i class="bi bi-graph-up"></i> ${fila.margenRealPct.toFixed(1)}%</span></td>
-                <td>
+                <td data-label="Margen de Utilidad"><span class="badge-margin ${fila.rentabilidad}"><i class="bi bi-graph-up"></i> ${fila.margenRealPct.toFixed(1)}%</span></td>
+                <td data-label="PVP Sugerido">
                     <div class="pvp-value">${MPV.formatCurrency(fila.pvpSugerido)}</div>
                     <div class="pvp-sub">+ impuesto ${MPV.formatCurrency(fila.montoImpuesto)}</div>
                 </td>

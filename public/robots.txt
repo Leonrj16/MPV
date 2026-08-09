@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /tienda.html
+Allow: /carrito.html
+Allow: /css/
+Allow: /js/
+Allow: /icons/
+Allow: /uploads/
+Disallow: /api/
+Disallow: /login.html
+Disallow: /index.html
+Disallow: /pricing.html
+Disallow: /punto-venta.html
+Disallow: /productos.html
+Disallow: /proveedores.html
+Disallow: /usuarios.html
+Disallow: /configuracion.html
+Disallow: /ventas.html
+
+Sitemap: https://www.sanjudastadeo.dental/sitemap.xml

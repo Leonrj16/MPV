@@ -55,12 +55,12 @@
     function filaVentaHtml(v) {
         return `
             <tr>
-                <td>${formatearFecha(v.created_at)}</td>
-                <td>${v.cliente || 'Cliente varios'}</td>
-                <td><span class="pvp-sub">${resumenProductos(v.items)}</span></td>
-                <td>${ETIQUETAS_METODO_PAGO[v.metodo_pago] || v.metodo_pago}</td>
-                <td>${v.usuario_nombre || '—'}</td>
-                <td class="text-end pvp-value">${MPV.formatCurrency(v.total)}</td>
+                <td data-label="Fecha">${formatearFecha(v.created_at)}</td>
+                <td data-label="Cliente">${v.cliente || 'Cliente varios'}</td>
+                <td data-label="Productos"><span class="pvp-sub">${resumenProductos(v.items)}</span></td>
+                <td data-label="Método de Pago">${ETIQUETAS_METODO_PAGO[v.metodo_pago] || v.metodo_pago}</td>
+                <td data-label="Atendido por">${v.usuario_nombre || '—'}</td>
+                <td class="text-end pvp-value" data-label="Total">${MPV.formatCurrency(v.total)}</td>
                 <td class="text-end">
                     <button class="btn-icon-sm" title="Ver boleta" data-ver-boleta="${v.id}"><i class="bi bi-receipt"></i></button>
                 </td>
@@ -127,11 +127,11 @@
     function filaPedidoHtml(p) {
         return `
             <tr>
-                <td>${formatearFecha(p.created_at)}</td>
-                <td>${p.cliente || 'Cliente web'}${p.telefono ? `<div class="pvp-sub">${p.telefono}</div>` : ''}</td>
-                <td><span class="pvp-sub">${resumenProductos(p.items)}</span></td>
-                <td><span class="badge-margin ${ESTADO_BADGE_CLASE[p.estado]}">${ESTADO_LABEL[p.estado]}</span></td>
-                <td class="text-end pvp-value">${MPV.formatCurrency(p.total)}</td>
+                <td data-label="Fecha">${formatearFecha(p.created_at)}</td>
+                <td data-label="Cliente">${p.cliente || 'Cliente web'}${p.telefono ? `<div class="pvp-sub">${p.telefono}</div>` : ''}</td>
+                <td data-label="Productos"><span class="pvp-sub">${resumenProductos(p.items)}</span></td>
+                <td data-label="Estado"><span class="badge-margin ${ESTADO_BADGE_CLASE[p.estado]}">${ESTADO_LABEL[p.estado]}</span></td>
+                <td class="text-end pvp-value" data-label="Total">${MPV.formatCurrency(p.total)}</td>
                 <td class="text-end">
                     <select class="form-select form-select-sm d-inline-block" style="width:auto;" data-cambiar-estado="${p.id}">
                         <option value="pendiente" ${p.estado === 'pendiente' ? 'selected' : ''}>Pendiente</option>

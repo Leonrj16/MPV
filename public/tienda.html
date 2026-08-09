@@ -5,10 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>San Judas Tadeo Botica Dental | Tienda Virtual</title>
     <meta name="description" content="Insumos, resinas e instrumental dental de calidad en San Judas Tadeo Botica Dental, con precios claros y entrega rápida.">
+    <link rel="canonical" href="/tienda.html">
+
+    <!-- Open Graph / redes sociales -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="San Judas Tadeo Botica Dental">
+    <meta property="og:title" content="San Judas Tadeo Botica Dental | Tienda Virtual">
+    <meta property="og:description" content="Insumos, resinas e instrumental dental de calidad, con precios claros y entrega rápida.">
+    <meta property="og:image" content="/icons/icon-512.png">
+    <meta property="og:url" content="/tienda.html">
+    <meta name="twitter:card" content="summary">
+    <meta name="twitter:title" content="San Judas Tadeo Botica Dental | Tienda Virtual">
+    <meta name="twitter:description" content="Insumos, resinas e instrumental dental de calidad, con precios claros y entrega rápida.">
+    <meta name="twitter:image" content="/icons/icon-512.png">
+
+    <!-- PWA -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#007bff">
+    <link rel="icon" type="image/png" sizes="32x32" href="/icons/icon-32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/icons/icon-16.png">
+    <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="css/base.css" rel="stylesheet">
     <link href="css/tienda.css" rel="stylesheet">
+
+    <!-- Datos estructurados: identidad del negocio (no cambia con el catálogo,
+         a diferencia del ItemList de productos que tienda.js inyecta en tiempo
+         de ejecución con los datos reales ya renderizados). -->
+    <script type="application/ld+json">
+    {
+        "@context": "https://schema.org",
+        "@type": "MedicalBusiness",
+        "name": "San Judas Tadeo Botica Dental",
+        "description": "Insumos, resinas e instrumental dental de calidad, con precios claros y entrega rápida.",
+        "image": "/icons/icon-512.png",
+        "telephone": "+51999000111",
+        "email": "contacto@sanjudastadeo.dental",
+        "address": {
+            "@type": "PostalAddress",
+            "streetAddress": "Av. Principal 123, San Isidro",
+            "addressLocality": "Lima",
+            "addressCountry": "PE"
+        },
+        "openingHours": "Mo-Sa 09:00-19:00"
+    }
+    </script>
 </head>
 <body>
 
@@ -39,7 +82,12 @@
             <input type="text" id="buscador" placeholder="Buscar resinas, guantes, instrumental…">
         </div>
 
-        <button class="btn-carrito ms-auto" id="btnAbrirCarrito" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarrito">
+        <button class="btn-carrito ms-auto" id="btnFavoritos" title="Solo favoritos">
+            <i class="bi bi-heart"></i>
+            <span class="badge-cantidad" id="badgeFavoritos">0</span>
+        </button>
+
+        <button class="btn-carrito" id="btnAbrirCarrito" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarrito">
             <i class="bi bi-bag-fill"></i>
             <span class="badge-cantidad" id="badgeCarrito">0</span>
         </button>
@@ -265,6 +313,7 @@
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="js/scroll-reveal.js"></script>
 <script src="js/carrito.js"></script>
+<script src="js/favoritos.js"></script>
 <script src="js/tienda.js"></script>
 </body>
 </html>

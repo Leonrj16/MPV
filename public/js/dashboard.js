@@ -77,18 +77,18 @@
                             </div>
                         </div>
                     </td>
-                    <td>
+                    <td data-label="Proveedor">
                         <span class="supplier-badge ${fila.esProveedorOptimo ? 'optimo' : ''}">
                             <span class="dot"></span> ${fila.proveedor}
                         </span>
                         ${fila.alertaSubidaPrecio ? '<span class="alert-price-up"><i class="bi bi-arrow-up-short"></i>Subió</span>' : ''}
                     </td>
-                    <td>${MPV.formatCurrency(fila.precioCompra)}</td>
-                    <td>
+                    <td data-label="Precio de Compra">${MPV.formatCurrency(fila.precioCompra)}</td>
+                    <td data-label="PVP Sugerido">
                         <div class="pvp-value">${MPV.formatCurrency(fila.pvpSugerido)}</div>
                         <div class="pvp-sub">antes de impuestos: ${MPV.formatCurrency(fila.subtotalSinImpuesto)}</div>
                     </td>
-                    <td><span class="badge-margin ${fila.rentabilidad}">${fila.margenRealPct.toFixed(1)}%</span></td>
+                    <td data-label="Margen"><span class="badge-margin ${fila.rentabilidad}">${fila.margenRealPct.toFixed(1)}%</span></td>
                     <td class="text-end"><a href="pricing.html" class="btn-icon-sm"><i class="bi bi-arrow-up-right"></i></a></td>
                 </tr>
             `).join('');

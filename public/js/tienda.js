@@ -8,6 +8,7 @@
 
     let catalogoCompleto = [];
     let categoriaActiva = '';
+    let soloFavoritosActivo = false;
 
     const grid = document.getElementById('gridProductos');
     const resultCount = document.getElementById('resultCount');
@@ -55,12 +56,16 @@
             ? `<img src="${escaparHtml(p.imagenUrl)}" alt="${nombre}" loading="lazy" onerror="manejarErrorImagen(this)">`
             : `<i class="bi bi-capsule placeholder-icono"></i>`;
         const agotado = typeof p.stockActual === 'number' && p.stockActual <= 0;
+        const esFavorito = window.Favoritos?.tieneId(p.id);
 
         return `
             <div class="col reveal">
                 <div class="card-producto" data-id="${p.id}">
                     <div class="card-producto-imagen">
                         ${p.categoria ? `<span class="card-producto-categoria">${escaparHtml(p.categoria)}</span>` : ''}
+                        <button class="btn-favorito${esFavorito ? ' activo' : ''}" data-id="${p.id}" aria-label="Marcar como favorito">
+                            <i class="bi ${esFavorito ? 'bi-heart-fill' : 'bi-heart'}"></i>
+                        </button>
                         ${badgeStockHtml(p)}
                         ${imagenHtml}
                     </div>
@@ -107,12 +112,14 @@
 
     function aplicarFiltros() {
         const texto = buscador.value.trim().toLowerCase();
+        const idsFavoritos = new Set(Favoritos.obtener());
         const filtrados = catalogoCompleto.filter((p) => {
             const matchTexto = !texto ||
                 p.nombre.toLowerCase().includes(texto) ||
                 (p.descripcion || '').toLowerCase().includes(texto);
             const matchCat = !categoriaActiva || p.categoria === categoriaActiva;
-            return matchTexto && matchCat;
+            const matchFavorito = !soloFavoritosActivo || idsFavoritos.has(p.id);
+            return matchTexto && matchCat && matchFavorito;
         });
         renderGrid(ordenarProductos(filtrados, ordenSelect ? ordenSelect.value : ''));
     }
@@ -167,11 +174,43 @@
         }
     }
 
+    // Alterna el favorito sin re-renderizar toda la grilla: solo actualiza el
+    // corazón que se clickeó (igual que el "Agregado" del botón de carrito).
+    // Si el filtro "solo favoritos" está activo, sí hace falta re-filtrar
+    // para que el producto desaparezca al desmarcarlo.
+    function alternarFavorito(id, corazonEl) {
+        const activo = Favoritos.alternar(id);
+        if (corazonEl) {
+            corazonEl.classList.toggle('activo', activo);
+            const icono = corazonEl.querySelector('i');
+            if (icono) icono.className = activo ? 'bi bi-heart-fill' : 'bi bi-heart';
+        }
+        if (soloFavoritosActivo) aplicarFiltros();
+    }
+
+    function actualizarBadgeFavoritos(ids) {
+        const badge = document.getElementById('badgeFavoritos');
+        if (badge) badge.textContent = ids.length;
+    }
+    Favoritos.suscribir(actualizarBadgeFavoritos);
+
+    document.getElementById('btnFavoritos')?.addEventListener('click', function () {
+        soloFavoritosActivo = !soloFavoritosActivo;
+        this.classList.toggle('activo', soloFavoritosActivo);
+        aplicarFiltros();
+    });
+
     // Se reutiliza tanto para el grid principal como para "Los Más Vendidos":
     // ambos usan las mismas tarjetas (tarjetaProductoHtml) y solo cambia de
     // qué lista viva se toma el producto al hacer clic.
     function crearManejadorGrid(obtenerListaActual) {
         return (e) => {
+            const btnFav = e.target.closest('.btn-favorito');
+            if (btnFav) {
+                alternarFavorito(Number(btnFav.dataset.id), btnFav);
+                return;
+            }
+
             const btn = e.target.closest('.btn-agregar');
             if (btn) {
                 if (btn.disabled) return;
@@ -338,10 +377,14 @@
             ? `<img src="${escaparHtml(p.imagenUrl)}" alt="${escaparHtml(p.nombre)}" onerror="manejarErrorImagen(this)">`
             : `<i class="bi bi-capsule placeholder-icono"></i>`;
         const agotado = typeof p.stockActual === 'number' && p.stockActual <= 0;
+        const esFavorito = Favoritos.tieneId(p.id);
 
         content.innerHTML = `
             <div class="modal-header border-0 pb-0">
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                <button class="btn-favorito${esFavorito ? ' activo' : ''}" id="btnFavoritoDetalle" data-id="${p.id}" aria-label="Marcar como favorito" style="position:static;">
+                    <i class="bi ${esFavorito ? 'bi-heart-fill' : 'bi-heart'}"></i>
+                </button>
+                <button type="button" class="btn-close ms-2" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body pt-0">
                 <div class="row g-4">
@@ -357,9 +400,14 @@
                         <p class="text-muted">${escaparHtml(p.descripcion) || 'Producto dental de calidad, con precio verificado.'}</p>
                         <div class="card-producto-precio mb-1" style="font-size:1.7rem;">${formatCurrency(p.precio)}</div>
                         <div class="card-producto-unidad mb-4">por ${escaparHtml(p.unidadMedida)}</div>
-                        <button class="btn-agregar${agotado ? ' agotado' : ''}" id="btnAgregarDetalle" ${agotado ? 'disabled' : ''} style="max-width:320px;">
-                            <i class="bi ${agotado ? 'bi-x-circle' : 'bi-bag-plus-fill'} me-1"></i>${agotado ? 'Agotado' : 'Agregar al Carrito'}
-                        </button>
+                        <div class="d-flex flex-wrap gap-2">
+                            <button class="btn-agregar${agotado ? ' agotado' : ''}" id="btnAgregarDetalle" ${agotado ? 'disabled' : ''} style="max-width:320px;">
+                                <i class="bi ${agotado ? 'bi-x-circle' : 'bi-bag-plus-fill'} me-1"></i>${agotado ? 'Agotado' : 'Agregar al Carrito'}
+                            </button>
+                            <button class="btn-hero-outline" id="btnCompartirDetalle" data-id="${p.id}">
+                                <i class="bi bi-share-fill me-1"></i>Compartir
+                            </button>
+                        </div>
                     </div>
                 </div>
                 ${p.relacionados && p.relacionados.length ? `
@@ -382,6 +430,34 @@
         }
     }
 
+    // -------- Compartir producto --------
+    async function compartirProducto(p) {
+        const url = `${location.origin}${location.pathname}?producto=${p.id}#catalogo`;
+        const texto = `${p.nombre} — ${formatCurrency(p.precio)} en San Judas Tadeo Botica Dental`;
+
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: p.nombre, text: texto, url });
+            } catch {
+                // El usuario canceló el diálogo nativo de compartir: no es un error.
+            }
+            return;
+        }
+        try {
+            await navigator.clipboard.writeText(url);
+            mostrarToast('Enlace copiado al portapapeles');
+        } catch {
+            mostrarToast('No se pudo copiar el enlace');
+        }
+    }
+
+    // Si la URL trae ?producto=ID (por ejemplo, al abrir un enlace
+    // compartido), abre directamente el modal de detalle de ese producto.
+    function abrirDetalleDesdeUrl() {
+        const id = new URLSearchParams(location.search).get('producto');
+        if (id) abrirDetalle(Number(id));
+    }
+
     document.getElementById('modalDetalleContent')?.addEventListener('click', (e) => {
         const btnAgregar = e.target.closest('#btnAgregarDetalle');
         if (btnAgregar) {
@@ -389,9 +465,55 @@
             agregarAlCarritoConTope(productoDetalleActual, btnAgregar);
             return;
         }
+        const btnFav = e.target.closest('#btnFavoritoDetalle');
+        if (btnFav) {
+            alternarFavorito(Number(btnFav.dataset.id), btnFav);
+            return;
+        }
+        const btnCompartir = e.target.closest('#btnCompartirDetalle');
+        if (btnCompartir && productoDetalleActual) {
+            compartirProducto(productoDetalleActual);
+            return;
+        }
         const mini = e.target.closest('.mini-producto');
         if (mini) abrirDetalle(Number(mini.dataset.id));
     });
+
+    // -------- SEO: datos estructurados del catálogo real ya renderizado --------
+    // A diferencia del JSON-LD de identidad del negocio (estático, en el
+    // <head> del HTML), este refleja el catálogo que el usuario ve de verdad
+    // en cada carga — se reconstruye cada vez que cambia catalogoCompleto.
+    function inyectarJsonLdProductos(productos) {
+        const data = {
+            '@context': 'https://schema.org',
+            '@type': 'ItemList',
+            itemListElement: productos.slice(0, 40).map((p, i) => ({
+                '@type': 'ListItem',
+                position: i + 1,
+                item: {
+                    '@type': 'Product',
+                    name: p.nombre,
+                    description: p.descripcion || undefined,
+                    image: p.imagenUrl || undefined,
+                    sku: p.sku,
+                    offers: {
+                        '@type': 'Offer',
+                        price: p.precio,
+                        priceCurrency: 'PEN',
+                        availability: p.stockActual > 0 ? 'https://schema.org/InStock' : 'https://schema.org/OutOfStock',
+                    },
+                },
+            })),
+        };
+        let script = document.getElementById('jsonLdProductos');
+        if (!script) {
+            script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.id = 'jsonLdProductos';
+            document.head.appendChild(script);
+        }
+        script.textContent = JSON.stringify(data);
+    }
 
     // -------- Carga inicial del catálogo (API pública, sin autenticación) --------
     async function cargar() {
@@ -406,6 +528,8 @@
             const categorias = resCategorias.ok ? resCategorias.data : [];
             renderCategorias(categorias);
             renderGrid(catalogoCompleto);
+            inyectarJsonLdProductos(catalogoCompleto);
+            abrirDetalleDesdeUrl();
 
             document.getElementById('statProductos').textContent = catalogoCompleto.length;
             document.getElementById('statCategorias').textContent = categorias.length;
@@ -511,4 +635,10 @@
     cargarConfiguracionTienda();
     cargar();
     cargarDestacados();
+
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('/service-worker.js').catch(() => {});
+        });
+    }
 })();

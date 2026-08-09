@@ -379,6 +379,103 @@ la base de datos y restaurándolo después, orden por precio funcionando,
 modal de detalle abriendo y agregando al carrito, y flujo completo hasta
 la página de carrito dedicada.
 
+## Fase C — SEO, PWA, favoritos, compartir producto y rediseño responsive
+
+Cierra el roadmap de la tienda virtual con lo que le falta a un catálogo
+para funcionar como un producto real de cara al público: que se pueda
+encontrar en buscadores, que se pueda "instalar" como app, que el cliente
+pueda guardar lo que le interesa y compartirlo, y que **toda** la
+aplicación (no solo la tienda) se vea bien en un celular.
+
+### SEO
+
+- `tienda.html` suma `<link rel="canonical">`, Open Graph y Twitter Card,
+  y un bloque JSON-LD estático (`MedicalBusiness`) con los datos de
+  contacto del negocio — no cambia con el catálogo, a diferencia de:
+- Un segundo bloque JSON-LD (`ItemList` de `Product`) que **`tienda.js`
+  inyecta en tiempo de ejecución** (`inyectarJsonLdProductos()`) justo
+  después de renderizar el catálogo real, con nombre, imagen, precio y
+  disponibilidad de cada producto tal como se ve en pantalla — se
+  reconstruye en cada carga para que nunca quede desincronizado del
+  catálogo visible (structured data que no coincide con el contenido
+  visible es justamente lo que penalizan los buscadores).
+- `robots.txt` (permite la tienda y el carrito, bloquea `/api/` y todas
+  las páginas del panel interno) y `sitemap.xml`, ambos en `public/`.
+  **Importante**: usan `sanjudastadeo.dental` como dominio de ejemplo —
+  hay que reemplazarlo por el dominio real antes de enviar el sitemap a
+  Google Search Console (queda marcado con un comentario en el archivo).
+
+### PWA (Progressive Web App)
+
+- `public/manifest.json` + `public/service-worker.js`: la tienda ahora se
+  puede "instalar" desde el navegador (ícono en el celular, sin barra de
+  URL). El service worker cachea el shell estático (HTML/CSS/JS/íconos)
+  con una estrategia *stale-while-revalidate* — responde de caché al
+  instante y refresca en segundo plano — pero **nunca cachea `/api/`**:
+  precios y stock siempre se piden frescos al servidor.
+- Los 5 tamaños de ícono (16/32/180/192/512px) se generaron con un script
+  Node de un solo uso (sin dependencias externas: SDF de rectángulo
+  redondeado + gradiente azul→verde de marca + cruz blanca, codificado a
+  PNG a mano con `zlib.deflateSync`, sin librerías de imágenes) — no
+  quedó en el repo, solo su resultado en `public/icons/`.
+- Registrado en `tienda.js` y `carrito-pagina.js` (`navigator.serviceWorker.register`,
+  dentro de `window.addEventListener('load', ...)` para no competir con
+  la carga inicial de la página).
+
+### Favoritos (`public/js/favoritos.js`)
+
+Mismo patrón pub/sub que `carrito.js`, pero solo guarda ids en
+`localStorage` (`mpv_tienda_favoritos`) — el catálogo completo ya vive en
+memoria en `tienda.js`, así que no hace falta duplicar datos de producto.
+Corazón en cada tarjeta y en el modal de detalle (comparten la misma
+función `alternarFavorito`), botón en el header con contador que filtra
+el catálogo a "solo favoritos" sin volver a pedir nada al servidor.
+
+### Compartir producto + enlaces profundos
+
+El modal de detalle suma un botón "Compartir" que usa
+`navigator.share()` (hoja nativa de compartir en móvil) con *fallback* a
+copiar el enlace al portapapeles en escritorio. El enlace generado
+(`tienda.html?producto=ID#catalogo`) funciona de vuelta: `tienda.js` lee
+`?producto=` al cargar y abre automáticamente el modal de ese producto
+(`abrirDetalleDesdeUrl()`), así que compartir un producto realmente lleva
+a ese producto, no solo a la portada genérica de la tienda.
+
+### Rediseño responsive del panel interno
+
+La auditoría con Playwright en 375/768/1440px no encontró overflow
+horizontal en ninguna página (eso ya estaba resuelto de fases previas),
+pero sí un problema de fondo real: **toda tabla de datos del panel**
+(`productos.html`, `proveedores.html`, `usuarios.html`, ambas pestañas de
+`ventas.html`, `pricing.html`, la tabla del dashboard) usa `.mpv-table`
+con `min-width: 1080px` — por debajo de esa medida, la tabla completa se
+podía desplazar horizontalmente dentro de su contenedor
+(`.mpv-table-wrap { overflow-x: auto }`), sin romper la página, pero sin
+ninguna pista visual de que hacía falta deslizar — en la práctica, en
+tablet o celular se veían solo 2-3 columnas y el resto (Estado, Acciones)
+quedaba fuera de vista.
+
+Se agregó una sola regla nueva en `style.css`
+(`@media (max-width: 991.98px)`, el mismo breakpoint que ya usa el
+sidebar) que convierte cada fila de `.mpv-table` en una tarjeta: la
+primera celda (producto/proveedor/usuario/fecha) hace de título, las
+celdas intermedias se listan como pares etiqueta:valor usando un
+`data-label` que ahora trae cada `<td>` (agregado en `productos.js`,
+`proveedores.js`, `usuarios.js`, `ventas.js` y `pricing-table.js`), y la
+última celda (Acciones) queda al final sin etiqueta, alineada a la
+derecha — sin tocar el HTML de las tablas ni el layout de escritorio (por
+encima de 992px se ve exactamente igual que antes). `punto-venta.html` no
+necesitó cambios: ya usaba tarjetas en vez de una tabla desde una fase
+anterior.
+
+Verificado con `npx jest` (98/98, sin regresiones — Fase C no tocó
+backend) y con Playwright: manifest/service worker registrados,
+JSON-LD dinámico con los productos reales, favorito + filtro "solo
+favoritos" funcionando, enlace `?producto=ID` abriendo el modal
+correcto, y una auditoría de 8 páginas del panel × 2 anchos (375px y
+768px) más `tienda.html`/`carrito.html`, confirmando visualmente el
+antes/después de las tablas en tarjetas.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación

@@ -22,10 +22,10 @@ MPVAuth.exigirRol('admin');
                         </div>
                     </div>
                 </td>
-                <td>${u.email}</td>
-                <td><span class="badge-margin ${u.rol === 'admin' ? 'alto' : 'medio'}">${rolLabel(u.rol)}</span></td>
-                <td>${u.activo ? '<span class="supplier-badge optimo"><span class="dot"></span> Activo</span>' : '<span class="supplier-badge"><span class="dot"></span> Inactivo</span>'}</td>
-                <td class="pvp-sub">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-PE') : 'Nunca'}</td>
+                <td data-label="Email">${u.email}</td>
+                <td data-label="Rol"><span class="badge-margin ${u.rol === 'admin' ? 'alto' : 'medio'}">${rolLabel(u.rol)}</span></td>
+                <td data-label="Estado">${u.activo ? '<span class="supplier-badge optimo"><span class="dot"></span> Activo</span>' : '<span class="supplier-badge"><span class="dot"></span> Inactivo</span>'}</td>
+                <td class="pvp-sub" data-label="Último acceso">${u.ultimo_acceso ? new Date(u.ultimo_acceso).toLocaleString('es-PE') : 'Nunca'}</td>
                 <td class="text-end">
                     <button class="btn-icon-sm" title="Editar usuario" onclick="UsuariosUI.abrirEditar(${u.id}, '${u.nombre.replace(/'/g, "\\'")}', '${u.rol}', ${u.activo})">
                         <i class="bi bi-pencil-fill"></i>
