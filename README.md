@@ -110,6 +110,7 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET | `/api/ventas/productos-disponibles` | cualquiera | Productos activos con stock y PVP vigente, listos para vender |
 | GET | `/api/ventas` | cualquiera | Historial de ventas (parámetro `limite`, por defecto 20) |
 | POST | `/api/ventas` | admin, operador | Registra una venta de mostrador y descuenta stock (ver abajo) |
+| GET | `/api/ventas/:id/boleta` | cualquiera | PDF del comprobante de venta provisional (ver abajo) |
 | GET | `/api/tienda/productos`, `/api/tienda/categorias` | **pública, sin token** | Catálogo para la tienda virtual (ver abajo) |
 | GET | `/api/tienda/configuracion` | **pública, sin token** | Marca/imágenes/textos/contacto de la tienda (ver "Tienda Virtual configurable") |
 | PUT | `/api/tienda/configuracion` | admin | Edita la configuración de marca de la tienda |
@@ -146,6 +147,52 @@ tablas `ventas` / `venta_detalle`.
   intacto en ambos casos de error. Suite de 8 tests nuevos en
   `tests/ventas.test.js` (transacción completa, cada rama de error,
   cálculo del PVP con el motor de precios existente).
+
+### Boleta de venta provisional
+
+El negocio recién está empezando y todavía no tiene RUC/registro en SUNAT,
+así que no puede emitir una boleta electrónica válida — pero sí necesita
+entregarle algo al cliente en el momento. `GET /api/ventas/:id/boleta`
+genera un PDF con PDFKit (A5, mismo tamaño que usan la mayoría de
+impresoras de punto de venta) que dice explícitamente lo que es:
+
+- Encabezado con el nombre/dirección/teléfono del negocio (los mismos
+  datos de Configuración > Tienda Virtual, para no duplicar esa
+  información en un segundo lugar).
+- Título **"COMPROBANTE DE VENTA"** con la advertencia
+  **"(PROVISIONAL — SIN VALIDEZ TRIBUTARIA)"** y una nota de que el
+  negocio está en proceso de registro ante SUNAT — para no simular un
+  documento tributario que no lo es.
+- N° de comprobante con prefijo `P-` (de "provisional", ej. `P-000004`) —
+  distinto a como se numeraría una boleta electrónica real, justamente
+  para que no se confundan si en el futuro se migra a facturación
+  electrónica de verdad.
+- Detalle de productos, cantidades, precio unitario y subtotal, más el
+  total — usando los mismos montos que ya quedaron guardados en
+  `venta_detalle` al registrar la venta (nunca se recalcula el precio).
+- En Punto de Venta, al confirmar una venta el comprobante **se abre solo**
+  en una pestaña nueva (vía Blob URL, no descarga forzada) para que el
+  staff lo pueda revisar/imprimir de inmediato con el visor nativo del
+  navegador; si el navegador bloquea el popup, queda un enlace
+  "Ver / imprimir boleta" en el mensaje de éxito como respaldo.
+
+*Nota sobre impuestos*: junto con esta fase se puso el impuesto (IGV) de
+`configuracion_margenes` en **0%** — el negocio no está afecto a IGV
+todavía por no estar registrado en SUNAT. Como el PVP en toda la
+aplicación (tablero, tienda, punto de venta) se calcula en vivo a partir
+de esa configuración, el cambio se propagó automáticamente a todos lados
+sin tocar código; se puede volver a activar el impuesto correspondiente
+desde Configuración > Márgenes e Impuestos el día que el negocio se
+registre.
+
+Verificado generando una boleta real contra PostgreSQL (venta con dos
+líneas) y **inspeccionando el contenido crudo del PDF** (decodificando el
+stream `FlateDecode` para confirmar los colores de relleno reales del
+texto) — el visor de PDF de Chromium en este sandbox renderiza parte del
+texto en azul en vez de negro, pero el archivo generado tiene el color
+correcto (`#0f172a`) en todo el documento; es un artefacto del visor, no
+un bug del PDF. Flujo completo probado con Playwright: agregar producto,
+registrar venta, y confirmar que se abre una pestaña nueva con el PDF.
 
 ## Tienda Virtual (`public/tienda.html`)
 

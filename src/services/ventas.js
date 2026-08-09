@@ -166,4 +166,28 @@ async function listarVentas({ limite = 20 } = {}) {
     return rows;
 }
 
-module.exports = { registrarVenta, listarVentas, listarProductosDisponibles };
+/** Una venta puntual con su detalle, para generar la boleta provisional. */
+async function obtenerVentaPorId(id) {
+    const { rows } = await pool.query(
+        `SELECT v.*, u.nombre AS usuario_nombre,
+                COALESCE(json_agg(json_build_object(
+                    'productoId', vd.producto_id,
+                    'producto', p.nombre,
+                    'sku', p.sku,
+                    'unidadMedida', p.unidad_medida,
+                    'cantidad', vd.cantidad,
+                    'precioUnitario', vd.precio_unitario,
+                    'subtotal', vd.subtotal
+                ) ORDER BY vd.id) FILTER (WHERE vd.id IS NOT NULL), '[]') AS items
+         FROM ventas v
+         LEFT JOIN usuarios u ON u.id = v.usuario_id
+         LEFT JOIN venta_detalle vd ON vd.venta_id = v.id
+         LEFT JOIN productos p ON p.id = vd.producto_id
+         WHERE v.id = $1
+         GROUP BY v.id, u.nombre`,
+        [id]
+    );
+    return rows[0] || null;
+}
+
+module.exports = { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId };

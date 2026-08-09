@@ -1,6 +1,6 @@
 jest.mock('../src/config/db', () => ({ query: jest.fn(), connect: jest.fn() }));
 const pool = require('../src/config/db');
-const { registrarVenta, listarProductosDisponibles, listarVentas } = require('../src/services/ventas');
+const { registrarVenta, listarProductosDisponibles, listarVentas, obtenerVentaPorId } = require('../src/services/ventas');
 
 const configRow = {
     margen_utilidad_defecto_pct: '35.00',
@@ -132,5 +132,22 @@ describe('listarVentas', () => {
         const [sql, params] = pool.query.mock.calls[0];
         expect(sql).toContain('LIMIT $1');
         expect(params).toEqual([5]);
+    });
+});
+
+describe('obtenerVentaPorId', () => {
+    test('devuelve null si la venta no existe (para que el controller responda 404)', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+        const venta = await obtenerVentaPorId(999);
+        expect(venta).toBeNull();
+    });
+
+    test('devuelve la venta con sus items cuando existe', async () => {
+        pool.query.mockResolvedValueOnce({
+            rows: [{ id: 3, total: '61.08', cliente: 'Paciente', metodo_pago: 'efectivo', items: [{ producto: 'Resina', cantidad: 2 }] }],
+        });
+        const venta = await obtenerVentaPorId(3);
+        expect(venta.id).toBe(3);
+        expect(venta.items).toHaveLength(1);
     });
 });

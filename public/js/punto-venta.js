@@ -196,12 +196,28 @@
                 cliente: document.getElementById('posCliente').value.trim() || undefined,
                 metodoPago: document.getElementById('posMetodoPago').value,
             });
-            exitoBox.textContent = `Venta #${venta.id} registrada por ${MPV.formatCurrency(venta.total)}.`;
+            exitoBox.innerHTML = `
+                Venta #${venta.id} registrada por ${MPV.formatCurrency(venta.total)}.
+                <button type="button" class="btn btn-link btn-sm p-0 ms-1 align-baseline" id="btnVerBoleta">
+                    <i class="bi bi-receipt me-1"></i>Ver / imprimir boleta
+                </button>
+            `;
             exitoBox.classList.remove('d-none');
             carrito.clear();
             document.getElementById('posCliente').value = '';
             renderCarrito();
             await cargarProductos(); // refresca stock real tras la venta
+
+            // Comprobante provisional: se abre solo (mientras el negocio no
+            // tenga RUC/registro SUNAT, no es una boleta electrónica válida,
+            // solo un recibo para el cliente). Si el navegador bloquea el
+            // popup, queda el botón "Ver / imprimir boleta" como respaldo.
+            const abrir = () => MPV.abrirBoleta(venta.id).catch((err) => {
+                errorBox.textContent = err.message;
+                errorBox.classList.remove('d-none');
+            });
+            document.getElementById('btnVerBoleta')?.addEventListener('click', abrir);
+            abrir();
         } catch (err) {
             errorBox.textContent = err.message;
             errorBox.classList.remove('d-none');

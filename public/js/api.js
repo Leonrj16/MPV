@@ -80,6 +80,33 @@ const MPV = (() => {
         return body;
     }
 
+    // A diferencia de descargarArchivo (que fuerza una descarga), esto abre
+    // el PDF en una pestaña nueva para que el staff lo revise/imprima al
+    // toque tras cerrar una venta — el visor nativo del navegador ya trae
+    // su propio botón de imprimir.
+    async function abrirBoleta(ventaId) {
+        const token = window.MPVAuth?.getToken?.();
+        const res = await fetch(`${BASE_URL}/ventas/${ventaId}/boleta`, {
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+
+        if (res.status === 401) {
+            window.MPVAuth?.cerrarSesion?.();
+            throw new Error('Sesión expirada. Inicia sesión nuevamente.');
+        }
+        if (!res.ok) {
+            const body = await res.json().catch(() => ({}));
+            throw new Error(body.error || `No se pudo generar la boleta (${res.status})`);
+        }
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const ventana = window.open(url, '_blank');
+        if (!ventana) {
+            throw new Error('El navegador bloqueó la ventana emergente. Habilítala e inténtalo de nuevo.');
+        }
+    }
+
     async function subirImagen(archivo) {
         const token = window.MPVAuth?.getToken?.();
         const formData = new FormData();
@@ -148,6 +175,7 @@ const MPV = (() => {
             const qs = new URLSearchParams(params).toString();
             return request(`/ventas${qs ? `?${qs}` : ''}`);
         },
+        abrirBoleta,
         formatCurrency,
     };
 })();
