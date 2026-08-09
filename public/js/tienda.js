@@ -1,5 +1,6 @@
 (function () {
-    // TODO: reemplazar por el número de WhatsApp real del consultorio (formato: código país + número, sin '+' ni espacios).
+    // Valor de reserva si /api/tienda/configuracion no llega a cargar — el
+    // número real se administra desde Configuración > Tienda Virtual (panel interno).
     const CONFIG = { WHATSAPP_NUMERO: '51999000111' };
 
     const formatCurrency = (n) =>
@@ -22,6 +23,18 @@
     // Si la URL de imagen del producto falla al cargar, cae a un ícono genérico.
     window.manejarErrorImagen = function (img) {
         img.parentElement.innerHTML = '<i class="bi bi-capsule placeholder-icono"></i>';
+    };
+
+    // Si la URL del logo (configurable desde el panel interno) falla al cargar,
+    // cae al ícono de marca por defecto en vez de dejar un ícono roto.
+    window.manejarErrorLogo = function (img) {
+        img.parentElement.innerHTML = '<i class="bi bi-clipboard2-pulse"></i>';
+    };
+
+    // Si la URL de la imagen de portada falla, cae a la ilustración compuesta
+    // (emblema + íconos de categoría) que ya usa el hero por defecto.
+    window.manejarErrorHeroImagen = function (img) {
+        img.closest('.hero-media-card').innerHTML = '<div class="hero-media-emblem"><i class="bi bi-clipboard2-pulse"></i></div>';
     };
 
     function tarjetaProductoHtml(p) {
@@ -220,6 +233,90 @@
         }
     }
 
+    // -------- Configuración de marca (Configuración > Tienda Virtual en el panel interno) --------
+    function setTexto(id, valor) {
+        const el = document.getElementById(id);
+        if (el && valor) el.textContent = valor;
+    }
+
+    function aplicarConfiguracionTienda(data) {
+        const nombreCompleto = [data.nombreNegocio, data.eslogan].filter(Boolean).join(' ');
+        if (nombreCompleto) document.title = `${nombreCompleto} | Tienda Virtual`;
+
+        setTexto('brandTitulo', data.nombreNegocio);
+        setTexto('brandEslogan', data.eslogan);
+        setTexto('footerBrandTitulo', data.nombreNegocio);
+        setTexto('footerBrandEslogan', data.eslogan);
+        if (nombreCompleto) setTexto('footerCopyrightNombre', nombreCompleto);
+
+        setTexto('heroTitulo', data.heroTitulo);
+        setTexto('heroDescripcion', data.heroDescripcion);
+
+        setTexto('topstripTelefono', data.telefono);
+        setTexto('topstripHorario', data.horarioAtencion);
+        setTexto('topstripDireccion', data.direccion);
+        setTexto('footerDireccion', data.direccion);
+        setTexto('footerTelefono', data.telefono);
+        setTexto('footerEmail', data.emailContacto);
+        setTexto('footerHorario', data.horarioAtencion);
+
+        // Logo: si hay logoUrl, reemplaza el ícono de marca por la imagen real.
+        if (data.logoUrl) {
+            const logoHtml = `<img src="${escaparHtml(data.logoUrl)}" alt="${escaparHtml(nombreCompleto || 'Logo')}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;" onerror="manejarErrorLogo(this)">`;
+            const headerLogo = document.getElementById('logoBadge');
+            const footerLogo = document.getElementById('footerLogoBadge');
+            if (headerLogo) headerLogo.innerHTML = logoHtml;
+            if (footerLogo) footerLogo.innerHTML = logoHtml;
+        }
+
+        // Imagen de portada: si hay heroImagenUrl, reemplaza la ilustración
+        // compuesta (emblema + íconos flotantes) por la imagen real.
+        if (data.heroImagenUrl) {
+            const card = document.getElementById('heroMediaCard');
+            if (card) {
+                card.innerHTML = `<img src="${escaparHtml(data.heroImagenUrl)}" alt="${escaparHtml(nombreCompleto || 'Portada')}" class="hero-media-img" onerror="manejarErrorHeroImagen(this)">`;
+            }
+        }
+
+        // WhatsApp: botón del hero, ícono social del footer y el número usado al finalizar el pedido.
+        if (data.whatsappNumero) {
+            CONFIG.WHATSAPP_NUMERO = data.whatsappNumero;
+            const heroBtn = document.getElementById('heroWhatsapp');
+            if (heroBtn) heroBtn.href = `https://wa.me/${data.whatsappNumero}`;
+            const footerBtn = document.getElementById('footerWhatsapp');
+            if (footerBtn) footerBtn.href = `https://wa.me/${data.whatsappNumero}`;
+        }
+
+        // Redes sociales: el ícono solo se muestra si hay una URL configurada.
+        const facebook = document.getElementById('footerFacebook');
+        if (facebook) {
+            if (data.facebookUrl) {
+                facebook.href = data.facebookUrl;
+                facebook.classList.remove('d-none');
+            } else {
+                facebook.classList.add('d-none');
+            }
+        }
+        const instagram = document.getElementById('footerInstagram');
+        if (instagram) {
+            if (data.instagramUrl) {
+                instagram.href = data.instagramUrl;
+                instagram.classList.remove('d-none');
+            } else {
+                instagram.classList.add('d-none');
+            }
+        }
+    }
+
+    async function cargarConfiguracionTienda() {
+        try {
+            const res = await fetch('/api/tienda/configuracion').then((r) => r.json());
+            if (res.ok) aplicarConfiguracionTienda(res.data);
+        } catch {
+            // Sin conexión: la página se queda con el nombre/textos de reserva del HTML.
+        }
+    }
+
     // -------- Header compacto al hacer scroll --------
     const header = document.querySelector('.tienda-header');
     if (header) {
@@ -229,5 +326,6 @@
     }
 
     document.getElementById('anioActual').textContent = new Date().getFullYear();
+    cargarConfiguracionTienda();
     cargar();
 })();

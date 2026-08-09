@@ -80,4 +80,66 @@ MPVAuth.exigirRol('admin');
     });
 
     cargar();
+
+    // -------- Configuración de la Tienda Virtual (marca, imágenes, textos) --------
+    const formTienda = document.getElementById('formTienda');
+    const tiendaInputs = {
+        nombreNegocio: document.getElementById('tiendaNombre'),
+        eslogan: document.getElementById('tiendaEslogan'),
+        logoUrl: document.getElementById('tiendaLogoUrl'),
+        heroTitulo: document.getElementById('tiendaHeroTitulo'),
+        heroDescripcion: document.getElementById('tiendaHeroDescripcion'),
+        heroImagenUrl: document.getElementById('tiendaHeroImagenUrl'),
+        telefono: document.getElementById('tiendaTelefono'),
+        whatsappNumero: document.getElementById('tiendaWhatsapp'),
+        direccion: document.getElementById('tiendaDireccion'),
+        horarioAtencion: document.getElementById('tiendaHorario'),
+        emailContacto: document.getElementById('tiendaEmail'),
+        facebookUrl: document.getElementById('tiendaFacebook'),
+        instagramUrl: document.getElementById('tiendaInstagram'),
+    };
+
+    async function cargarTienda() {
+        try {
+            const { data } = await MPV.getConfiguracionTienda();
+            Object.entries(tiendaInputs).forEach(([campo, el]) => {
+                el.value = data[campo] || '';
+            });
+        } catch (err) {
+            document.getElementById('tiendaConfigError').textContent = err.message;
+            document.getElementById('tiendaConfigError').classList.remove('d-none');
+        }
+    }
+
+    formTienda.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const errorBox = document.getElementById('tiendaConfigError');
+        const exitoBox = document.getElementById('tiendaConfigExito');
+        const btn = document.getElementById('btnGuardarTienda');
+        errorBox.classList.add('d-none');
+        exitoBox.classList.add('d-none');
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Guardando…';
+
+        try {
+            const payload = {};
+            Object.entries(tiendaInputs).forEach(([campo, el]) => {
+                payload[campo] = el.value.trim();
+            });
+            const { data } = await MPV.actualizarConfiguracionTienda(payload);
+            Object.entries(tiendaInputs).forEach(([campo, el]) => {
+                el.value = data[campo] || '';
+            });
+            exitoBox.classList.remove('d-none');
+            setTimeout(() => exitoBox.classList.add('d-none'), 3000);
+        } catch (err) {
+            errorBox.textContent = err.message;
+            errorBox.classList.remove('d-none');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Guardar Cambios';
+        }
+    });
+
+    cargarTienda();
 })();

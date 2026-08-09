@@ -30,6 +30,7 @@ cp .env.example .env        # ajustar credenciales de PostgreSQL y JWT_SECRET
 psql -U postgres -d mpv_dental -f database/schema.sql
 psql -U postgres -d mpv_dental -f database/migrations/002_auth_historial.sql
 psql -U postgres -d mpv_dental -f database/migrations/003_ventas.sql
+psql -U postgres -d mpv_dental -f database/migrations/004_configuracion_tienda.sql
 npm run dev                 # http://localhost:3000 (redirige a /login.html)
 ```
 
@@ -110,6 +111,8 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET | `/api/ventas` | cualquiera | Historial de ventas (parámetro `limite`, por defecto 20) |
 | POST | `/api/ventas` | admin, operador | Registra una venta de mostrador y descuenta stock (ver abajo) |
 | GET | `/api/tienda/productos`, `/api/tienda/categorias` | **pública, sin token** | Catálogo para la tienda virtual (ver abajo) |
+| GET | `/api/tienda/configuracion` | **pública, sin token** | Marca/imágenes/textos/contacto de la tienda (ver "Tienda Virtual configurable") |
+| PUT | `/api/tienda/configuracion` | admin | Edita la configuración de marca de la tienda |
 
 ## Punto de Venta (`public/punto-venta.html`)
 
@@ -165,9 +168,10 @@ responsivo — probado sin scroll horizontal en 393px (iPhone 16) y escritorio.
   y vuelta al servidor por cada tecla), pinta el grid de tarjetas, el
   badge del carrito y el offcanvas del carrito, y arma un mensaje de
   WhatsApp (`wa.me`) con el resumen del pedido al hacer clic en
-  "Finalizar Pedido". **El número de WhatsApp es un valor de ejemplo** —
-  reemplaza `CONFIG.WHATSAPP_NUMERO` al inicio de `tienda.js` por el
-  número real del consultorio antes de publicar la tienda.
+  "Finalizar Pedido". El número de WhatsApp usado ahí ya no está hardcodeado
+  — se administra desde Configuración > Tienda Virtual (ver abajo); si la
+  configuración no llega a cargar, cae a un valor de reserva definido en
+  `CONFIG.WHATSAPP_NUMERO` al inicio de `tienda.js`.
 - Los productos sin `imagen_url` muestran un ícono genérico en vez de una
   imagen rota; ese campo ahora es editable desde `productos.html` (panel
   interno) para que el staff pueda subir la URL de una foto real.
@@ -210,6 +214,52 @@ título:
   `width:100%` explícito (con `max-width:420px` para el tope), confirmado
   con `getBoundingClientRect()` antes/después del fix (0×0 → 420×420) y
   con capturas en 1440px, 768px y 393px sin overflow horizontal.
+
+### Tienda Virtual configurable (marca, imágenes, textos, contacto)
+
+Hasta esta fase, el nombre del negocio, los textos del hero, el logo, la
+imagen de portada y todos los datos de contacto estaban hardcodeados en
+`tienda.html` — cambiarlos requería editar HTML y volver a desplegar. Ahora
+son editables desde **Configuración > Tienda Virtual** (panel interno,
+`public/configuracion.html`), sin tocar código:
+
+- **Migración 004** (`database/migrations/004_configuracion_tienda.sql`)
+  crea `configuracion_tienda`, una tabla de **fila única** (`id` fijo en 1,
+  forzado con `CHECK (id = 1)` — no hay "perfiles" como en
+  `configuracion_margenes`, es literalmente la configuración pública
+  vigente) con: nombre del negocio + eslogan (el lockup de marca en dos
+  líneas que ya usaban header y footer), título y descripción del hero,
+  URL de logo, URL de imagen de portada, teléfono, WhatsApp, dirección,
+  horario y email de contacto, y URLs de Facebook/Instagram.
+- **`GET /api/tienda/configuracion` es pública** (igual que
+  `/api/tienda/productos`) porque la consume la propia tienda sin sesión;
+  el contenido no es sensible, es exactamente lo que ya se muestra en la
+  portada. **`PUT` sí requiere `admin`**.
+- **Sin imagen configurada, no se ve un placeholder roto**: si `logoUrl`
+  o `heroImagenUrl` están vacíos, la tienda se queda con el ícono de marca
+  y la ilustración compuesta (emblema + íconos flotantes) que ya
+  existían. Si se configura una URL y falla al cargar (link roto, dominio
+  caído), un `onerror` la reemplaza por el mismo fallback — nunca un
+  ícono de imagen rota. Verificado a propósito con una URL externa
+  inalcanzable desde este sandbox: el fallback se activó correctamente.
+- **El número de WhatsApp se limpia en el backend** — `actualizarConfiguracionTienda`
+  quita cualquier `+`, espacio o guión antes de guardar (`replace(/\D/g, '')`),
+  para que `wa.me/<numero>` funcione sin importar cómo lo haya tecleado el
+  admin.
+- **Redes sociales opcionales de verdad**: los íconos de Facebook/Instagram
+  del footer llevan `d-none` por defecto y solo se muestran si hay una URL
+  configurada — no quedan enlaces `href="#"` muertos.
+- El panel de admin (`formTienda` en `configuracion.js`) usa el mismo
+  patrón que "Márgenes e Impuestos": cargar → precompletar inputs → guardar
+  → repintar con la respuesta del servidor, con un botón "Ver tienda" que
+  abre `tienda.html` en una pestaña nueva para revisar el resultado.
+
+Verificado end-to-end con Playwright: editar todos los campos desde el
+panel, guardar, y confirmar que la tienda pública (`<title>`, header,
+hero, topstrip, footer, botones de WhatsApp) refleja los cambios sin
+recargar código — solo datos. 8 tests nuevos en `tests/configuracionTienda.test.js`
+(mapeo de campos, validaciones, limpieza del número de WhatsApp). Suite
+completa: 76/76.
 
 ## Sistema de diseño (`public/css/base.css`)
 

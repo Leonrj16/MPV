@@ -116,6 +116,8 @@ const MPV = (() => {
             request(`/usuarios/${id}/password`, { method: 'PUT', body: JSON.stringify({ password }) }),
         getConfiguracion: () => request('/configuracion'),
         actualizarConfiguracion: (payload) => request('/configuracion', { method: 'PUT', body: JSON.stringify(payload) }),
+        getConfiguracionTienda: () => request('/tienda/configuracion'),
+        actualizarConfiguracionTienda: (payload) => request('/tienda/configuracion', { method: 'PUT', body: JSON.stringify(payload) }),
         getProductosDisponiblesVenta: () => request('/ventas/productos-disponibles'),
         crearVenta: (payload) => request('/ventas', { method: 'POST', body: JSON.stringify(payload) }),
         getVentas: (params = {}) => {

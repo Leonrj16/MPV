@@ -132,6 +132,101 @@
                 </div>
             </div>
         </div>
+
+        <div class="row g-4 mt-1">
+            <div class="col-12">
+                <div class="mpv-panel">
+                    <div class="mpv-panel-header">
+                        <div>
+                            <h2>Tienda Virtual</h2>
+                            <div class="panel-sub">Marca, imágenes y textos que ven tus clientes en la tienda pública</div>
+                        </div>
+                        <a href="tienda.html" target="_blank" rel="noopener" class="btn btn-mpv-outline btn-sm">
+                            <i class="bi bi-box-arrow-up-right me-1"></i> Ver tienda
+                        </a>
+                    </div>
+                    <form id="formTienda" class="p-4">
+                        <div class="row g-4">
+                            <div class="col-12 col-lg-6">
+                                <h6 class="fw-bold mb-3">Marca</h6>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Nombre del negocio</label>
+                                    <input type="text" class="form-control" id="tiendaNombre" placeholder="ej. San Judas Tadeo" required>
+                                    <div class="form-text">Línea principal del logo (encabezado y pie de página).</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Eslogan (debajo del nombre)</label>
+                                    <input type="text" class="form-control" id="tiendaEslogan" placeholder="ej. Botica Dental">
+                                    <div class="form-text">Se combina con el nombre para el título de la pestaña y el copyright.</div>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">URL del logo (opcional)</label>
+                                    <input type="url" class="form-control" id="tiendaLogoUrl" placeholder="https://…">
+                                    <div class="form-text">Si se deja vacío, se muestra el ícono de marca por defecto.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <h6 class="fw-bold mb-3">Portada (hero)</h6>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Título principal</label>
+                                    <input type="text" class="form-control" id="tiendaHeroTitulo" required>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Descripción</label>
+                                    <textarea class="form-control" id="tiendaHeroDescripcion" rows="2"></textarea>
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">URL de imagen de portada (opcional)</label>
+                                    <input type="url" class="form-control" id="tiendaHeroImagenUrl" placeholder="https://…">
+                                    <div class="form-text">Si se deja vacío, se muestra una ilustración genérica.</div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <h6 class="fw-bold mb-3">Contacto</h6>
+                                <div class="row g-3">
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">Teléfono (mostrado)</label>
+                                        <input type="text" class="form-control" id="tiendaTelefono">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small fw-semibold">WhatsApp (pedidos)</label>
+                                        <input type="text" class="form-control" id="tiendaWhatsapp" placeholder="51999000111">
+                                    </div>
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label small fw-semibold">Dirección</label>
+                                    <input type="text" class="form-control" id="tiendaDireccion">
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label small fw-semibold">Horario de atención</label>
+                                    <input type="text" class="form-control" id="tiendaHorario">
+                                </div>
+                                <div class="mt-3">
+                                    <label class="form-label small fw-semibold">Email de contacto</label>
+                                    <input type="email" class="form-control" id="tiendaEmail">
+                                </div>
+                            </div>
+                            <div class="col-12 col-lg-6">
+                                <h6 class="fw-bold mb-3">Redes sociales (opcional)</h6>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Facebook</label>
+                                    <input type="url" class="form-control" id="tiendaFacebook" placeholder="https://facebook.com/…">
+                                </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-semibold">Instagram</label>
+                                    <input type="url" class="form-control" id="tiendaInstagram" placeholder="https://instagram.com/…">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="alert alert-danger py-2 small d-none mt-3" id="tiendaConfigError"></div>
+                        <div class="alert alert-success py-2 small d-none mt-3" id="tiendaConfigExito">Cambios guardados correctamente.</div>
+                        <button type="submit" class="btn btn-mpv-primary mt-3" id="btnGuardarTienda">
+                            <i class="bi bi-check-lg me-1"></i> Guardar Cambios
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
     </main>
 </div>
 

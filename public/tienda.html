@@ -16,10 +16,10 @@
 <div class="tienda-topstrip">
     <div class="container d-flex justify-content-between align-items-center flex-wrap gap-1">
         <div class="d-none d-sm-flex gap-3">
-            <span><i class="bi bi-telephone-fill me-1"></i> +51 999 000 111</span>
-            <span><i class="bi bi-clock-fill me-1"></i> Lun–Sáb, 9:00–19:00</span>
+            <span><i class="bi bi-telephone-fill me-1"></i> <span id="topstripTelefono">+51 999 000 111</span></span>
+            <span><i class="bi bi-clock-fill me-1"></i> <span id="topstripHorario">Lun–Sáb, 9:00–19:00</span></span>
         </div>
-        <a href="#contacto"><i class="bi bi-geo-alt-fill me-1"></i> Av. Principal 123, Lima — Ver ubicación</a>
+        <a href="#contacto"><i class="bi bi-geo-alt-fill me-1"></i> <span id="topstripDireccion">Av. Principal 123, Lima</span> — Ver ubicación</a>
     </div>
 </div>
 
@@ -27,10 +27,10 @@
 <header class="tienda-header">
     <div class="container d-flex align-items-center gap-3">
         <a href="tienda.html" class="tienda-brand">
-            <div class="logo-badge"><i class="bi bi-clipboard2-pulse"></i></div>
+            <div class="logo-badge" id="logoBadge"><i class="bi bi-clipboard2-pulse"></i></div>
             <div class="d-none d-md-block">
-                <div class="brand-title">San Judas Tadeo</div>
-                <div class="brand-sub">Botica Dental</div>
+                <div class="brand-title" id="brandTitulo">San Judas Tadeo</div>
+                <div class="brand-sub" id="brandEslogan">Botica Dental</div>
             </div>
         </a>
 
@@ -52,12 +52,12 @@
         <div class="tienda-hero-grid">
             <div class="tienda-hero-copy">
                 <div class="tienda-hero-badge"><i class="bi bi-patch-check-fill"></i> Precios actualizados en tiempo real</div>
-                <h1>Todo lo que tu consultorio necesita, en un solo lugar</h1>
-                <p>Resinas, instrumental rotatorio, bioseguridad y anestesia de proveedores certificados, con el mejor precio calculado automáticamente por nuestro sistema.</p>
+                <h1 id="heroTitulo">Todo lo que tu consultorio necesita, en un solo lugar</h1>
+                <p id="heroDescripcion">Resinas, instrumental rotatorio, bioseguridad y anestesia de proveedores certificados, con el mejor precio calculado automáticamente por nuestro sistema.</p>
 
                 <div class="tienda-hero-cta">
                     <a href="#catalogo" class="btn-hero-primary">Ver catálogo <i class="bi bi-arrow-down ms-1"></i></a>
-                    <a href="https://wa.me/51999000111" target="_blank" rel="noopener" class="btn-hero-outline"><i class="bi bi-whatsapp me-1"></i> Escríbenos</a>
+                    <a href="https://wa.me/51999000111" target="_blank" rel="noopener" class="btn-hero-outline" id="heroWhatsapp"><i class="bi bi-whatsapp me-1"></i> Escríbenos</a>
                 </div>
 
                 <div class="tienda-hero-stats">
@@ -76,9 +76,9 @@
                 </div>
             </div>
 
-            <div class="hero-media">
-                <div class="hero-media-card">
-                    <div class="hero-media-emblem"><i class="bi bi-clipboard2-pulse"></i></div>
+            <div class="hero-media" id="heroMedia">
+                <div class="hero-media-card" id="heroMediaCard">
+                    <div class="hero-media-emblem" id="heroMediaEmblem"><i class="bi bi-clipboard2-pulse"></i></div>
                 </div>
                 <div class="hero-media-icon i-1" title="Resinas y composites"><i class="bi bi-droplet-half"></i></div>
                 <div class="hero-media-icon i-2" title="Bioseguridad"><i class="bi bi-shield-fill-check"></i></div>
@@ -197,25 +197,25 @@
         <div class="row g-4">
             <div class="col-12 col-md-4">
                 <div class="d-flex align-items-center gap-2 mb-3">
-                    <div class="logo-badge"><i class="bi bi-clipboard2-pulse"></i></div>
+                    <div class="logo-badge" id="footerLogoBadge"><i class="bi bi-clipboard2-pulse"></i></div>
                     <div>
-                        <div class="fw-bold text-white">San Judas Tadeo</div>
-                        <div class="fw-bold text-white">Botica Dental</div>
+                        <div class="fw-bold text-white" id="footerBrandTitulo">San Judas Tadeo</div>
+                        <div class="fw-bold text-white" id="footerBrandEslogan">Botica Dental</div>
                     </div>
                 </div>
                 <p class="small">Insumos y equipamiento dental de calidad, con precios justos y actualizados, para consultorios y clínicas.</p>
                 <div class="d-flex gap-2 mt-3">
-                    <a href="#" class="footer-social" title="Facebook"><i class="bi bi-facebook"></i></a>
-                    <a href="#" class="footer-social" title="Instagram"><i class="bi bi-instagram"></i></a>
-                    <a href="https://wa.me/51999000111" class="footer-social" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+                    <a href="#" class="footer-social d-none" title="Facebook" id="footerFacebook" target="_blank" rel="noopener"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="footer-social d-none" title="Instagram" id="footerInstagram" target="_blank" rel="noopener"><i class="bi bi-instagram"></i></a>
+                    <a href="https://wa.me/51999000111" class="footer-social" title="WhatsApp" id="footerWhatsapp" target="_blank" rel="noopener"><i class="bi bi-whatsapp"></i></a>
                 </div>
             </div>
             <div class="col-6 col-md-4">
                 <h6>Contacto</h6>
-                <div class="footer-item"><i class="bi bi-geo-alt-fill"></i><span>Av. Principal 123, San Isidro, Lima, Perú</span></div>
-                <div class="footer-item"><i class="bi bi-telephone-fill"></i><span>+51 999 000 111</span></div>
-                <div class="footer-item"><i class="bi bi-envelope-fill"></i><span>contacto@sanjudastadeo.dental</span></div>
-                <div class="footer-item"><i class="bi bi-clock-fill"></i><span>Lunes a sábado, 9:00 a. m. – 7:00 p. m.</span></div>
+                <div class="footer-item"><i class="bi bi-geo-alt-fill"></i><span id="footerDireccion">Av. Principal 123, San Isidro, Lima, Perú</span></div>
+                <div class="footer-item"><i class="bi bi-telephone-fill"></i><span id="footerTelefono">+51 999 000 111</span></div>
+                <div class="footer-item"><i class="bi bi-envelope-fill"></i><span id="footerEmail">contacto@sanjudastadeo.dental</span></div>
+                <div class="footer-item"><i class="bi bi-clock-fill"></i><span id="footerHorario">Lunes a sábado, 9:00 a. m. – 7:00 p. m.</span></div>
             </div>
             <div class="col-6 col-md-4">
                 <h6>Enlaces</h6>
@@ -225,7 +225,7 @@
             </div>
         </div>
         <div class="tienda-footer-bottom text-center">
-            © <span id="anioActual"></span> San Judas Tadeo Botica Dental. Todos los derechos reservados.
+            © <span id="anioActual"></span> <span id="footerCopyrightNombre">San Judas Tadeo Botica Dental</span>. Todos los derechos reservados.
         </div>
     </div>
 </footer>
