@@ -63,7 +63,12 @@ const MPV = (() => {
             const qs = new URLSearchParams(params).toString();
             return request(`/precios${qs ? `?${qs}` : ''}`);
         },
+        getProductos: () => request('/productos'),
+        crearProducto: (payload) => request('/productos', { method: 'POST', body: JSON.stringify(payload) }),
+        actualizarProducto: (id, payload) => request(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
         getProveedores: () => request('/proveedores'),
+        crearProveedor: (payload) => request('/proveedores', { method: 'POST', body: JSON.stringify(payload) }),
+        actualizarProveedor: (id, payload) => request(`/proveedores/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
         getCategorias: () => request('/categorias'),
         compararProveedores: (productoId) => request(`/precios/comparar/${productoId}`),
         getHistorialPrecio: (proveedorProductoId) => request(`/precios/historial/${proveedorProductoId}`),

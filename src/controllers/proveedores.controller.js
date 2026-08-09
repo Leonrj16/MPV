@@ -3,7 +3,11 @@ const pool = require('../config/db');
 async function listarProveedores(req, res) {
     try {
         const { rows } = await pool.query(
-            `SELECT * FROM proveedores WHERE activo = TRUE ORDER BY nombre ASC`
+            `SELECT pv.*, COUNT(pp.id) FILTER (WHERE pp.activo) AS productos_count
+             FROM proveedores pv
+             LEFT JOIN proveedor_producto pp ON pp.proveedor_id = pv.id
+             GROUP BY pv.id
+             ORDER BY pv.nombre ASC`
         );
         res.json({ ok: true, data: rows });
     } catch (err) {
@@ -34,17 +38,20 @@ async function crearProveedor(req, res) {
 async function actualizarProveedor(req, res) {
     try {
         const { id } = req.params;
-        const { nombre, contacto, telefono, email, direccion } = req.body;
+        const { nombre, contacto, telefono, email, direccion, rucNit, calificacion, activo } = req.body;
         const { rows } = await pool.query(
             `UPDATE proveedores
              SET nombre = COALESCE($1, nombre),
                  contacto = COALESCE($2, contacto),
                  telefono = COALESCE($3, telefono),
                  email = COALESCE($4, email),
-                 direccion = COALESCE($5, direccion)
-             WHERE id = $6
+                 direccion = COALESCE($5, direccion),
+                 ruc_nit = COALESCE($6, ruc_nit),
+                 calificacion = COALESCE($7, calificacion),
+                 activo = COALESCE($8, activo)
+             WHERE id = $9
              RETURNING *`,
-            [nombre, contacto, telefono, email, direccion, id]
+            [nombre, contacto, telefono, email, direccion, rucNit, calificacion, activo, id]
         );
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Proveedor no encontrado' });

@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MPV Dental | Proveedores</title>
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/style.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- Sidebar -->
+<aside class="mpv-sidebar" id="mpvSidebar">
+    <div class="mpv-sidebar-brand">
+        <div class="icon-badge"><i class="bi bi-clipboard2-pulse"></i></div>
+        <div>
+            <div class="brand-title">MPV Dental</div>
+            <div class="brand-sub">Pricing Platform</div>
+        </div>
+    </div>
+    <nav class="mpv-nav">
+        <div class="nav-section-title">General</div>
+        <a href="index.html" class="nav-link"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
+        <a href="pricing.html" class="nav-link"><i class="bi bi-tags-fill"></i> Gestión de Precios</a>
+        <a href="productos.html" class="nav-link"><i class="bi bi-box-seam-fill"></i> Productos</a>
+        <a href="proveedores.html" class="nav-link active"><i class="bi bi-truck"></i> Proveedores</a>
+        <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
+        <a href="configuracion.html" class="nav-link" data-rol="admin"><i class="bi bi-sliders"></i> Márgenes e Impuestos</a>
+        <a href="usuarios.html" class="nav-link" data-rol="admin"><i class="bi bi-people-fill"></i> Usuarios</a>
+    </nav>
+    <div class="mpv-sidebar-footer">
+        <div class="mpv-avatar" id="sidebarUserAvatar">—</div>
+        <div class="flex-grow-1">
+            <div style="font-size:0.82rem; font-weight:650;" id="sidebarUserName">—</div>
+            <div style="font-size:0.72rem; color:var(--mpv-ink-soft);" id="sidebarUserRole">—</div>
+        </div>
+        <a href="#" id="btnLogout" class="btn-icon-sm" title="Cerrar sesión"><i class="bi bi-box-arrow-right"></i></a>
+    </div>
+</aside>
+
+<div class="mpv-main">
+    <header class="mpv-topbar">
+        <div class="d-flex align-items-center gap-2 mpv-topbar-title">
+            <button class="btn btn-icon-sm d-lg-none" id="btnToggleSidebar"><i class="bi bi-list"></i></button>
+            <div>
+                <h1>Proveedores</h1>
+                <div class="subtitle">Directorio de proveedores dentales</div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mpv-topbar-actions">
+            <button class="btn btn-mpv-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoProveedor" data-rol="admin">
+                <i class="bi bi-plus-lg me-1"></i> Nuevo Proveedor
+            </button>
+        </div>
+    </header>
+
+    <main class="mpv-content">
+        <div class="mpv-panel">
+            <div class="mpv-panel-header">
+                <div>
+                    <h2>Directorio</h2>
+                    <div class="panel-sub" id="resultCount">Cargando…</div>
+                </div>
+                <div class="mpv-search">
+                    <i class="bi bi-search"></i>
+                    <input type="text" id="buscador" class="form-control" placeholder="Buscar por nombre o contacto…">
+                </div>
+            </div>
+            <div class="mpv-table-wrap">
+                <table class="mpv-table">
+                    <thead>
+                        <tr>
+                            <th>Proveedor</th>
+                            <th>Contacto</th>
+                            <th>Teléfono / Email</th>
+                            <th>Calificación</th>
+                            <th>Productos</th>
+                            <th>Estado</th>
+                            <th class="text-end">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="proveedoresTableBody">
+                        <tr class="skeleton-row"><td colspan="7"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Modal: Nuevo Proveedor -->
+<div class="modal fade" id="modalNuevoProveedor" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--mpv-radius); border:none;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Nuevo Proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="formNuevoProveedor">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">Nombre / Razón social</label>
+                        <input type="text" class="form-control" id="nuevoNombre" required>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">RUC / NIT</label>
+                            <input type="text" class="form-control" id="nuevoRuc">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Persona de contacto</label>
+                            <input type="text" class="form-control" id="nuevoContacto">
+                        </div>
+                    </div>
+                    <div class="row g-3 mt-0">
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Teléfono</label>
+                            <input type="text" class="form-control" id="nuevoTelefono">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small fw-semibold">Email</label>
+                            <input type="email" class="form-control" id="nuevoEmail">
+                        </div>
+                    </div>
+                    <div class="mt-3">
+                        <label class="form-label small fw-semibold">Dirección</label>
+                        <input type="text" class="form-control" id="nuevoDireccion">
+                    </div>
+                    <div class="alert alert-danger py-2 small d-none mt-3" id="nuevoProveedorError"></div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-mpv-outline" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-mpv-primary" id="btnCrearProveedor">Crear Proveedor</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Editar Proveedor -->
+<div class="modal fade" id="modalEditarProveedor" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--mpv-radius); border:none;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold">Editar Proveedor</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="editarId">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold">Nombre / Razón social</label>
+                    <input type="text" class="form-control" id="editarNombre" required>
+                </div>
+                <div class="row g-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Persona de contacto</label>
+                        <input type="text" class="form-control" id="editarContacto">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Calificación (1-5)</label>
+                        <input type="number" min="1" max="5" class="form-control" id="editarCalificacion">
+                    </div>
+                </div>
+                <div class="row g-3 mt-0">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Teléfono</label>
+                        <input type="text" class="form-control" id="editarTelefono">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold">Email</label>
+                        <input type="email" class="form-control" id="editarEmail">
+                    </div>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label small fw-semibold">Dirección</label>
+                    <input type="text" class="form-control" id="editarDireccion">
+                </div>
+                <div class="form-check form-switch mt-3">
+                    <input class="form-check-input" type="checkbox" id="editarActivo">
+                    <label class="form-check-label small fw-semibold" for="editarActivo">Proveedor activo</label>
+                </div>
+                <div class="alert alert-danger py-2 small d-none mt-3" id="editarProveedorError"></div>
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-mpv-outline" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-mpv-primary" id="btnGuardarProveedor">Guardar Cambios</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/api.js"></script>
+<script src="js/proveedores.js"></script>
+</body>
+</html>

@@ -97,7 +97,8 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | PUT | `/api/precios/:proveedorProductoId` | admin, operador | Actualiza el precio de compra |
 | PUT | `/api/precios/:proveedorProductoId/proveedor-principal` | admin, operador | Marca proveedor principal |
 | POST | `/api/productos`, `/api/proveedores` | admin | Alta de catálogo |
-| GET | `/api/productos`, `/api/proveedores`, `/api/categorias` | cualquiera | Lectura de catálogo |
+| PUT | `/api/productos/:id`, `/api/proveedores/:id` | admin | Edita catálogo (incluye activar/desactivar) |
+| GET | `/api/productos`, `/api/proveedores`, `/api/categorias` | cualquiera | Lectura de catálogo (con conteo de proveedores/productos relacionados) |
 | GET/POST | `/api/usuarios` | admin | Lista/crea cuentas del sistema |
 | PUT | `/api/usuarios/:id`, `/api/usuarios/:id/password` | admin | Edita rol/estado o resetea contraseña |
 | GET/PUT | `/api/configuracion` | admin | Lee/actualiza el margen, costo operativo, unidades estimadas e impuesto activos |
@@ -113,6 +114,12 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
   precios con gráfico de tendencia (Chart.js)**, edición rápida de precios
   vía modal y **exportación a Excel/PDF** (respeta los filtros activos de
   la tabla; el dashboard exporta el tablero completo sin filtrar).
+- `public/productos.html` — catálogo de productos (SKU, categoría, unidad,
+  cantidad de proveedores que lo ofrecen, estado). Lectura para cualquier
+  usuario autenticado; alta/edición y activar-desactivar solo para `admin`.
+- `public/proveedores.html` — directorio de proveedores con contacto,
+  calificación (1-5 estrellas) y cantidad de productos que suministra.
+  Mismas reglas de acceso que productos.
 - `public/usuarios.html` — solo para `admin`: alta de usuarios, cambio de
   rol/estado y reseteo de contraseña. Un admin no puede desactivarse ni
   quitarse el rol a sí mismo (bloqueado también en el backend).

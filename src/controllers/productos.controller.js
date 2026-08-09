@@ -3,10 +3,12 @@ const pool = require('../config/db');
 async function listarProductos(req, res) {
     try {
         const { rows } = await pool.query(
-            `SELECT p.*, c.nombre AS categoria_nombre
+            `SELECT p.*, c.nombre AS categoria_nombre,
+                    COUNT(pp.id) FILTER (WHERE pp.activo) AS proveedores_count
              FROM productos p
              LEFT JOIN categorias c ON c.id = p.categoria_id
-             WHERE p.activo = TRUE
+             LEFT JOIN proveedor_producto pp ON pp.producto_id = p.id
+             GROUP BY p.id, c.nombre
              ORDER BY p.nombre ASC`
         );
         res.json({ ok: true, data: rows });
@@ -30,6 +32,36 @@ async function crearProducto(req, res) {
         );
         res.status(201).json({ ok: true, data: rows[0] });
     } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ ok: false, error: 'Ya existe un producto con ese SKU' });
+        }
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+async function actualizarProducto(req, res) {
+    try {
+        const { id } = req.params;
+        const { nombre, descripcion, categoriaId, unidadMedida, stockMinimo, activo } = req.body;
+
+        const { rows } = await pool.query(
+            `UPDATE productos
+             SET nombre = COALESCE($1, nombre),
+                 descripcion = COALESCE($2, descripcion),
+                 categoria_id = COALESCE($3, categoria_id),
+                 unidad_medida = COALESCE($4, unidad_medida),
+                 stock_minimo = COALESCE($5, stock_minimo),
+                 activo = COALESCE($6, activo)
+             WHERE id = $7
+             RETURNING *`,
+            [nombre, descripcion, categoriaId, unidadMedida, stockMinimo, activo, id]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Producto no encontrado' });
+        }
+        res.json({ ok: true, data: rows[0] });
+    } catch (err) {
         console.error(err);
         res.status(500).json({ ok: false, error: err.message });
     }
@@ -45,4 +77,4 @@ async function listarCategorias(req, res) {
     }
 }
 
-module.exports = { listarProductos, crearProducto, listarCategorias };
+module.exports = { listarProductos, crearProducto, actualizarProducto, listarCategorias };

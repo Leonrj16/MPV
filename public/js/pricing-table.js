@@ -98,7 +98,7 @@
                 .map((c) => `<option value="${c}">${c}</option>`).join('');
 
         filtroProveedor.innerHTML = '<option value="">Todos los proveedores</option>' +
-            proveedores.map((p) => `<option value="${p.id}">${p.nombre}</option>`).join('');
+            proveedores.filter((p) => p.activo).map((p) => `<option value="${p.id}">${p.nombre}</option>`).join('');
     }
 
     async function cargarDatos() {
