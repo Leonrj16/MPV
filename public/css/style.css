@@ -63,7 +63,7 @@ body {
     display: flex;
     flex-direction: column;
     z-index: 1030;
-    transition: transform 0.25s ease;
+    transition: transform 0.25s ease, width 0.25s ease;
     overflow: hidden;
 }
 
@@ -203,6 +203,7 @@ body {
     min-height: 100vh;
     display: flex;
     flex-direction: column;
+    transition: margin-left 0.25s ease;
 }
 
 .mpv-topbar {
@@ -249,6 +250,55 @@ body {
     }
     .mpv-sidebar.show { transform: translateX(0); }
     .mpv-main { margin-left: 0; }
+}
+
+/* ---------------------------------------------------------------------- */
+/* Sidebar colapsable (solo escritorio: en móvil ya es un drawer aparte)   */
+/* ---------------------------------------------------------------------- */
+.mpv-nav .nav-collapse-btn {
+    width: 100%;
+    border: none;
+    background: transparent;
+    text-align: left;
+    font: inherit;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    padding-top: 0.95rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: none;
+}
+
+@media (min-width: 992px) {
+    .mpv-nav .nav-collapse-btn { display: flex; }
+}
+
+@media (min-width: 992px) {
+    html.mpv-sidebar-collapsed .mpv-sidebar { width: 80px; }
+    html.mpv-sidebar-collapsed .mpv-main { margin-left: calc(80px + var(--sidebar-inset) * 2); }
+
+    html.mpv-sidebar-collapsed .mpv-sidebar-brand {
+        justify-content: center;
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    html.mpv-sidebar-collapsed .mpv-sidebar-brand > div:nth-child(2) { display: none; }
+
+    html.mpv-sidebar-collapsed .mpv-nav .nav-section-title { display: none; }
+
+    html.mpv-sidebar-collapsed .mpv-nav .nav-link {
+        justify-content: center;
+        padding-left: 0;
+        padding-right: 0;
+    }
+    html.mpv-sidebar-collapsed .mpv-nav .nav-link .nav-label { display: none; }
+    html.mpv-sidebar-collapsed .mpv-nav .nav-link.active::after { display: none; }
+
+    html.mpv-sidebar-collapsed .mpv-sidebar-footer {
+        flex-direction: column;
+        gap: 0.6rem;
+        padding: 0.85rem 0.5rem;
+    }
+    html.mpv-sidebar-collapsed .mpv-sidebar-footer .flex-grow-1 { display: none; }
 }
 
 @media (max-width: 575.98px) {

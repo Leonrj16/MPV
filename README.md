@@ -242,6 +242,42 @@ iPhone-16-equivalente) en las 7 páginas del panel: sin overflow
 horizontal, sidebar y drawer móvil legibles, gráficos renderizando datos
 reales, y sin errores de consola nuevos.
 
+*Nota sobre capturas de pantalla*: las capturas `fullPage: true` de
+Playwright no manejan bien elementos `position: fixed` — el sidebar
+aparece "cortado" a mitad de una imagen larga porque Chromium solo lo
+renderiza en su posición de scroll inicial al hacer el stitching. Es un
+artefacto de la herramienta de captura, no del sidebar: en el navegador
+real (`position: fixed; top/left/bottom: 14px`), el panel permanece
+anclado de borde a borde de la ventana sin importar cuánto se scrollee el
+contenido (confirmado leyendo `getBoundingClientRect()` tras hacer scroll
+real). Las verificaciones de overflow/diseño de esta fase se hicieron con
+capturas de viewport normal, no `fullPage`.
+
+### Sidebar colapsable (escritorio)
+
+El sidebar del panel interno puede colapsarse a un riel de solo íconos
+(80px) mediante un botón al final del menú (ícono `bi-chevron-double-left`
+/ `bi-chevron-double-right`), disponible solo en escritorio (`≥992px`) —
+en móvil el sidebar ya es un drawer que se oculta por completo, así que
+un segundo modo "colapsado" no aporta nada ahí.
+
+- El estado se guarda en `localStorage` (`mpv_sidebar_collapsed`) y se
+  aplica en las 6 páginas que usan el sidebar (`js/auth.js`, cargado en
+  todas ellas).
+- **Sin parpadeo al navegar**: cada página tiene un `<script>` inline en
+  el `<head>`, antes de que se pinte el `<body>`, que aplica la clase
+  `mpv-sidebar-collapsed` a `<html>` leyendo directamente `localStorage`
+  — si se aplicara solo desde `auth.js` (cargado al final del `<body>`),
+  se vería un flash del sidebar expandido en cada cambio de página.
+- Los textos de marca, secciones y links (`.brand-title`, `.nav-label`,
+  nombre/rol de usuario) se ocultan con CSS al colapsar; los íconos y el
+  avatar quedan centrados. Cada link conserva su `title` como tooltip
+  nativo del navegador para no perder contexto sin el texto visible.
+- Verificado con Playwright: clic para colapsar/expandir, persistencia al
+  navegar entre `index.html` → `pricing.html` sin flash, botón oculto en
+  viewport móvil (393px), y suite de 60 tests Jest sin cambios (feature
+  puramente de frontend).
+
 ### Carga masiva de precios (`src/services/importarPrecios.js`)
 
 Acepta `.csv` o `.xlsx` con columnas `SKU`, `Proveedor`, `PrecioCompra` y,

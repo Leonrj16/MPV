@@ -61,12 +61,41 @@ window.MPVAuth = (() => {
         }
     }
 
-    return { getToken, getUsuario, guardarSesion, cerrarSesion, exigirSesion, exigirRol, pintarUsuarioEnSidebar };
+    const COLLAPSE_KEY = 'mpv_sidebar_collapsed';
+
+    // Colapsa el sidebar a solo íconos (escritorio). El estado se aplica de
+    // forma síncrona en <head> (ver script inline en cada página) para que
+    // no haya parpadeo del sidebar expandido antes de que corra este script.
+    function inicializarColapsoSidebar() {
+        const btn = document.getElementById('btnSidebarCollapse');
+        if (!btn) return;
+        const icono = btn.querySelector('i');
+        const etiqueta = btn.querySelector('.nav-label');
+
+        function aplicar(colapsado) {
+            document.documentElement.classList.toggle('mpv-sidebar-collapsed', colapsado);
+            icono.className = colapsado ? 'bi bi-chevron-double-right' : 'bi bi-chevron-double-left';
+            const texto = colapsado ? 'Expandir menú' : 'Colapsar menú';
+            etiqueta.textContent = texto;
+            btn.title = texto;
+        }
+
+        aplicar(document.documentElement.classList.contains('mpv-sidebar-collapsed'));
+
+        btn.addEventListener('click', () => {
+            const colapsado = !document.documentElement.classList.contains('mpv-sidebar-collapsed');
+            localStorage.setItem(COLLAPSE_KEY, colapsado ? '1' : '0');
+            aplicar(colapsado);
+        });
+    }
+
+    return { getToken, getUsuario, guardarSesion, cerrarSesion, exigirSesion, exigirRol, pintarUsuarioEnSidebar, inicializarColapsoSidebar };
 })();
 
 MPVAuth.exigirSesion();
 document.addEventListener('DOMContentLoaded', () => {
     MPVAuth.pintarUsuarioEnSidebar();
+    MPVAuth.inicializarColapsoSidebar();
     document.getElementById('btnLogout')?.addEventListener('click', (e) => {
         e.preventDefault();
         MPVAuth.cerrarSesion();

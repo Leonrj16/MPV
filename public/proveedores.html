@@ -8,6 +8,7 @@
     <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="css/base.css" rel="stylesheet">
     <link href="css/style.css" rel="stylesheet">
+    <script>document.documentElement.classList.toggle('mpv-sidebar-collapsed', localStorage.getItem('mpv_sidebar_collapsed') === '1');</script>
 </head>
 <body>
 
@@ -22,13 +23,16 @@
     </div>
     <nav class="mpv-nav">
         <div class="nav-section-title">General</div>
-        <a href="index.html" class="nav-link"><i class="bi bi-grid-1x2-fill"></i> Dashboard</a>
-        <a href="pricing.html" class="nav-link"><i class="bi bi-tags-fill"></i> Gestión de Precios</a>
-        <a href="productos.html" class="nav-link"><i class="bi bi-box-seam-fill"></i> Productos</a>
-        <a href="proveedores.html" class="nav-link active"><i class="bi bi-truck"></i> Proveedores</a>
+        <a href="index.html" class="nav-link" title="Dashboard"><i class="bi bi-grid-1x2-fill"></i> <span class="nav-label">Dashboard</span></a>
+        <a href="pricing.html" class="nav-link" title="Gestión de Precios"><i class="bi bi-tags-fill"></i> <span class="nav-label">Gestión de Precios</span></a>
+        <a href="productos.html" class="nav-link" title="Productos"><i class="bi bi-box-seam-fill"></i> <span class="nav-label">Productos</span></a>
+        <a href="proveedores.html" class="nav-link active" title="Proveedores"><i class="bi bi-truck"></i> <span class="nav-label">Proveedores</span></a>
         <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
-        <a href="configuracion.html" class="nav-link" data-rol="admin"><i class="bi bi-sliders"></i> Márgenes e Impuestos</a>
-        <a href="usuarios.html" class="nav-link" data-rol="admin"><i class="bi bi-people-fill"></i> Usuarios</a>
+        <a href="configuracion.html" class="nav-link" data-rol="admin" title="Márgenes e Impuestos"><i class="bi bi-sliders"></i> <span class="nav-label">Márgenes e Impuestos</span></a>
+        <a href="usuarios.html" class="nav-link" data-rol="admin" title="Usuarios"><i class="bi bi-people-fill"></i> <span class="nav-label">Usuarios</span></a>
+        <button type="button" class="nav-link nav-collapse-btn" id="btnSidebarCollapse" title="Colapsar menú">
+            <i class="bi bi-chevron-double-left"></i> <span class="nav-label">Colapsar menú</span>
+        </button>
     </nav>
     <div class="mpv-sidebar-footer">
         <div class="mpv-avatar" id="sidebarUserAvatar">—</div>
