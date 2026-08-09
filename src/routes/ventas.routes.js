@@ -6,6 +6,8 @@ const { verificarToken, requiereRol } = require('../middleware/auth.middleware')
 router.get('/ventas', verificarToken, ctrl.listar);
 router.get('/ventas/kpis', verificarToken, ctrl.kpis);
 router.get('/ventas/productos-disponibles', verificarToken, ctrl.listarDisponibles);
+router.get('/ventas/exportar/excel', verificarToken, ctrl.exportarVentasExcel);
+router.get('/ventas/exportar/pdf', verificarToken, ctrl.exportarVentasPDF);
 router.get('/ventas/:id/boleta', verificarToken, ctrl.generarBoletaPdf);
 router.post('/ventas', verificarToken, requiereRol('admin', 'operador'), ctrl.crearVenta);
 

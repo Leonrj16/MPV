@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { registrarEvento } = require('../services/bitacora');
 
 async function listarProductos(req, res) {
     try {
@@ -30,6 +31,14 @@ async function crearProducto(req, res) {
              RETURNING *`,
             [sku, nombre, descripcion || null, categoriaId || null, unidadMedida, imagenUrl || null, stockActual ?? null]
         );
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'crear',
+            entidad: 'producto',
+            entidadId: rows[0].id,
+            detalle: `Creó el producto "${rows[0].nombre}" (SKU ${rows[0].sku})`,
+        });
         res.status(201).json({ ok: true, data: rows[0] });
     } catch (err) {
         if (err.code === '23505') {
@@ -62,6 +71,14 @@ async function actualizarProducto(req, res) {
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Producto no encontrado' });
         }
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'actualizar',
+            entidad: 'producto',
+            entidadId: rows[0].id,
+            detalle: `Actualizó el producto "${rows[0].nombre}"`,
+        });
         res.json({ ok: true, data: rows[0] });
     } catch (err) {
         console.error(err);

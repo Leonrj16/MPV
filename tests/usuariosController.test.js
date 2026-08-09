@@ -34,12 +34,13 @@ describe('actualizarUsuario — protección de autobloqueo', () => {
 
     test('permite que un admin edite a OTRO usuario sin restricción', async () => {
         pool.query.mockResolvedValueOnce({ rows: [{ id: 2, nombre: 'Ana', activo: false }] });
+        pool.query.mockResolvedValueOnce({}); // INSERT en bitacora
         const req = { params: { id: '2' }, body: { activo: false }, user: { sub: 1, rol: 'admin' } };
         const res = mockRes();
 
         await actualizarUsuario(req, res);
 
-        expect(pool.query).toHaveBeenCalledTimes(1);
+        expect(pool.query).toHaveBeenCalledTimes(2); // UPDATE + registro en bitácora
         expect(res.status).not.toHaveBeenCalled();
         expect(res.json).toHaveBeenCalledWith({ ok: true, data: { id: 2, nombre: 'Ana', activo: false } });
     });

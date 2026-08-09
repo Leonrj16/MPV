@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { calcularPVP, compararProveedores } = require('../services/pricingEngine');
 const { obtenerConfigActiva, obtenerTablero } = require('../services/tableroPrecios');
+const { registrarEvento } = require('../services/bitacora');
 
 /**
  * GET /api/precios
@@ -75,6 +76,15 @@ async function actualizarPrecioCompra(req, res) {
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Registro no encontrado' });
         }
+
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'actualizar',
+            entidad: 'precio',
+            entidadId: rows[0].id,
+            detalle: `Actualizó el precio de compra (oferta #${rows[0].id}) a S/ ${Number(precioCompraUnitario).toFixed(2)}`,
+        });
 
         res.json({ ok: true, data: rows[0] });
     } catch (err) {

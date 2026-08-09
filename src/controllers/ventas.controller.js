@@ -1,11 +1,21 @@
+const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const pool = require('../config/db');
 const { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId, obtenerKpisVentas } = require('../services/ventas');
+const { registrarEvento } = require('../services/bitacora');
 
 async function crearVenta(req, res) {
     try {
         const { items, cliente, metodoPago } = req.body;
         const venta = await registrarVenta({ items, cliente, metodoPago, usuarioId: req.user?.sub });
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'crear',
+            entidad: 'venta',
+            entidadId: venta.id,
+            detalle: `Registró una venta de S/ ${Number(venta.total).toFixed(2)}`,
+        });
         res.status(201).json({ ok: true, data: venta });
     } catch (err) {
         // Errores de negocio (stock insuficiente, producto sin proveedor, etc.)
@@ -54,6 +64,173 @@ const ETIQUETAS_METODO_PAGO = {
     yape_plin: 'Yape / Plin',
     transferencia: 'Transferencia',
 };
+
+const timestampArchivo = () => new Date().toISOString().slice(0, 10);
+
+const resumenProductos = (items) =>
+    (items || []).map((i) => `${i.producto} x${i.cantidad}`).join(', ') || '—';
+
+/**
+ * GET /api/ventas/exportar/excel — respeta los mismos filtros que /api/ventas.
+ */
+async function exportarVentasExcel(req, res) {
+    try {
+        const { desde, hasta, cliente, metodoPago } = req.query;
+        const ventas = await listarVentas({ limite: 1000, desde, hasta, cliente, metodoPago });
+
+        const workbook = new ExcelJS.Workbook();
+        workbook.creator = 'MPV Dental';
+        workbook.created = new Date();
+
+        const hoja = workbook.addWorksheet('Ventas de Mostrador', {
+            views: [{ state: 'frozen', ySplit: 4 }],
+            pageSetup: { orientation: 'landscape', fitToPage: true },
+        });
+
+        hoja.mergeCells('A1:F1');
+        hoja.getCell('A1').value = 'MPV Dental — Historial de Ventas de Mostrador';
+        hoja.getCell('A1').font = { bold: true, size: 14, color: { argb: 'FF1D4ED8' } };
+
+        hoja.mergeCells('A2:F2');
+        hoja.getCell('A2').value = `Generado el ${new Date().toLocaleString('es-PE')} — ${ventas.length} venta${ventas.length === 1 ? '' : 's'}`;
+        hoja.getCell('A2').font = { italic: true, size: 9, color: { argb: 'FF64748B' } };
+
+        const columnas = [
+            { header: 'Fecha', key: 'fecha', width: 20 },
+            { header: 'Cliente', key: 'cliente', width: 26 },
+            { header: 'Productos', key: 'productos', width: 48 },
+            { header: 'Método de Pago', key: 'metodoPago', width: 18 },
+            { header: 'Atendido por', key: 'atendidoPor', width: 22 },
+            { header: 'Total', key: 'total', width: 14 },
+        ];
+        hoja.columns = columnas.map((c) => ({ key: c.key, width: c.width }));
+
+        const filaEncabezado = hoja.getRow(4);
+        columnas.forEach((c, i) => {
+            const celda = filaEncabezado.getCell(i + 1);
+            celda.value = c.header;
+            celda.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            celda.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF2563EB' } };
+            celda.alignment = { vertical: 'middle', horizontal: 'center' };
+        });
+        hoja.autoFilter = { from: 'A4', to: 'F4' };
+
+        ventas.forEach((v) => {
+            const filaExcel = hoja.addRow({
+                fecha: new Date(v.created_at).toLocaleString('es-PE'),
+                cliente: v.cliente || 'Cliente varios',
+                productos: resumenProductos(v.items),
+                metodoPago: ETIQUETAS_METODO_PAGO[v.metodo_pago] || v.metodo_pago,
+                atendidoPor: v.usuario_nombre || '—',
+                total: Number(v.total),
+            });
+            filaExcel.getCell(6).numFmt = '"S/" #,##0.00';
+        });
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', `attachment; filename="mpv-dental-ventas-${timestampArchivo()}.xlsx"`);
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+/**
+ * GET /api/ventas/exportar/pdf — reporte PDF horizontal del historial de ventas.
+ */
+async function exportarVentasPDF(req, res) {
+    try {
+        const { desde, hasta, cliente, metodoPago } = req.query;
+        const ventas = await listarVentas({ limite: 1000, desde, hasta, cliente, metodoPago });
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="mpv-dental-ventas-${timestampArchivo()}.pdf"`);
+
+        const doc = new PDFDocument({ size: 'A4', layout: 'landscape', margin: 32 });
+        doc.pipe(res);
+
+        const columnas = [
+            { label: 'Fecha', width: 90 },
+            { label: 'Cliente', width: 120 },
+            { label: 'Productos', width: 300 },
+            { label: 'Método de Pago', width: 90 },
+            { label: 'Atendido por', width: 100 },
+            { label: 'Total', width: 65, align: 'right' },
+        ];
+        const anchoTabla = columnas.reduce((s, c) => s + c.width, 0);
+        const xInicio = doc.page.margins.left;
+
+        function dibujarEncabezadoDocumento() {
+            doc.fontSize(16).fillColor('#1d4ed8').font('Helvetica-Bold')
+                .text('MPV Dental — Historial de Ventas de Mostrador', xInicio, 30);
+            doc.fontSize(8).fillColor('#64748b').font('Helvetica')
+                .text(`Generado el ${new Date().toLocaleString('es-PE')}  ·  ${ventas.length} registros`, xInicio, 50);
+        }
+
+        function dibujarEncabezadoTabla(y) {
+            doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#ffffff');
+            doc.rect(xInicio, y, anchoTabla, 20).fill('#2563eb');
+            let x = xInicio;
+            columnas.forEach((c) => {
+                doc.fillColor('#ffffff').text(c.label, x + 4, y + 6, { width: c.width - 8, align: c.align || 'left' });
+                x += c.width;
+            });
+            return y + 20;
+        }
+
+        let y = 75;
+        dibujarEncabezadoDocumento();
+        y = dibujarEncabezadoTabla(y);
+
+        const yLimite = doc.page.height - doc.page.margins.bottom - 20;
+
+        ventas.forEach((v, idx) => {
+            const valores = [
+                new Date(v.created_at).toLocaleString('es-PE'),
+                v.cliente || 'Cliente varios',
+                resumenProductos(v.items),
+                ETIQUETAS_METODO_PAGO[v.metodo_pago] || v.metodo_pago,
+                v.usuario_nombre || '—',
+                formatoMoneda(v.total),
+            ];
+            const alturaFila = Math.max(
+                ...columnas.map((c, i) => doc.font('Helvetica').fontSize(8).heightOfString(String(valores[i]), { width: c.width - 8 })),
+                16
+            ) + 6;
+
+            if (y + alturaFila > yLimite) {
+                doc.addPage();
+                y = 40;
+                y = dibujarEncabezadoTabla(y);
+            }
+
+            if (idx % 2 === 0) {
+                doc.rect(xInicio, y, anchoTabla, alturaFila).fill('#f8fafc');
+            }
+
+            let x = xInicio;
+            doc.font('Helvetica').fontSize(8).fillColor('#0f172a');
+            columnas.forEach((c, i) => {
+                doc.fillColor('#0f172a').text(String(valores[i]), x + 4, y + 5, { width: c.width - 8, align: c.align || 'left' });
+                x += c.width;
+            });
+
+            y += alturaFila;
+        });
+
+        doc.end();
+    } catch (err) {
+        console.error(err);
+        if (!res.headersSent) {
+            res.status(500).json({ ok: false, error: err.message });
+        } else {
+            res.end();
+        }
+    }
+}
 
 /**
  * GET /api/ventas/:id/boleta — comprobante en PDF para entregar al cliente
@@ -159,4 +336,12 @@ async function generarBoletaPdf(req, res) {
     }
 }
 
-module.exports = { crearVenta, listar, listarDisponibles, generarBoletaPdf, kpis };
+module.exports = {
+    crearVenta,
+    listar,
+    listarDisponibles,
+    generarBoletaPdf,
+    kpis,
+    exportarVentasExcel,
+    exportarVentasPDF,
+};

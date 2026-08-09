@@ -32,6 +32,7 @@
         <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
         <a href="configuracion.html" class="nav-link" data-rol="admin" title="Márgenes e Impuestos"><i class="bi bi-sliders"></i> <span class="nav-label">Márgenes e Impuestos</span></a>
         <a href="usuarios.html" class="nav-link" data-rol="admin" title="Usuarios"><i class="bi bi-people-fill"></i> <span class="nav-label">Usuarios</span></a>
+        <a href="auditoria.html" class="nav-link" data-rol="admin" title="Auditoría"><i class="bi bi-shield-lock-fill"></i> <span class="nav-label">Auditoría</span></a>
         <button type="button" class="nav-link nav-collapse-btn" id="btnSidebarCollapse" title="Colapsar menú">
             <i class="bi bi-chevron-double-left"></i> <span class="nav-label">Colapsar menú</span>
         </button>
@@ -56,6 +57,15 @@
             </div>
         </div>
         <div class="d-flex align-items-center gap-2 mpv-topbar-actions">
+            <div class="dropdown">
+                <button class="btn-icon-sm btn-alertas" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAlertas" title="Alertas">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="badge-alertas d-none" id="badgeAlertas">0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow-sm p-0 panel-alertas" id="panelAlertas">
+                    <div class="p-3 text-center text-muted small" id="alertasContenido">Cargando…</div>
+                </div>
+            </div>
             <div class="dropdown">
                 <button class="btn btn-mpv-outline dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                     <i class="bi bi-download me-1"></i> Exportar
@@ -191,7 +201,7 @@
                 </div>
                 <a href="pricing.html" class="btn btn-mpv-outline btn-sm">Ver tabla completa <i class="bi bi-arrow-right ms-1"></i></a>
             </div>
-            <div class="mpv-table-wrap">
+            <div class="mpv-table-wrap" tabindex="0" role="region" aria-label="Tabla con desplazamiento horizontal">
                 <table class="mpv-table">
                     <thead>
                         <tr>
@@ -217,6 +227,7 @@
 <script src="vendor/chartjs/chart.umd.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
+<script src="js/alertas-bell.js"></script>
 <script src="js/dashboard.js"></script>
 </body>
 </html>

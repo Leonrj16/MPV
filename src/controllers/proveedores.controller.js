@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { registrarEvento } = require('../services/bitacora');
 
 async function listarProveedores(req, res) {
     try {
@@ -28,6 +29,14 @@ async function crearProveedor(req, res) {
              RETURNING *`,
             [nombre, contacto || null, telefono || null, email || null, direccion || null, rucNit || null]
         );
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'crear',
+            entidad: 'proveedor',
+            entidadId: rows[0].id,
+            detalle: `Creó el proveedor "${rows[0].nombre}"`,
+        });
         res.status(201).json({ ok: true, data: rows[0] });
     } catch (err) {
         console.error(err);
@@ -56,6 +65,14 @@ async function actualizarProveedor(req, res) {
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Proveedor no encontrado' });
         }
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'actualizar',
+            entidad: 'proveedor',
+            entidadId: rows[0].id,
+            detalle: `Actualizó el proveedor "${rows[0].nombre}"`,
+        });
         res.json({ ok: true, data: rows[0] });
     } catch (err) {
         console.error(err);

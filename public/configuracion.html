@@ -32,6 +32,7 @@
         <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
         <a href="configuracion.html" class="nav-link active" data-rol="admin" title="Márgenes e Impuestos"><i class="bi bi-sliders"></i> <span class="nav-label">Márgenes e Impuestos</span></a>
         <a href="usuarios.html" class="nav-link" data-rol="admin" title="Usuarios"><i class="bi bi-people-fill"></i> <span class="nav-label">Usuarios</span></a>
+        <a href="auditoria.html" class="nav-link" data-rol="admin" title="Auditoría"><i class="bi bi-shield-lock-fill"></i> <span class="nav-label">Auditoría</span></a>
         <button type="button" class="nav-link nav-collapse-btn" id="btnSidebarCollapse" title="Colapsar menú">
             <i class="bi bi-chevron-double-left"></i> <span class="nav-label">Colapsar menú</span>
         </button>
@@ -53,6 +54,17 @@
             <div>
                 <h1>Márgenes e Impuestos</h1>
                 <div class="subtitle">Parámetros globales del motor de precios</div>
+            </div>
+        </div>
+        <div class="d-flex align-items-center gap-2 mpv-topbar-actions">
+            <div class="dropdown">
+                <button class="btn-icon-sm btn-alertas" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAlertas" title="Alertas">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="badge-alertas d-none" id="badgeAlertas">0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow-sm p-0 panel-alertas" id="panelAlertas">
+                    <div class="p-3 text-center text-muted small" id="alertasContenido">Cargando…</div>
+                </div>
             </div>
         </div>
     </header>
@@ -250,6 +262,7 @@
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
+<script src="js/alertas-bell.js"></script>
 <script src="js/configuracion.js"></script>
 </body>
 </html>

@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { registrarEvento } = require('../services/bitacora');
 
 async function obtenerConfiguracion(req, res) {
     try {
@@ -51,6 +52,13 @@ async function actualizarConfiguracion(req, res) {
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'No existe una configuración de márgenes activa' });
         }
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'actualizar',
+            entidad: 'configuracion_margenes',
+            detalle: `Actualizó márgenes e impuestos (margen ${margenUtilidadDefectoPct}%, impuesto ${porcentajeImpuesto}%)`,
+        });
         res.json({ ok: true, data: rows[0] });
     } catch (err) {
         console.error(err);

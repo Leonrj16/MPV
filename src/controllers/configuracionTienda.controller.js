@@ -1,4 +1,5 @@
 const pool = require('../config/db');
+const { registrarEvento } = require('../services/bitacora');
 
 function mapRow(row) {
     return {
@@ -96,6 +97,13 @@ async function actualizarConfiguracionTienda(req, res) {
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'No existe configuración de la tienda' });
         }
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'actualizar',
+            entidad: 'configuracion_tienda',
+            detalle: 'Actualizó la configuración de la tienda virtual',
+        });
         res.json({ ok: true, data: mapRow(rows[0]) });
     } catch (err) {
         console.error(err);

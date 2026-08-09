@@ -1,5 +1,6 @@
 const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
+const { registrarEvento } = require('../services/bitacora');
 
 async function listarUsuarios(req, res) {
     try {
@@ -34,6 +35,14 @@ async function crearUsuario(req, res) {
              RETURNING id, nombre, email, rol, activo, created_at`,
             [nombre, email, passwordHash, rol]
         );
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'crear',
+            entidad: 'usuario',
+            entidadId: rows[0].id,
+            detalle: `Creó al usuario "${rows[0].nombre}" (${rows[0].email}, rol ${rows[0].rol})`,
+        });
         res.status(201).json({ ok: true, data: rows[0] });
     } catch (err) {
         if (err.code === '23505') {
@@ -69,6 +78,14 @@ async function actualizarUsuario(req, res) {
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
         }
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'actualizar',
+            entidad: 'usuario',
+            entidadId: rows[0].id,
+            detalle: `Actualizó al usuario "${rows[0].nombre}"`,
+        });
         res.json({ ok: true, data: rows[0] });
     } catch (err) {
         console.error(err);
@@ -86,12 +103,21 @@ async function cambiarPassword(req, res) {
 
         const passwordHash = bcrypt.hashSync(password, 10);
         const { rows } = await pool.query(
-            `UPDATE usuarios SET password_hash = $1 WHERE id = $2 RETURNING id`,
+            `UPDATE usuarios SET password_hash = $1 WHERE id = $2 RETURNING id, nombre`,
             [passwordHash, id]
         );
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
         }
+        // Nunca se registra la contraseña en sí, solo el hecho del cambio.
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'actualizar',
+            entidad: 'usuario',
+            entidadId: rows[0].id,
+            detalle: `Cambió la contraseña de "${rows[0].nombre}"`,
+        });
         res.json({ ok: true });
     } catch (err) {
         console.error(err);

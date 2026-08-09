@@ -577,6 +577,15 @@ body {
         padding: 0;
         margin: 0;
     }
+    /* Tablas de solo lectura sin columna de Acciones (ej. Auditoría): la
+       última celda es un dato normal, no debe verse "separada" como si
+       fuera la fila de botones. */
+    .mpv-table.sin-acciones td:last-child {
+        justify-content: space-between;
+        padding-top: 0.4rem;
+        margin-top: 0;
+        border-top: none;
+    }
 }
 
 .product-cell { display: flex; align-items: center; gap: 0.75rem; }
@@ -678,6 +687,63 @@ body {
     background: var(--mpv-blue-soft);
     color: var(--mpv-blue-dark);
     border-color: var(--mpv-blue-soft);
+}
+
+/* ---------------------------------------------------------------------- */
+/* Campana de alertas (topbar)                                             */
+/* ---------------------------------------------------------------------- */
+.btn-alertas { position: relative; }
+.badge-alertas {
+    position: absolute;
+    top: -4px;
+    right: -4px;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 4px;
+    border-radius: 999px;
+    background: #dc2626;
+    color: #fff;
+    font-size: 0.66rem;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #fff;
+}
+.panel-alertas { width: 340px; max-height: 420px; overflow-y: auto; }
+.alerta-item {
+    display: flex;
+    gap: 0.65rem;
+    padding: 0.7rem 0.9rem;
+    border-bottom: 1px solid var(--mpv-gray-100);
+    text-decoration: none;
+    color: inherit;
+}
+.alerta-item:last-child { border-bottom: none; }
+.alerta-item:hover { background: var(--mpv-gray-50); }
+.alerta-item .icono {
+    width: 32px;
+    height: 32px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 0.95rem;
+}
+.alerta-item .icono.agotado { background: var(--mpv-red-soft); color: #b91c1c; }
+.alerta-item .icono.stock-bajo { background: var(--mpv-amber-soft); color: #b45309; }
+.alerta-item .icono.precio { background: var(--mpv-blue-soft); color: var(--mpv-blue-dark); }
+.alerta-item .icono.pedido { background: var(--mpv-emerald-soft); color: #047857; }
+.alerta-item .titulo { font-weight: 650; font-size: 0.82rem; color: var(--mpv-ink); }
+.alerta-item .desc { font-size: 0.75rem; color: var(--mpv-ink-soft); }
+.alertas-grupo-titulo {
+    font-size: 0.66rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--mpv-ink-soft);
+    padding: 0.6rem 0.9rem 0.3rem;
 }
 
 /* Botón primario de marca */

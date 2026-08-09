@@ -110,6 +110,42 @@
         cargarVentas();
     });
 
+    // -------- Exportar (respeta los filtros activos de cada panel) --------
+    function filtrosVentasActivos() {
+        const params = {};
+        const cliente = document.getElementById('filtroCliente').value.trim();
+        const desde = document.getElementById('filtroDesde').value;
+        const hasta = document.getElementById('filtroHasta').value;
+        const metodoPago = document.getElementById('filtroMetodoPago').value;
+        if (cliente) params.cliente = cliente;
+        if (desde) params.desde = desde;
+        if (hasta) params.hasta = hasta;
+        if (metodoPago) params.metodoPago = metodoPago;
+        return params;
+    }
+
+    async function exportarVentas(formato, link) {
+        const textoOriginal = link.innerHTML;
+        link.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando…';
+        try {
+            await (formato === 'excel'
+                ? MPV.exportarVentasExcel(filtrosVentasActivos())
+                : MPV.exportarVentasPDF(filtrosVentasActivos()));
+        } catch (err) {
+            alert(`No se pudo generar el archivo: ${err.message}`);
+        } finally {
+            link.innerHTML = textoOriginal;
+        }
+    }
+    document.getElementById('exportarVentasExcel')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        exportarVentas('excel', e.currentTarget);
+    });
+    document.getElementById('exportarVentasPdf')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        exportarVentas('pdf', e.currentTarget);
+    });
+
     ventasTableBody.addEventListener('click', (e) => {
         const btn = e.target.closest('[data-ver-boleta]');
         if (!btn) return;
@@ -175,6 +211,20 @@
     }
 
     document.getElementById('filtroEstadoPedido').addEventListener('change', cargarPedidos);
+
+    document.getElementById('exportarPedidosExcel')?.addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        const textoOriginal = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando…';
+        try {
+            const estado = document.getElementById('filtroEstadoPedido').value;
+            await MPV.exportarPedidosWebExcel(estado ? { estado } : {});
+        } catch (err) {
+            alert(`No se pudo generar el archivo: ${err.message}`);
+        } finally {
+            btn.innerHTML = textoOriginal;
+        }
+    });
 
     pedidosTableBody.addEventListener('change', async (e) => {
         const select = e.target.closest('[data-cambiar-estado]');

@@ -548,6 +548,91 @@ axe-core en las 11 páginas, sin overflow horizontal en 320/375/768/1920px
 ni en landscape móvil, y una prueba de navegación por teclado real (Tab
 hasta el nombre del producto → Enter → el modal de detalle se abre).
 
+## Fase D — Alertas proactivas, reportes descargables y auditoría
+
+Cierra el roadmap del panel interno: hasta ahora, saber que un producto se
+quedó sin stock, que un proveedor subió un precio, o que llegó un pedido
+web, dependía de que alguien entrara a revisar cada página por separado.
+Y no existía ningún registro de quién había hecho qué cambio en el
+sistema. El usuario pidió explícitamente seguir con esta fase pero **no**
+avanzar a la Fase E (pasarela de pago real, facturación SUNAT) hasta
+tener RUC — por diseño, nada de esta fase toca esa área.
+
+### Bitácora de auditoría (`bitacora`)
+
+Tabla nueva (`database/migrations/006_bitacora.sql`) + servicio
+`src/services/bitacora.js` con una función central,
+`registrarEvento({ usuarioId, usuarioNombre, accion, entidad, entidadId, detalle })`,
+enganchada en los puntos donde el sistema ya modifica algo importante:
+login (`auth.controller.js`), crear/actualizar producto y proveedor,
+actualizar precio de compra, crear/actualizar usuario y cambiar
+contraseña (nunca se registra la contraseña en sí, solo el hecho del
+cambio), actualizar márgenes/impuestos y configuración de la tienda,
+registrar una venta, y cambiar el estado de un pedido web. Es
+**best-effort a propósito**: `registrarEvento` atrapa cualquier error
+internamente — la bitácora nunca debe poder tumbar la acción real que la
+originó (crear un producto, cobrar una venta, etc.), mismo principio ya
+usado para el registro de pedidos web desde la tienda.
+
+Nueva página `public/auditoria.html` (solo admin, `MPVAuth.exigirRol('admin')`
++ `data-rol="admin"` en el link de navegación) con filtros por tipo de
+registro, acción y rango de fechas, reutilizando el mismo patrón de tabla
+responsive de Fase C — con una diferencia: al no tener columna de
+Acciones, la tabla usa la nueva clase `.mpv-table.sin-acciones` para que,
+en la vista de tarjetas en móvil, la última celda (Detalle) se vea como
+un dato normal en vez de heredar el estilo de fila de botones.
+
+### Centro de alertas (campana en el topbar)
+
+`GET /api/alertas` (`src/services/alertas.js`) agrega tres señales que ya
+existían por separado en la base de datos, sin inventar ningún dato
+nuevo: productos sin stock, productos por debajo de su `stock_minimo`
+(solo si el producto tiene un umbral configurado — si nadie lo puso, no
+hay falsos positivos), subidas de precio (reutiliza
+`alerta_subida_precio` de `vw_tablero_precios`, el mismo campo que ya
+alimentaba la tarjeta KPI del dashboard) y pedidos web pendientes.
+
+La campana (`public/js/alertas-bell.js`) se agregó a las **9** páginas
+del panel — incluidas las 4 que no tenían ninguna zona de acciones en su
+topbar (Punto de Venta, Márgenes e Impuestos, Ventas, Auditoría), a las
+que se les creó una — con un badge de conteo y un panel desplegable
+agrupado por tipo de alerta, cada ítem enlazando directo a la página
+donde se resuelve (Productos, Gestión de Precios o Ventas). Se refresca
+cada 2 minutos para no quedar desactualizada en una sesión larga.
+
+### Reportes descargables de ventas
+
+Se sumaron `GET /api/ventas/exportar/excel`, `GET /api/ventas/exportar/pdf`
+y `GET /api/pedidos-web/exportar/excel`, reutilizando exactamente el
+mismo patrón ya probado en `export.controller.js` (ExcelJS con
+encabezado de marca + tabla con auto-filtro; PDFKit en horizontal con
+salto de página automático) — ambos respetan los filtros activos en
+pantalla (cliente, fechas, método de pago, estado del pedido) en vez de
+exportar siempre todo el historial. Botones "Exportar" agregados a las
+dos pestañas de `ventas.html`, con el mismo spinner de "Generando…" que
+ya usaba Gestión de Precios mientras se arma el archivo.
+
+### Sobre la tabla `.mpv-table-wrap` (hallazgo de la auditoría de esta fase)
+
+Al escanear `auditoria.html` con `axe-core` apareció una violación real
+(`scrollable-region-focusable`, seria) que las páginas anteriores no
+habían disparado: cualquier `.mpv-table-wrap` cuyo contenido realmente
+desborda (`scrollWidth > clientWidth`) necesita ser alcanzable por
+teclado para poder desplazarse, no solo con mouse/touch. No era un
+problema nuevo de esta fase — es un defecto compartido por **todas** las
+tablas del panel, que simplemente no se había disparado antes porque los
+datos de prueba de otras páginas no forzaban el overflow en el ancho de
+pantalla usado. Se corrigió de una sola vez agregando
+`tabindex="0" role="region" aria-label="..."` a los 8 `.mpv-table-wrap`
+del sistema (Dashboard, Gestión de Precios, Productos, Proveedores,
+Usuarios, las 2 de Ventas, y Auditoría).
+
+Verificado con `npx jest` (107/107, 9 tests nuevos para `bitacora.js` y
+`alertas.js`) y con Playwright: 0 violaciones de axe-core en las 9
+páginas del panel tras el cambio, descarga real de los 3 reportes
+verificada de punta a punta en el navegador (no solo por `curl`), y
+`file` confirmando que los `.xlsx`/`.pdf` generados son archivos válidos.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación
@@ -990,7 +1075,11 @@ modal de historial.
 
 ## Próximas fases sugeridas
 
-- Alertas automáticas por email/WhatsApp ante alza de precios.
-- Exportación a Excel/PDF del tablero de precios.
-- Pantalla de administración de usuarios (alta/baja, cambio de contraseña).
-- Configuración de márgenes editable desde la interfaz.
+Fases A, B, C y D ya implementadas (ver secciones arriba). Pendiente,
+sin empezar por decisión explícita del negocio:
+
+- **Fase E** — pasarela de pago real, facturación electrónica SUNAT,
+  cuentas de cliente, multi-sucursal. Bloqueada a propósito: el negocio
+  todavía no tiene RUC ni está registrado ante SUNAT, así que cualquier
+  intento de facturación real o pasarela de pago sería prematuro. Se
+  retoma cuando el negocio complete ese registro.

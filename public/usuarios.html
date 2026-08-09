@@ -56,6 +56,15 @@
             </div>
         </div>
         <div class="d-flex align-items-center gap-2 mpv-topbar-actions">
+            <div class="dropdown">
+                <button class="btn-icon-sm btn-alertas" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAlertas" title="Alertas">
+                    <i class="bi bi-bell-fill"></i>
+                    <span class="badge-alertas d-none" id="badgeAlertas">0</span>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end shadow-sm p-0 panel-alertas" id="panelAlertas">
+                    <div class="p-3 text-center text-muted small" id="alertasContenido">Cargando…</div>
+                </div>
+            </div>
             <button class="btn btn-mpv-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
                 <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
             </button>
@@ -70,7 +79,7 @@
                     <div class="panel-sub" id="resultCount">Cargando…</div>
                 </div>
             </div>
-            <div class="mpv-table-wrap">
+            <div class="mpv-table-wrap" tabindex="0" role="region" aria-label="Tabla con desplazamiento horizontal">
                 <table class="mpv-table">
                     <thead>
                         <tr>
@@ -173,6 +182,7 @@
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/api.js"></script>
+<script src="js/alertas-bell.js"></script>
 <script src="js/usuarios.js"></script>
 </body>
 </html>

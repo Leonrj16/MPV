@@ -7,6 +7,7 @@ const { verificarToken, requiereRol } = require('../middleware/auth.middleware')
 router.post('/tienda/pedidos', ctrl.crearPedido);
 
 router.get('/pedidos-web', verificarToken, ctrl.listar);
+router.get('/pedidos-web/exportar/excel', verificarToken, ctrl.exportarExcel);
 router.put('/pedidos-web/:id/estado', verificarToken, requiereRol('admin', 'operador'), ctrl.actualizarEstado);
 
 module.exports = router;

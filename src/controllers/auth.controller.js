@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const pool = require('../config/db');
 const { JWT_SECRET } = require('../middleware/auth.middleware');
+const { registrarEvento } = require('../services/bitacora');
 
 const TOKEN_TTL = '8h';
 
@@ -26,6 +27,15 @@ async function login(req, res) {
 
         const payload = { sub: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol };
         const token = jwt.sign(payload, JWT_SECRET, { expiresIn: TOKEN_TTL });
+
+        await registrarEvento({
+            usuarioId: usuario.id,
+            usuarioNombre: usuario.nombre,
+            accion: 'iniciar_sesion',
+            entidad: 'sesion',
+            entidadId: usuario.id,
+            detalle: `Inicio de sesión: ${usuario.email}`,
+        });
 
         res.json({ ok: true, data: { token, usuario: payload } });
     } catch (err) {
