@@ -83,8 +83,6 @@ async function generarBoletaPdf(req, res) {
         doc.moveDown(0.5);
 
         doc.font('Helvetica-Bold').fontSize(11).fillColor('#0f172a').text('COMPROBANTE DE VENTA', { align: 'center' });
-        doc.font('Helvetica-Bold').fontSize(8.5).fillColor('#b45309').text('(PROVISIONAL — SIN VALIDEZ TRIBUTARIA)', { align: 'center' });
-        doc.font('Helvetica').fontSize(7).fillColor('#64748b').text('Negocio en proceso de registro ante SUNAT.', { align: 'center' });
 
         doc.moveDown(0.7);
         doc.font('Helvetica').fontSize(9).fillColor('#0f172a');
@@ -131,6 +129,13 @@ async function generarBoletaPdf(req, res) {
 
         doc.y = y + 28;
         doc.font('Helvetica').fontSize(8).fillColor('#475569').text('Gracias por su compra.', xInicio, doc.y, { width: anchoUtil, align: 'center' });
+
+        // Letra chica a propósito: es una aclaración legal, no el mensaje
+        // principal del comprobante — no debe competir visualmente con el
+        // total ni con el nombre del negocio.
+        doc.moveDown(0.8);
+        doc.font('Helvetica').fontSize(6).fillColor('#94a3b8')
+            .text('Comprobante provisional, sin validez tributaria. Negocio en proceso de registro ante SUNAT.', xInicio, doc.y, { width: anchoUtil, align: 'center' });
 
         doc.end();
     } catch (err) {

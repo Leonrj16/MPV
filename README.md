@@ -159,10 +159,11 @@ impresoras de punto de venta) que dice explícitamente lo que es:
 - Encabezado con el nombre/dirección/teléfono del negocio (los mismos
   datos de Configuración > Tienda Virtual, para no duplicar esa
   información en un segundo lugar).
-- Título **"COMPROBANTE DE VENTA"** con la advertencia
-  **"(PROVISIONAL — SIN VALIDEZ TRIBUTARIA)"** y una nota de que el
-  negocio está en proceso de registro ante SUNAT — para no simular un
-  documento tributario que no lo es.
+- Título **"COMPROBANTE DE VENTA"**, limpio — la aclaración de que es
+  provisional y sin validez tributaria va en **letra chica al pie del
+  documento** (6pt, gris claro), como la letra pequeña de cualquier
+  recibo, para que no compita visualmente con el nombre del negocio ni
+  con el total. No se oculta, pero tampoco es lo primero que se lee.
 - N° de comprobante con prefijo `P-` (de "provisional", ej. `P-000004`) —
   distinto a como se numeraría una boleta electrónica real, justamente
   para que no se confundan si en el futuro se migra a facturación
