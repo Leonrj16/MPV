@@ -102,6 +102,7 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | POST | `/api/productos`, `/api/proveedores` | admin | Alta de catálogo |
 | PUT | `/api/productos/:id`, `/api/proveedores/:id` | admin | Edita catálogo (incluye stock, activar/desactivar) |
 | GET | `/api/productos`, `/api/proveedores`, `/api/categorias` | cualquiera | Lectura de catálogo (con conteo de proveedores/productos relacionados) |
+| POST/PUT/DELETE | `/api/categorias`, `/api/categorias/:id` | admin | Alta, edición y borrado de categorías (ver abajo) |
 | GET/POST | `/api/usuarios` | admin | Lista/crea cuentas del sistema |
 | PUT | `/api/usuarios/:id`, `/api/usuarios/:id/password` | admin | Edita rol/estado o resetea contraseña |
 | GET/PUT | `/api/configuracion` | admin | Lee/actualiza el margen, costo operativo, unidades estimadas e impuesto activos |
@@ -346,7 +347,14 @@ solo se usa un valor por defecto de 0 cuando la combinación es nueva.
 - `public/productos.html` — catálogo de productos (SKU, categoría, unidad,
   **stock actual**, cantidad de proveedores que lo ofrecen, estado). Lectura
   para cualquier usuario autenticado; alta/edición, stock y
-  activar-desactivar solo para `admin`.
+  activar-desactivar solo para `admin`. También incluye un modal de
+  **gestión de categorías** (botón "Categorías", solo `admin`): crear,
+  renombrar en línea y eliminar. `categoria_id` en `productos` usa
+  `ON DELETE SET NULL`, así que borrar una categoría con productos no
+  falla — esos productos quedan "Sin categoría" en vez de bloquear el
+  borrado; el modal avisa cuántos productos se van a desasociar antes de
+  confirmar. La categoría recién creada/renombrada aparece de inmediato en
+  los selects de los formularios de producto, sin recargar la página.
 - `public/punto-venta.html` — registra ventas de mostrador y descuenta
   stock (ver sección "Punto de Venta" más arriba). Disponible para `admin`
   y `operador`, igual que la gestión de precios.

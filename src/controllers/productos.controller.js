@@ -71,7 +71,15 @@ async function actualizarProducto(req, res) {
 
 async function listarCategorias(req, res) {
     try {
-        const { rows } = await pool.query('SELECT * FROM categorias ORDER BY nombre ASC');
+        // productos_count incluye inactivos a propósito: es la señal para
+        // advertir antes de borrar ("esta categoría tiene 3 productos").
+        const { rows } = await pool.query(
+            `SELECT c.*, COUNT(p.id) AS productos_count
+             FROM categorias c
+             LEFT JOIN productos p ON p.categoria_id = c.id
+             GROUP BY c.id
+             ORDER BY c.nombre ASC`
+        );
         res.json({ ok: true, data: rows });
     } catch (err) {
         console.error(err);
@@ -79,4 +87,75 @@ async function listarCategorias(req, res) {
     }
 }
 
-module.exports = { listarProductos, crearProducto, actualizarProducto, listarCategorias };
+async function crearCategoria(req, res) {
+    try {
+        const nombre = (req.body.nombre || '').trim();
+        if (!nombre) {
+            return res.status(400).json({ ok: false, error: 'El nombre de la categoría es obligatorio' });
+        }
+        const { rows } = await pool.query(
+            'INSERT INTO categorias (nombre, descripcion) VALUES ($1, $2) RETURNING *',
+            [nombre, req.body.descripcion || null]
+        );
+        res.status(201).json({ ok: true, data: { ...rows[0], productos_count: 0 } });
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ ok: false, error: 'Ya existe una categoría con ese nombre' });
+        }
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+async function actualizarCategoria(req, res) {
+    try {
+        const { id } = req.params;
+        const nombre = (req.body.nombre ?? '').trim();
+        const { descripcion } = req.body;
+
+        const { rows } = await pool.query(
+            `UPDATE categorias
+             SET nombre = COALESCE(NULLIF($1, ''), nombre),
+                 descripcion = COALESCE($2, descripcion)
+             WHERE id = $3
+             RETURNING *`,
+            [nombre, descripcion ?? null, id]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Categoría no encontrada' });
+        }
+        res.json({ ok: true, data: rows[0] });
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ ok: false, error: 'Ya existe una categoría con ese nombre' });
+        }
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+async function eliminarCategoria(req, res) {
+    try {
+        const { id } = req.params;
+        // ON DELETE SET NULL en productos.categoria_id: los productos de esta
+        // categoría quedan "Sin categoría" en vez de bloquear el borrado.
+        const { rows } = await pool.query('DELETE FROM categorias WHERE id = $1 RETURNING *', [id]);
+        if (rows.length === 0) {
+            return res.status(404).json({ ok: false, error: 'Categoría no encontrada' });
+        }
+        res.json({ ok: true, data: rows[0] });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+module.exports = {
+    listarProductos,
+    crearProducto,
+    actualizarProducto,
+    listarCategorias,
+    crearCategoria,
+    actualizarCategoria,
+    eliminarCategoria,
+};

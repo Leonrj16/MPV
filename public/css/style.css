@@ -678,6 +678,18 @@ body {
     .pos-cart-panel { position: static; }
 }
 
+/* ---------------------------------------------------------------------- */
+/* Gestión de categorías (modal en Productos)                              */
+/* ---------------------------------------------------------------------- */
+.categoria-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0;
+    border-bottom: 1px solid var(--mpv-gray-100);
+}
+.categoria-row:last-child { border-bottom: none; }
+
 /* Skeleton loading (@keyframes skeleton-shine vive en base.css) */
 .skeleton-row td {
     padding: 1rem 1.1rem;

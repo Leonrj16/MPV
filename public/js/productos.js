@@ -1,6 +1,7 @@
 (function () {
     let categorias = [];
     let productosCompletos = [];
+    let editandoCategoriaId = null;
 
     const tbody = document.getElementById('productosTableBody');
     const resultCount = document.getElementById('resultCount');
@@ -63,8 +64,10 @@
     }
 
     function poblarSelectCategorias(select) {
+        const actual = select.value;
         select.innerHTML = '<option value="">Sin categoría</option>' +
             categorias.map((c) => `<option value="${c.id}">${c.nombre}</option>`).join('');
+        select.value = actual;
     }
 
     async function cargar() {
@@ -75,10 +78,44 @@
             poblarSelectCategorias(document.getElementById('nuevoCategoria'));
             poblarSelectCategorias(document.getElementById('editarCategoria'));
             renderTabla(productosCompletos);
+            renderListaCategorias();
         } catch (err) {
             tbody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
             resultCount.textContent = 'Sin conexión';
         }
+    }
+
+    function filaCategoriaHtml(c) {
+        const cantidad = Number(c.productos_count);
+        if (editandoCategoriaId === c.id) {
+            return `
+                <div class="categoria-row">
+                    <input type="text" class="form-control form-control-sm flex-grow-1" value="${c.nombre}" data-categoria-input="${c.id}">
+                    <button class="btn-icon-sm" title="Guardar" data-guardar-categoria="${c.id}"><i class="bi bi-check-lg"></i></button>
+                    <button class="btn-icon-sm" title="Cancelar" data-cancelar-categoria><i class="bi bi-x-lg"></i></button>
+                </div>
+            `;
+        }
+        return `
+            <div class="categoria-row">
+                <div class="flex-grow-1">
+                    <div class="fw-semibold" style="font-size:0.88rem;">${c.nombre}</div>
+                    <div class="pvp-sub">${cantidad} producto${cantidad === 1 ? '' : 's'}</div>
+                </div>
+                <button class="btn-icon-sm" title="Editar" data-editar-categoria="${c.id}"><i class="bi bi-pencil-fill"></i></button>
+                <button class="btn-icon-sm" title="Eliminar" data-eliminar-categoria="${c.id}"><i class="bi bi-trash3"></i></button>
+            </div>
+        `;
+    }
+
+    function renderListaCategorias() {
+        const contenedor = document.getElementById('listaCategorias');
+        if (!contenedor) return;
+        if (categorias.length === 0) {
+            contenedor.innerHTML = `<div class="mpv-empty"><i class="bi bi-tags"></i>Aún no hay categorías.</div>`;
+            return;
+        }
+        contenedor.innerHTML = categorias.map(filaCategoriaHtml).join('');
     }
 
     buscador.addEventListener('input', aplicarFiltro);
@@ -158,6 +195,79 @@
             errorBox.classList.remove('d-none');
         } finally {
             btn.disabled = false;
+        }
+    });
+
+    const categoriaError = document.getElementById('categoriaError');
+    function mostrarErrorCategoria(mensaje) {
+        categoriaError.textContent = mensaje;
+        categoriaError.classList.remove('d-none');
+    }
+
+    document.getElementById('modalCategorias')?.addEventListener('show.bs.modal', () => {
+        editandoCategoriaId = null;
+        categoriaError.classList.add('d-none');
+        renderListaCategorias();
+    });
+
+    document.getElementById('formNuevaCategoria').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        categoriaError.classList.add('d-none');
+        const input = document.getElementById('nuevaCategoriaNombre');
+        const nombre = input.value.trim();
+        if (!nombre) return;
+
+        try {
+            await MPV.crearCategoria({ nombre });
+            input.value = '';
+            await cargar();
+        } catch (err) {
+            mostrarErrorCategoria(err.message);
+        }
+    });
+
+    document.getElementById('listaCategorias').addEventListener('click', async (e) => {
+        const editar = e.target.closest('[data-editar-categoria]');
+        const cancelar = e.target.closest('[data-cancelar-categoria]');
+        const guardar = e.target.closest('[data-guardar-categoria]');
+        const eliminar = e.target.closest('[data-eliminar-categoria]');
+
+        if (editar) {
+            editandoCategoriaId = Number(editar.dataset.editarCategoria);
+            categoriaError.classList.add('d-none');
+            renderListaCategorias();
+        } else if (cancelar) {
+            editandoCategoriaId = null;
+            renderListaCategorias();
+        } else if (guardar) {
+            const id = Number(guardar.dataset.guardarCategoria);
+            const input = document.querySelector(`[data-categoria-input="${id}"]`);
+            const nombre = input.value.trim();
+            if (!nombre) return;
+            categoriaError.classList.add('d-none');
+            try {
+                await MPV.actualizarCategoria(id, { nombre });
+                editandoCategoriaId = null;
+                await cargar();
+            } catch (err) {
+                mostrarErrorCategoria(err.message);
+            }
+        } else if (eliminar) {
+            const id = Number(eliminar.dataset.eliminarCategoria);
+            const categoria = categorias.find((c) => c.id === id);
+            const cantidad = categoria ? Number(categoria.productos_count) : 0;
+            const advertencia = cantidad > 0
+                ? `"${categoria.nombre}" tiene ${cantidad} producto${cantidad === 1 ? '' : 's'}, que quedarán sin categoría. ¿Eliminar de todos modos?`
+                : `¿Eliminar la categoría "${categoria?.nombre}"?`;
+            if (!confirm(advertencia)) return;
+
+            categoriaError.classList.add('d-none');
+            try {
+                await MPV.eliminarCategoria(id);
+                await cargar();
+            } catch (err) {
+                mostrarErrorCategoria(err.message);
+            }
         }
     });
 

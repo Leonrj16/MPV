@@ -93,6 +93,9 @@ const MPV = (() => {
         crearProveedor: (payload) => request('/proveedores', { method: 'POST', body: JSON.stringify(payload) }),
         actualizarProveedor: (id, payload) => request(`/proveedores/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
         getCategorias: () => request('/categorias'),
+        crearCategoria: (payload) => request('/categorias', { method: 'POST', body: JSON.stringify(payload) }),
+        actualizarCategoria: (id, payload) => request(`/categorias/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+        eliminarCategoria: (id) => request(`/categorias/${id}`, { method: 'DELETE' }),
         compararProveedores: (productoId) => request(`/precios/comparar/${productoId}`),
         getHistorialPrecio: (proveedorProductoId) => request(`/precios/historial/${proveedorProductoId}`),
         actualizarPrecio: (proveedorProductoId, precioCompraUnitario) =>
