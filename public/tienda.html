@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consultorio Dental San Judas Tadeo | Tienda Virtual</title>
+    <meta name="description" content="Insumos, resinas e instrumental dental de calidad, con precios claros y entrega rápida.">
+    <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
+    <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="css/tienda.css" rel="stylesheet">
+</head>
+<body>
+
+<!-- Barra superior de contacto -->
+<div class="tienda-topstrip">
+    <div class="container d-flex justify-content-between align-items-center flex-wrap gap-1">
+        <div class="d-none d-sm-flex gap-3">
+            <span><i class="bi bi-telephone-fill me-1"></i> +51 999 000 111</span>
+            <span><i class="bi bi-clock-fill me-1"></i> Lun–Sáb, 9:00–19:00</span>
+        </div>
+        <a href="#contacto"><i class="bi bi-geo-alt-fill me-1"></i> Av. Principal 123, Lima — Ver ubicación</a>
+    </div>
+</div>
+
+<!-- Header -->
+<header class="tienda-header">
+    <div class="container d-flex align-items-center gap-3">
+        <a href="tienda.html" class="tienda-brand">
+            <div class="logo-badge"><i class="bi bi-clipboard2-pulse"></i></div>
+            <div class="d-none d-md-block">
+                <div class="brand-title">San Judas Tadeo</div>
+                <div class="brand-sub">Insumos Dentales</div>
+            </div>
+        </a>
+
+        <div class="tienda-search ms-auto ms-md-0">
+            <i class="bi bi-search"></i>
+            <input type="text" id="buscador" placeholder="Buscar resinas, guantes, instrumental…">
+        </div>
+
+        <button class="btn-carrito ms-auto ms-md-2" id="btnAbrirCarrito" data-bs-toggle="offcanvas" data-bs-target="#offcanvasCarrito">
+            <i class="bi bi-bag-fill"></i>
+            <span class="badge-cantidad" id="badgeCarrito">0</span>
+        </button>
+    </div>
+</header>
+
+<!-- Hero -->
+<section class="tienda-hero">
+    <div class="container">
+        <div class="tienda-hero-badge"><i class="bi bi-patch-check-fill"></i> Precios actualizados en tiempo real</div>
+        <h1>Todo lo que tu consultorio necesita, en un solo lugar</h1>
+        <p>Resinas, instrumental rotatorio, bioseguridad y anestesia de proveedores certificados, con el mejor precio calculado automáticamente por nuestro sistema.</p>
+    </div>
+</section>
+
+<main class="container">
+    <!-- Filtros de categoría -->
+    <div class="tienda-categorias" id="categoriasNav">
+        <button class="chip-categoria activo" data-categoria="">Todos los productos</button>
+    </div>
+
+    <!-- Resultado / contador -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div class="text-muted small" id="resultCount">Cargando catálogo…</div>
+    </div>
+
+    <!-- Grid de productos -->
+    <div class="row row-cols-2 row-cols-md-3 row-cols-xl-4 g-3 g-md-4 pb-5" id="gridProductos">
+        <div class="col"><div class="skeleton-card"><div class="skeleton-shine" style="aspect-ratio:4/3;"></div><div class="p-3"><div class="skeleton-shine mb-2" style="height:14px;border-radius:6px;"></div><div class="skeleton-shine" style="height:14px;width:60%;border-radius:6px;"></div></div></div></div>
+        <div class="col"><div class="skeleton-card"><div class="skeleton-shine" style="aspect-ratio:4/3;"></div><div class="p-3"><div class="skeleton-shine mb-2" style="height:14px;border-radius:6px;"></div><div class="skeleton-shine" style="height:14px;width:60%;border-radius:6px;"></div></div></div></div>
+        <div class="col"><div class="skeleton-card"><div class="skeleton-shine" style="aspect-ratio:4/3;"></div><div class="p-3"><div class="skeleton-shine mb-2" style="height:14px;border-radius:6px;"></div><div class="skeleton-shine" style="height:14px;width:60%;border-radius:6px;"></div></div></div></div>
+        <div class="col"><div class="skeleton-card"><div class="skeleton-shine" style="aspect-ratio:4/3;"></div><div class="p-3"><div class="skeleton-shine mb-2" style="height:14px;border-radius:6px;"></div><div class="skeleton-shine" style="height:14px;width:60%;border-radius:6px;"></div></div></div></div>
+    </div>
+</main>
+
+<!-- Offcanvas: Carrito -->
+<div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasCarrito">
+    <div class="offcanvas-header border-bottom">
+        <h5 class="offcanvas-title fw-bold"><i class="bi bi-bag-fill me-2"></i>Tu carrito</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+    </div>
+    <div class="offcanvas-body d-flex flex-column p-0">
+        <div class="flex-grow-1 overflow-auto px-3" id="listaCarrito">
+            <!-- Se llena por JS -->
+        </div>
+        <div class="border-top p-3" id="resumenCarrito">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <span class="fw-semibold">Total</span>
+                <span class="fs-4 fw-bold" id="totalCarrito">S/ 0.00</span>
+            </div>
+            <button class="btn btn-agregar mb-2" id="btnFinalizarPedido" disabled>
+                <i class="bi bi-whatsapp me-1"></i> Finalizar Pedido por WhatsApp
+            </button>
+            <button class="btn btn-outline-secondary w-100 btn-sm" id="btnVaciarCarrito" disabled>
+                Vaciar carrito
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Toast de confirmación -->
+<div class="toast-agregado" id="toastAgregado">
+    <i class="bi bi-check-circle-fill"></i>
+    <span id="toastAgregadoTexto">Producto agregado al carrito</span>
+</div>
+
+<!-- Footer -->
+<footer class="tienda-footer" id="contacto">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-12 col-md-4">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="logo-badge"><i class="bi bi-clipboard2-pulse"></i></div>
+                    <div>
+                        <div class="fw-bold text-white">Consultorio Dental</div>
+                        <div class="fw-bold text-white">San Judas Tadeo</div>
+                    </div>
+                </div>
+                <p class="small">Insumos y equipamiento dental de calidad, con precios justos y actualizados, para consultorios y clínicas.</p>
+                <div class="d-flex gap-2 mt-3">
+                    <a href="#" class="footer-social" title="Facebook"><i class="bi bi-facebook"></i></a>
+                    <a href="#" class="footer-social" title="Instagram"><i class="bi bi-instagram"></i></a>
+                    <a href="https://wa.me/51999000111" class="footer-social" title="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+                </div>
+            </div>
+            <div class="col-6 col-md-4">
+                <h6>Contacto</h6>
+                <div class="footer-item"><i class="bi bi-geo-alt-fill"></i><span>Av. Principal 123, San Isidro, Lima, Perú</span></div>
+                <div class="footer-item"><i class="bi bi-telephone-fill"></i><span>+51 999 000 111</span></div>
+                <div class="footer-item"><i class="bi bi-envelope-fill"></i><span>contacto@sanjudastadeo.dental</span></div>
+                <div class="footer-item"><i class="bi bi-clock-fill"></i><span>Lunes a sábado, 9:00 a. m. – 7:00 p. m.</span></div>
+            </div>
+            <div class="col-6 col-md-4">
+                <h6>Enlaces</h6>
+                <div class="mb-2"><a href="tienda.html">Catálogo completo</a></div>
+                <div class="mb-2"><a href="#contacto">Contacto y ubicación</a></div>
+                <div class="mb-2"><a href="login.html">Acceso interno del consultorio</a></div>
+            </div>
+        </div>
+        <div class="tienda-footer-bottom text-center">
+            © <span id="anioActual"></span> Consultorio Dental San Judas Tadeo. Todos los derechos reservados.
+        </div>
+    </div>
+</footer>
+
+<script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/carrito.js"></script>
+<script src="js/tienda.js"></script>
+</body>
+</html>

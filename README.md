@@ -104,6 +104,42 @@ Todas las rutas bajo `/api` (salvo `/api/auth/login`) requieren
 | GET/POST | `/api/usuarios` | admin | Lista/crea cuentas del sistema |
 | PUT | `/api/usuarios/:id`, `/api/usuarios/:id/password` | admin | Edita rol/estado o resetea contraseña |
 | GET/PUT | `/api/configuracion` | admin | Lee/actualiza el margen, costo operativo, unidades estimadas e impuesto activos |
+| GET | `/api/tienda/productos`, `/api/tienda/categorias` | **pública, sin token** | Catálogo para la tienda virtual (ver abajo) |
+
+## Tienda Virtual (`public/tienda.html`)
+
+Catálogo público de cara al cliente final, separado de la aplicación
+interna: no usa `auth.js` ni requiere sesión. Estilo "clínico y premium"
+con Bootstrap 5 (blanco, azul `#007bff`, verde menta `#28a745`), 100%
+responsivo — probado sin scroll horizontal en 393px (iPhone 16) y escritorio.
+
+- **`/api/tienda/productos` y `/api/tienda/categorias`** (`src/controllers/tienda.controller.js`)
+  son rutas públicas nuevas, separadas de `/api/precios`: por cada producto
+  activo eligen una sola oferta representativa (el proveedor marcado como
+  principal, o el más barato) y devuelven **solo** los campos seguros de
+  cara al cliente — nombre, descripción, categoría, imagen, PVP — nunca
+  costo de compra, proveedor ni margen. El PVP se calcula con el mismo
+  `pricingEngine.js` que usa el panel interno, así que nunca se desincroniza.
+- **`public/js/carrito.js`** — módulo de carrito con patrón pub/sub sobre
+  `localStorage` (clave `mpv_tienda_carrito`), independiente de la UI:
+  agregar, sumar/restar cantidad, eliminar, vaciar y calcular totales.
+  Persiste entre recargas de página.
+- **`public/js/tienda.js`** — busca/filtra el catálogo ya cargado (sin ida
+  y vuelta al servidor por cada tecla), pinta el grid de tarjetas, el
+  badge del carrito y el offcanvas del carrito, y arma un mensaje de
+  WhatsApp (`wa.me`) con el resumen del pedido al hacer clic en
+  "Finalizar Pedido". **El número de WhatsApp es un valor de ejemplo** —
+  reemplaza `CONFIG.WHATSAPP_NUMERO` al inicio de `tienda.js` por el
+  número real del consultorio antes de publicar la tienda.
+- Los productos sin `imagen_url` muestran un ícono genérico en vez de una
+  imagen rota; ese campo ahora es editable desde `productos.html` (panel
+  interno) para que el staff pueda subir la URL de una foto real.
+
+Este catálogo es solo lectura para el cliente — no hay checkout con pago
+real ni gestión de pedidos entrantes; "Finalizar Pedido" abre WhatsApp con
+el resumen para que el consultorio confirme el pedido manualmente. Una
+pasarela de pago real y una bandeja de pedidos son evoluciones naturales
+si el volumen lo justifica.
 
 ### Carga masiva de precios (`src/services/importarPrecios.js`)
 

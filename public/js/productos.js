@@ -93,6 +93,7 @@
             document.getElementById('editarNombre').value = p.nombre;
             document.getElementById('editarCategoria').value = p.categoria_id || '';
             document.getElementById('editarDescripcion').value = p.descripcion || '';
+            document.getElementById('editarImagenUrl').value = p.imagen_url || '';
             document.getElementById('editarActivo').checked = p.activo;
             document.getElementById('editarProductoError').classList.add('d-none');
             modalEditar.show();
@@ -113,6 +114,7 @@
                 descripcion: document.getElementById('nuevoDescripcion').value,
                 categoriaId: document.getElementById('nuevoCategoria').value || null,
                 unidadMedida: document.getElementById('nuevoUnidad').value || 'unidad',
+                imagenUrl: document.getElementById('nuevoImagenUrl').value || null,
             });
             modalNuevo.hide();
             document.getElementById('formNuevoProducto').reset();
@@ -139,6 +141,7 @@
                 categoriaId: document.getElementById('editarCategoria').value || null,
                 unidadMedida: document.getElementById('editarUnidad').value,
                 activo: document.getElementById('editarActivo').checked,
+                imagenUrl: document.getElementById('editarImagenUrl').value || null,
             });
             modalEditar.hide();
             await cargar();
