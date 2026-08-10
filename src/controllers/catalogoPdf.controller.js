@@ -1,11 +1,11 @@
-const { generarCatalogoPdfBuffer } = require('../services/catalogoPdf');
+const { generarCatalogoPdfBuffer, obtenerDatosCatalogo, URL_INTERNA } = require('../services/catalogoPdf');
+const { construirHtmlCatalogo } = require('../templates/catalogoPdf');
 const { registrarEvento } = require('../services/bitacora');
 
 /** GET /api/catalogo/pdf — genera el catálogo bajo demanda (no se cachea: refleja precios y catálogo activo del momento). */
 async function generarPdf(req, res) {
     try {
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const pdf = await generarCatalogoPdfBuffer({ baseUrl });
+        const pdf = await generarCatalogoPdfBuffer();
 
         await registrarEvento({
             usuarioId: req.user?.sub,
@@ -28,4 +28,22 @@ async function generarPdf(req, res) {
     }
 }
 
-module.exports = { generarPdf };
+/**
+ * GET /internal/catalogo-pdf-html — solo la usa Puppeteer, navegando desde
+ * el mismo servidor (ver soloLocalhost en el middleware de la ruta). No se
+ * llama nunca desde el navegador de un cliente ni está enlazada en ningún
+ * lado del frontend.
+ */
+async function renderHtml(req, res) {
+    try {
+        const datos = await obtenerDatosCatalogo();
+        const html = construirHtmlCatalogo({ ...datos, baseUrl: URL_INTERNA });
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        res.send(html);
+    } catch (err) {
+        console.error(err);
+        res.status(500).send('Error generando el catálogo');
+    }
+}
+
+module.exports = { generarPdf, renderHtml };

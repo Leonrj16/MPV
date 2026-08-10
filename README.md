@@ -856,12 +856,31 @@ servidor apretando el botón sin parar.
 
 ### Contenido y diseño
 
-- **Portada**: degradado azul→verde de marca, logo (o iniciales del
-  negocio si no hay logo cargado), nombre, eslogan, cantidad total de
-  productos, fecha de generación y datos de contacto.
-- **Una sección por categoría**, en orden alfabético, con encabezado
-  propio y grilla de 3 columnas de tarjetas (imagen o un ícono de cápsula
-  como placeholder, nombre, unidad, precio).
+Pedido explícito: que se vea "excelente", no un documento simple — así
+que además de la estructura, se cuidó la identidad visual real del
+negocio en vez de un layout genérico:
+
+- **Portada**: degradado azul→verde de marca con un resplandor radial
+  para dar profundidad, una textura de fondo con el ícono de la marca
+  repetido a muy baja opacidad (recurso editorial clásico, sin depender
+  de ninguna foto de stock que no existe), logo (o iniciales del negocio
+  si no hay logo cargado), tipografía **Inter** (la misma que usa toda la
+  app, vendorizada localmente), una insignia "Catálogo de Productos" con
+  ícono, y una barra de contacto (teléfono, email, dirección) con íconos
+  de Bootstrap Icons — la misma librería de íconos que ya usa el resto
+  del sistema, vendorizada localmente igual que Inter.
+- **Una sección por categoría**, en orden alfabético, cada una con una
+  insignia de ícono a color (mapeado por palabra clave del nombre —
+  cápsula para Anestesia, escudo para Bioseguridad, herramientas para
+  Instrumental Rotatorio, etc., con un ícono genérico de respaldo para
+  cualquier categoría nueva) y una grilla de 3 columnas de tarjetas de
+  producto con imagen (o un ícono de cápsula si el producto no tiene
+  foto), nombre, unidad y el precio como una etiqueta de color en vez de
+  texto plano.
+- **Contratapa** con degradado invertido (verde→azul) y una llamada a la
+  acción ("¿Listo para hacer tu pedido?") con los mismos datos de
+  contacto — un catálogo real no termina de golpe después del último
+  producto.
 - Solo entran productos **activos y con un proveedor activo** (mismo
   criterio que "vendible" en `listarProductosDisponibles` de
   `services/ventas.js`) — un producto sin proveedor no tiene PVP
@@ -877,18 +896,56 @@ servidor apretando el botón sin parar.
 - Pie de página con el nombre del negocio y "Página X de Y" en cada hoja
   (vía `headerTemplate`/`footerTemplate` de Puppeteer).
 
-### Un bug real que apareció al probarlo de punta a punta
+### Dos bugs reales que aparecieron probándolo de punta a punta
 
-`page.pdf()` de Puppeteer devuelve un `Uint8Array`, no un `Buffer` real de
-Node. Pasado tal cual a `res.send()`, Express no lo reconoce como binario
-y lo serializa como JSON (`{"0":37,"1":80,...}` — cada byte como una
-clave numérica) en vez de mandar el PDF. Se detectó generando un catálogo
-real contra el servidor corriendo y abriendo el archivo descargado (decía
-"JSON text data", no "PDF document"), no solo con las pruebas unitarias
-—ahí es donde vale la pena probar de verdad además de mockear. Corregido
-envolviendo el resultado en `Buffer.from(pdf)` dentro de
-`generarCatalogoPdfBuffer`, con un test de regresión que verifica
-`Buffer.isBuffer(resultado) === true`.
+Ninguno de los dos lo hubieran atrapado las pruebas unitarias solas —
+ambos se encontraron generando un catálogo real contra el servidor
+corriendo y mirando el PDF resultante, no solo corriendo `npm test`.
+
+**1. El PDF llegaba corrupto.** `page.pdf()` de Puppeteer devuelve un
+`Uint8Array`, no un `Buffer` real de Node. Pasado tal cual a
+`res.send()`, Express no lo reconoce como binario y lo serializa como
+JSON (`{"0":37,"1":80,...}` — cada byte como una clave numérica) en vez
+de mandar el PDF (el archivo descargado decía "JSON text data", no "PDF
+document"). Corregido envolviendo el resultado en `Buffer.from(pdf)`
+dentro de `generarCatalogoPdfBuffer`, con un test de regresión que
+verifica `Buffer.isBuffer(resultado) === true`.
+
+**2. Los íconos y la tipografía no aparecían — página en blanco de
+adornos.** Causa bastante más sutil: `generarCatalogoPdfBuffer` armaba el
+HTML del catálogo con `page.setContent(html)`, y un documento cargado así
+tiene un *origin* `null` (parecido a `about:blank`). Desde un origin
+`null`, dos restricciones del navegador bloquean silenciosamente la carga
+de recursos "cross-origin" — que es como se ve *cualquier* URL desde un
+origin `null`, sin importar que apunte al mismo servidor:
+
+- El header `Cross-Origin-Resource-Policy: same-origin` que agrega
+  `helmet` (ver "Endurecimiento de seguridad" más arriba) bloqueó la hoja
+  de estilos de Bootstrap Icons.
+- La restricción de CORS que todo navegador aplica a `@font-face`
+  cross-origin (sin excepción, no es algo que dependa de helmet) bloqueó
+  la fuente Inter.
+
+El resultado: el PDF se generaba bien, con el layout y los colores
+correctos, pero sin un solo ícono ni la tipografía real — a simple vista
+"funcionaba", así que hizo falta abrir el PDF de verdad y mirarlo de
+cerca para notarlo. La solución no fue debilitar `helmet` ni relajar CORS
+(hubiera bajado la seguridad de toda la API por esto), sino resolver el
+problema de raíz: `generarCatalogoPdfBuffer` ahora navega
+(`page.goto`) a una ruta interna nueva (`GET /internal/catalogo-pdf-html`,
+protegida por un middleware `soloLocalhost` que solo acepta pedidos desde
+`127.0.0.1`/`::1` — Puppeteer corre en el mismo proceso/máquina que
+Express, así que siempre llega por loopback) que sirve el HTML real. Ese
+documento vive en el origin de verdad del servidor
+(`http://127.0.0.1:PUERTO`), igual que sus recursos, así que las
+restricciones de "cross-origin" simplemente no aplican — mismo origin de
+verdad, no una URL parecida.
+
+De paso apareció una condición de carrera menor: `waitUntil: 'networkidle0'`
+garantiza que las descargas terminaron, pero no que el navegador ya
+completó el *font-swap* — se agregó `await page.evaluate(() => document.fonts.ready)`
+antes de `page.pdf()` para no capturar la página un instante antes de que
+la tipografía/íconos ya estén listos para dibujarse.
 
 ## Tienda Virtual (`public/tienda.html`)
 

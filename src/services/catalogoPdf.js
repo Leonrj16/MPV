@@ -2,7 +2,15 @@ const puppeteer = require('puppeteer');
 const pool = require('../config/db');
 const { calcularPVP } = require('./pricingEngine');
 const { obtenerConfigActiva } = require('./tableroPrecios');
-const { construirHtmlCatalogo, escaparHtml } = require('../templates/catalogoPdf');
+const { escaparHtml } = require('../templates/catalogoPdf');
+
+// Puppeteer y Express corren en el mismo proceso/máquina, así que Puppeteer
+// siempre puede llegar a la app por loopback sin pasar por nginx/DNS/TLS —
+// más simple y más rápido que reconstruir la URL pública, y evita que la
+// generación del catálogo dependa de que el propio dominio público
+// resuelva y responda (ver también el middleware soloLocalhost en
+// routes/catalogoPdf.routes.js, que exige que el pedido venga de acá).
+const URL_INTERNA = `http://127.0.0.1:${process.env.PORT || 3000}`;
 
 /**
  * Productos activos agrupados por categoría, con precio calculado con el
@@ -34,7 +42,10 @@ async function obtenerDatosCatalogo() {
         const producto = {
             id: fila.id,
             nombre: fila.nombre,
-            imagenUrl: fila.imagen_url,
+            // Rutas relativas (/uploads/x.jpg) resueltas contra el propio
+            // servidor — el documento que Puppeteer renderiza vive en
+            // URL_INTERNA, no en el origin del navegador del admin.
+            imagenUrl: fila.imagen_url ? `${URL_INTERNA}${fila.imagen_url}` : null,
             unidadMedida: fila.unidad_medida,
             precio: pvpSugerido,
         };
@@ -54,7 +65,7 @@ async function obtenerDatosCatalogo() {
         config: {
             nombreNegocio: cfgTienda.nombre_negocio || 'Mi Negocio',
             eslogan: cfgTienda.eslogan || null,
-            logoUrl: cfgTienda.logo_url || null,
+            logoUrl: cfgTienda.logo_url ? `${URL_INTERNA}${cfgTienda.logo_url}` : null,
             telefono: cfgTienda.telefono || null,
             emailContacto: cfgTienda.email_contacto || null,
             direccion: cfgTienda.direccion || null,
@@ -63,28 +74,20 @@ async function obtenerDatosCatalogo() {
 }
 
 /**
- * Resuelve imagen_url/logoUrl (rutas relativas tipo /uploads/x.jpg) a URLs
- * absolutas contra el propio servidor — Puppeteer navega en un proceso de
- * Chromium aparte que no comparte el origin implícito del request HTTP
- * original, así que una ruta relativa simplemente no cargaría nada.
+ * Genera el PDF del catálogo y devuelve el Buffer listo para descargar.
+ *
+ * Puppeteer navega (page.goto) a una ruta interna que sirve el HTML real
+ * en vez de inyectarlo con page.setContent(): un documento cargado con
+ * setContent() tiene origin "null", y tanto el header
+ * Cross-Origin-Resource-Policy de helmet como la restricción de CORS que
+ * todo navegador aplica a @font-face cross-origin bloquean silenciosamente
+ * la carga de la tipografía y los íconos (se detectó así: el PDF salía
+ * bien pero sin ningún ícono ni la fuente Inter). Navegando a una URL real
+ * del propio servidor, el documento y sus recursos comparten el mismo
+ * origin de verdad y esas restricciones no aplican.
  */
-function absolutizarUrls(datos, baseUrl) {
-    const conBase = (ruta) => (ruta && ruta.startsWith('/') ? `${baseUrl}${ruta}` : ruta);
-    return {
-        ...datos,
-        config: { ...datos.config, logoUrl: conBase(datos.config.logoUrl) },
-        categorias: datos.categorias.map((c) => ({
-            ...c,
-            productos: c.productos.map((p) => ({ ...p, imagenUrl: conBase(p.imagenUrl) })),
-        })),
-    };
-}
-
-/** Genera el PDF del catálogo y devuelve el Buffer listo para descargar. */
-async function generarCatalogoPdfBuffer({ baseUrl }) {
-    const datosCrudos = await obtenerDatosCatalogo();
-    const datos = absolutizarUrls(datosCrudos, baseUrl);
-    const html = construirHtmlCatalogo(datos);
+async function generarCatalogoPdfBuffer() {
+    const { config } = await obtenerDatosCatalogo();
 
     const browser = await puppeteer.launch({
         headless: true,
@@ -92,7 +95,12 @@ async function generarCatalogoPdfBuffer({ baseUrl }) {
     });
     try {
         const page = await browser.newPage();
-        await page.setContent(html, { waitUntil: 'networkidle0' });
+        await page.goto(`${URL_INTERNA}/api/internal/catalogo-pdf-html`, { waitUntil: 'networkidle0' });
+        // networkidle0 solo garantiza que las descargas terminaron, no que
+        // el navegador ya intercambió la fuente por defecto por Inter/los
+        // íconos — sin este await, page.pdf() a veces capturaba la página
+        // un instante antes del font-swap.
+        await page.evaluate(() => document.fonts.ready);
         const pdf = await page.pdf({
             format: 'A4',
             printBackground: true,
@@ -100,7 +108,7 @@ async function generarCatalogoPdfBuffer({ baseUrl }) {
             headerTemplate: '<span></span>',
             footerTemplate: `
                 <div style="width:100%; font-size:8px; color:#5b6472; padding:0 42px; display:flex; justify-content:space-between; font-family:Arial, sans-serif;">
-                    <span>${escaparHtml(datos.config.nombreNegocio)}</span>
+                    <span>${escaparHtml(config.nombreNegocio)}</span>
                     <span>Página <span class="pageNumber"></span> de <span class="totalPages"></span></span>
                 </div>
             `,
@@ -115,4 +123,4 @@ async function generarCatalogoPdfBuffer({ baseUrl }) {
     }
 }
 
-module.exports = { obtenerDatosCatalogo, generarCatalogoPdfBuffer };
+module.exports = { obtenerDatosCatalogo, generarCatalogoPdfBuffer, URL_INTERNA };

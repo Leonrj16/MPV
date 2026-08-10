@@ -55,6 +55,20 @@ describe('obtenerDatosCatalogo', () => {
 });
 
 describe('generarCatalogoPdfBuffer', () => {
+    function mockearPaginaYNavegador(pdfDevuelto) {
+        const paginaFalsa = {
+            goto: jest.fn().mockResolvedValue(undefined),
+            evaluate: jest.fn().mockResolvedValue(undefined),
+            pdf: jest.fn().mockResolvedValue(pdfDevuelto),
+        };
+        const navegadorFalso = {
+            newPage: jest.fn().mockResolvedValue(paginaFalsa),
+            close: jest.fn().mockResolvedValue(undefined),
+        };
+        puppeteer.launch.mockResolvedValue(navegadorFalso);
+        return { paginaFalsa, navegadorFalso };
+    }
+
     // Regresión: page.pdf() de Puppeteer devuelve un Uint8Array, no un
     // Buffer real de Node — si se le pasa tal cual a res.send(), Express no
     // lo reconoce como binario y lo serializa como JSON en vez de mandar el
@@ -65,20 +79,36 @@ describe('generarCatalogoPdfBuffer', () => {
             .mockResolvedValueOnce({ rows: [] })
             .mockResolvedValueOnce({ rows: [{ nombre_negocio: 'San Judas Tadeo' }] });
 
-        const pdfComoUint8Array = new Uint8Array([37, 80, 68, 70]); // "%PDF"
-        const paginaFalsa = {
-            setContent: jest.fn().mockResolvedValue(undefined),
-            pdf: jest.fn().mockResolvedValue(pdfComoUint8Array),
-        };
-        const navegadorFalso = {
-            newPage: jest.fn().mockResolvedValue(paginaFalsa),
-            close: jest.fn().mockResolvedValue(undefined),
-        };
-        puppeteer.launch.mockResolvedValue(navegadorFalso);
+        const { navegadorFalso } = mockearPaginaYNavegador(new Uint8Array([37, 80, 68, 70])); // "%PDF"
 
-        const resultado = await generarCatalogoPdfBuffer({ baseUrl: 'http://localhost:3000' });
+        const resultado = await generarCatalogoPdfBuffer();
 
         expect(Buffer.isBuffer(resultado)).toBe(true);
         expect(navegadorFalso.close).toHaveBeenCalled();
+    });
+
+    // Regresión: page.setContent() carga el HTML en un documento de origin
+    // "null" — el header Cross-Origin-Resource-Policy de helmet y la
+    // restricción de CORS que todo navegador aplica a @font-face
+    // cross-origin bloquean la tipografía y los íconos ahí (se detectó
+    // generando un PDF real: se veía bien pero sin ningún ícono). Navegar
+    // a una ruta interna del propio servidor lo evita porque el documento
+    // y sus recursos quedan en el mismo origin de verdad.
+    test('navega a la ruta interna en vez de usar setContent', async () => {
+        pool.query
+            .mockResolvedValueOnce({ rows: [configRow] })
+            .mockResolvedValueOnce({ rows: [] })
+            .mockResolvedValueOnce({ rows: [{ nombre_negocio: 'San Judas Tadeo' }] });
+
+        const { paginaFalsa } = mockearPaginaYNavegador(new Uint8Array([37, 80, 68, 70]));
+        paginaFalsa.setContent = jest.fn();
+
+        await generarCatalogoPdfBuffer();
+
+        expect(paginaFalsa.goto).toHaveBeenCalledWith(
+            expect.stringContaining('/api/internal/catalogo-pdf-html'),
+            expect.objectContaining({ waitUntil: 'networkidle0' })
+        );
+        expect(paginaFalsa.setContent).not.toHaveBeenCalled();
     });
 });
