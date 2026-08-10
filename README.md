@@ -856,45 +856,57 @@ servidor apretando el botón sin parar.
 
 ### Contenido y diseño
 
-Pedido explícito: que se vea "excelente", no un documento simple — así
-que además de la estructura, se cuidó la identidad visual real del
-negocio en vez de un layout genérico:
+Hubo dos vueltas de diseño. La primera (degradado azul→verde de marca,
+resplandor radial, textura de íconos repetidos, insignias translúcidas
+tipo "glassmorphism", tarjetas de producto en grilla de 3 con sombra)
+técnicamente funcionaba pero el feedback fue directo: se veía "horrible"
+— más una landing page de SaaS que un catálogo de productos, y con pocos
+productos por categoría las tarjetas dejaban la página sensación vacía.
+Se rehizo por completo con un lenguaje editorial/impreso en vez de
+"tech":
 
-- **Portada**: degradado azul→verde de marca con un resplandor radial
-  para dar profundidad, una textura de fondo con el ícono de la marca
-  repetido a muy baja opacidad (recurso editorial clásico, sin depender
-  de ninguna foto de stock que no existe), logo (o iniciales del negocio
-  si no hay logo cargado), tipografía **Inter** (la misma que usa toda la
-  app, vendorizada localmente), una insignia "Catálogo de Productos" con
-  ícono, y una barra de contacto (teléfono, email, dirección) con íconos
-  de Bootstrap Icons — la misma librería de íconos que ya usa el resto
-  del sistema, vendorizada localmente igual que Inter.
-- **Una sección por categoría**, en orden alfabético, cada una con una
-  insignia de ícono a color (mapeado por palabra clave del nombre —
-  cápsula para Anestesia, escudo para Bioseguridad, herramientas para
-  Instrumental Rotatorio, etc., con un ícono genérico de respaldo para
-  cualquier categoría nueva) y una grilla de 3 columnas de tarjetas de
-  producto con imagen (o un ícono de cápsula si el producto no tiene
-  foto), nombre, unidad y el precio como una etiqueta de color en vez de
-  texto plano.
-- **Contratapa** con degradado invertido (verde→azul) y una llamada a la
-  acción ("¿Listo para hacer tu pedido?") con los mismos datos de
-  contacto — un catálogo real no termina de golpe después del último
-  producto.
+- **Portada**: color sólido de marca (verde oscuro, sin degradado),
+  tipografía **Inter** como protagonista (vendorizada localmente, la
+  misma que usa toda la app), logo si existe uno cargado — y si no,
+  **ningún placeholder gráfico**: la v1 mostraba un cuadrado con la
+  inicial del negocio que se sentía un ícono de app genérico; ahora,
+  sin logo real, la tipografía sola lleva el peso visual. Una regla fina
+  separa el nombre del título "CATÁLOGO DE PRODUCTOS" en versalitas
+  espaciadas, y los datos de contacto van abajo como texto simple
+  (`TEL`, `EMAIL`, `DIRECCIÓN`), sin íconos ni cápsulas con fondo.
+- **Una sección por categoría**, en orden alfabético, con un encabezado
+  tipo editorial: número de índice (01, 02…) + nombre en tipografía
+  grande, una sola regla horizontal debajo — nada de insignias de color
+  ni íconos por categoría.
+- **Filas de producto en vez de tarjetas en grilla**: cada producto es
+  una fila con una miniatura chica (o un ícono de cápsula muy discreto si
+  no tiene foto), nombre + unidad a la izquierda y el precio en negrita
+  alineado a la derecha, separadas por una línea fina — el mismo lenguaje
+  visual que una lista de precios real de un proveedor mayorista.
+  Fondo color crema, no blanco puro (más cálido, menos "pantalla").
+  Este cambio resolvió también la sensación de vacío de la v1: una fila
+  ocupa todo el ancho de la página aunque la categoría tenga un solo
+  producto, a diferencia de una tarjeta chica flotando en una grilla de 3
+  con mucho aire alrededor.
+- **Contratapa** en un color oscuro sólido (no degradado) con una
+  llamada a la acción ("¿Listo para hacer tu pedido?") y los mismos
+  datos de contacto — un catálogo real no termina de golpe después del
+  último producto.
 - Solo entran productos **activos y con un proveedor activo** (mismo
   criterio que "vendible" en `listarProductosDisponibles` de
   `services/ventas.js`) — un producto sin proveedor no tiene PVP
   calculable, así que no tiene sentido publicarlo en un catálogo para
   clientes.
-- Las categorías **fluyen sin salto de página forzado**: la primera
-  versión forzaba una página nueva por categoría, pero con pocos
-  productos (típico de un negocio recién empezando) eso dejaba páginas
-  casi vacías. Se cambió a flujo continuo con `break-after: avoid` en el
-  encabezado de categoría para que al menos no quede solo al final de una
-  hoja — se verificó generando un catálogo real: bajó de 6 páginas a 3
-  con el mismo catálogo de prueba.
+- Las categorías **fluyen sin salto de página forzado**, con
+  `break-after: avoid` en el encabezado de categoría para que no quede
+  huérfano al final de una hoja.
 - Pie de página con el nombre del negocio y "Página X de Y" en cada hoja
   (vía `headerTemplate`/`footerTemplate` de Puppeteer).
+
+La v2 ya no usa ningún ícono decorativo (se sacó la dependencia de
+Bootstrap Icons del documento por completo) — menos elementos, más
+tipografía y espacio en blanco intencional, en vez de rellenar con
+adornos.
 
 ### Dos bugs reales que aparecieron probándolo de punta a punta
 

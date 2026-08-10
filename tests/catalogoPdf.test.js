@@ -76,9 +76,22 @@ describe('construirHtmlCatalogo', () => {
         expect(html).toContain('break-after: avoid');
     });
 
-    test('sin logo usa las iniciales del negocio como placeholder de marca', () => {
+    test('sin logo no muestra ningún placeholder gráfico, solo la tipografía de marca', () => {
+        // v1 mostraba un cuadrado con la inicial del negocio — se sentía
+        // un ícono de app genérico, no una marca. Sin logo real, mejor
+        // dejar que la tipografía sola lleve el peso visual.
         const html = construirHtmlCatalogo({ config: configBase, categorias: [] });
-        expect(html).toContain('portada-logo-generico');
-        expect(html).toContain('>S<'); // inicial de "San Judas Tadeo"
+        expect(html).not.toMatch(/<img[^>]*class="portada-logo-img"/);
+        expect(html).not.toContain('portada-logo-generico');
+        expect(html).toContain('San Judas Tadeo');
+    });
+
+    test('con logo lo muestra como imagen', () => {
+        const html = construirHtmlCatalogo({
+            config: { ...configBase, logoUrl: 'http://localhost:3000/uploads/logo.png' },
+            categorias: [],
+        });
+        expect(html).toMatch(/<img[^>]*class="portada-logo-img"/);
+        expect(html).toContain('http://localhost:3000/uploads/logo.png');
     });
 });
