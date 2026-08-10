@@ -37,6 +37,37 @@ self.addEventListener('activate', (event) => {
     );
 });
 
+// Notificaciones push de cambio de estado de pedido (Fase G3). El payload
+// lo arma el servidor en src/services/push.js; si no llega como JSON (no
+// debería pasar) se usa un mensaje genérico en vez de fallar la notificación.
+self.addEventListener('push', (event) => {
+    let datos = { titulo: 'San Judas Tadeo Botica Dental', cuerpo: 'Tienes una actualización de tu pedido.', url: '/tienda.html' };
+    try {
+        if (event.data) datos = { ...datos, ...event.data.json() };
+    } catch { /* usa el mensaje genérico */ }
+
+    event.waitUntil(
+        self.registration.showNotification(datos.titulo, {
+            body: datos.cuerpo,
+            icon: '/icons/icon-192.png',
+            badge: '/icons/icon-192.png',
+            data: { url: datos.url },
+        })
+    );
+});
+
+self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = event.notification.data?.url || '/tienda.html';
+    event.waitUntil(
+        self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientes) => {
+            const existente = clientes.find((c) => c.url.includes(url));
+            if (existente) return existente.focus();
+            return self.clients.openWindow(url);
+        })
+    );
+});
+
 self.addEventListener('fetch', (event) => {
     const { request } = event;
     if (request.method !== 'GET') return;

@@ -90,7 +90,8 @@ describe('obtenerProductoDetalle', () => {
         pool.query
             .mockResolvedValueOnce({ rows: [configRow] })
             .mockResolvedValueOnce({ rows: [filaProducto] })
-            .mockResolvedValueOnce({ rows: [{ ...filaProducto, id: 2, nombre: 'Otra Resina' }] });
+            .mockResolvedValueOnce({ rows: [{ ...filaProducto, id: 2, nombre: 'Otra Resina' }] })
+            .mockResolvedValueOnce({ rows: [] }); // reseñas aprobadas
 
         const res = mockRes();
         await obtenerProductoDetalle({ params: { id: '1' } }, res);
@@ -107,13 +108,29 @@ describe('obtenerProductoDetalle', () => {
     test('relacionados queda vacío si el producto no tiene categoría', async () => {
         pool.query
             .mockResolvedValueOnce({ rows: [configRow] })
-            .mockResolvedValueOnce({ rows: [{ ...filaProducto, categoria_id: null }] });
+            .mockResolvedValueOnce({ rows: [{ ...filaProducto, categoria_id: null }] })
+            .mockResolvedValueOnce({ rows: [] }); // reseñas aprobadas
 
         const res = mockRes();
         await obtenerProductoDetalle({ params: { id: '1' } }, res);
 
-        expect(pool.query).toHaveBeenCalledTimes(2); // no dispara la consulta de relacionados
+        expect(pool.query).toHaveBeenCalledTimes(3); // config + producto + reseñas (sin relacionados)
         expect(res.json.mock.calls[0][0].data.relacionados).toEqual([]);
+    });
+
+    test('incluye promedio y total de reseñas aprobadas', async () => {
+        pool.query
+            .mockResolvedValueOnce({ rows: [configRow] })
+            .mockResolvedValueOnce({ rows: [{ ...filaProducto, categoria_id: null }] })
+            .mockResolvedValueOnce({ rows: [{ id: 1, cliente_nombre: 'Ana', calificacion: 5, comentario: 'Excelente', created_at: '2026-01-01' }] });
+
+        const res = mockRes();
+        await obtenerProductoDetalle({ params: { id: '1' } }, res);
+
+        const data = res.json.mock.calls[0][0].data;
+        expect(data.calificacionPromedio).toBe(5);
+        expect(data.totalResenas).toBe(1);
+        expect(data.resenas).toHaveLength(1);
     });
 });
 

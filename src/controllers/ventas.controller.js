@@ -1,7 +1,7 @@
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
 const pool = require('../config/db');
-const { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId, obtenerKpisVentas } = require('../services/ventas');
+const { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId, obtenerKpisVentas, obtenerTendenciaVentas } = require('../services/ventas');
 const { registrarEvento } = require('../services/bitacora');
 
 async function crearVenta(req, res) {
@@ -39,6 +39,17 @@ async function listar(req, res) {
 async function kpis(req, res) {
     try {
         const data = await obtenerKpisVentas();
+        res.json({ ok: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+async function tendencia(req, res) {
+    try {
+        const dias = req.query.dias ? Number(req.query.dias) : 30;
+        const data = await obtenerTendenciaVentas({ dias });
         res.json({ ok: true, data });
     } catch (err) {
         console.error(err);
@@ -342,6 +353,7 @@ module.exports = {
     listarDisponibles,
     generarBoletaPdf,
     kpis,
+    tendencia,
     exportarVentasExcel,
     exportarVentasPDF,
 };

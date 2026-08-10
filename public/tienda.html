@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if(localStorage.getItem('mpv_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.setAttribute('data-bs-theme','dark');}</script>
     <title>San Judas Tadeo Botica Dental | Tienda Virtual</title>
     <meta name="description" content="Insumos, resinas e instrumental dental de calidad en San Judas Tadeo Botica Dental, con precios claros y entrega rápida.">
     <link rel="canonical" href="/tienda.html">
@@ -82,7 +83,11 @@
             <input type="text" id="buscador" placeholder="Buscar resinas, guantes, instrumental…">
         </div>
 
-        <button class="btn-carrito ms-auto" id="btnFavoritos" title="Solo favoritos">
+        <button type="button" class="btn-carrito ms-auto" id="btnTema" data-tema-boton title="Cambiar a modo oscuro" aria-label="Cambiar a modo oscuro">
+            <i class="bi bi-moon-stars-fill" data-tema-icono></i>
+        </button>
+
+        <button class="btn-carrito" id="btnFavoritos" title="Solo favoritos">
             <i class="bi bi-heart"></i>
             <span class="badge-cantidad" id="badgeFavoritos">0</span>
         </button>
@@ -228,7 +233,7 @@
 <div class="offcanvas offcanvas-end" tabindex="-1" id="offcanvasCarrito">
     <div class="offcanvas-header border-bottom">
         <h5 class="offcanvas-title fw-bold"><i class="bi bi-bag-fill me-2"></i>Tu carrito</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas"></button>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Cerrar"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column p-0">
         <div class="flex-grow-1 overflow-auto px-3" id="listaCarrito">
@@ -302,7 +307,7 @@
 </footer>
 
 <!-- Modal: detalle de producto -->
-<div class="modal fade" id="modalDetalleProducto" tabindex="-1" aria-hidden="true">
+<div class="modal fade" id="modalDetalleProducto" tabindex="-1" aria-hidden="true" aria-labelledby="modalDetalleProductoTitulo">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
         <div class="modal-content" id="modalDetalleContent">
             <!-- Se llena por JS -->
@@ -311,6 +316,7 @@
 </div>
 
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/scroll-reveal.js"></script>
 <script src="js/carrito.js"></script>
 <script src="js/favoritos.js"></script>

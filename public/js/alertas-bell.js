@@ -60,6 +60,28 @@
                 desc: `${p.proveedor}: ${MPV.formatCurrency(p.precioAnterior)} → ${MPV.formatCurrency(p.precioActual)}`,
             })).join(''));
         }
+        if (data.reabastecimiento && data.reabastecimiento.length) {
+            grupos.push('<div class="alertas-grupo-titulo">Reabastecer pronto</div>');
+            grupos.push(data.reabastecimiento.map((p) => itemHtml({
+                href: 'productos.html',
+                icono: 'bi-arrow-repeat',
+                claseIcono: 'stock-bajo',
+                titulo: p.nombre,
+                desc: `Se agotaría en ${p.diasRestantes} día${p.diasRestantes === 1 ? '' : 's'} al ritmo de venta actual`,
+            })).join(''));
+        }
+        if (data.vencimiento && data.vencimiento.length) {
+            grupos.push('<div class="alertas-grupo-titulo">Por vencer</div>');
+            grupos.push(data.vencimiento.map((p) => itemHtml({
+                href: 'productos.html',
+                icono: 'bi-calendar-x-fill',
+                claseIcono: 'agotado',
+                titulo: p.nombre,
+                desc: p.vencido
+                    ? `Vencido el ${new Date(`${p.fechaVencimiento}T00:00:00`).toLocaleDateString('es-PE')}`
+                    : `Vence el ${new Date(`${p.fechaVencimiento}T00:00:00`).toLocaleDateString('es-PE')}`,
+            })).join(''));
+        }
         if (data.pedidosPendientes > 0) {
             grupos.push('<div class="alertas-grupo-titulo">Tienda virtual</div>');
             grupos.push(itemHtml({

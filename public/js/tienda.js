@@ -370,6 +370,63 @@
         `;
     }
 
+    function estrellasHtml(calificacion, tamano) {
+        const llenas = Math.round(calificacion);
+        return Array.from({ length: 5 }, (_, i) =>
+            `<i class="bi ${i < llenas ? 'bi-star-fill' : 'bi-star'}" style="font-size:${tamano || '0.85rem'};color:#e8935c;"></i>`
+        ).join('');
+    }
+
+    function resenaItemHtml(r) {
+        return `
+            <div class="py-2" style="border-top:1px solid var(--tienda-gray-100);">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-semibold small">${escaparHtml(r.cliente_nombre)}</span>
+                    <span>${estrellasHtml(r.calificacion)}</span>
+                </div>
+                ${r.comentario ? `<p class="text-muted small mb-0 mt-1">${escaparHtml(r.comentario)}</p>` : ''}
+            </div>
+        `;
+    }
+
+    function resenasSeccionHtml(p) {
+        const promedioHtml = p.totalResenas > 0
+            ? `${estrellasHtml(p.calificacionPromedio, '1rem')} <span class="fw-semibold ms-1">${p.calificacionPromedio}</span> <span class="text-muted small">(${p.totalResenas} reseña${p.totalResenas === 1 ? '' : 's'})</span>`
+            : `<span class="text-muted small">Sé el primero en dejar una reseña.</span>`;
+
+        return `
+            <hr class="my-4">
+            <div class="fw-bold mb-2">Reseñas</div>
+            <div class="mb-3">${promedioHtml}</div>
+            <div id="listaResenas">${(p.resenas || []).map(resenaItemHtml).join('')}</div>
+            <div class="mt-3">
+                <button type="button" class="btn btn-hero-outline btn-sm" id="btnMostrarFormResena">
+                    <i class="bi bi-pencil-fill me-1"></i>Escribir una reseña
+                </button>
+                <form id="formResena" class="d-none mt-3">
+                    <div class="row g-2">
+                        <div class="col-12 col-sm-6">
+                            <input type="text" class="form-control form-control-sm" id="resenaNombre" placeholder="Tu nombre" required>
+                        </div>
+                        <div class="col-12 col-sm-6">
+                            <select class="form-select form-select-sm" id="resenaCalificacion" required>
+                                <option value="5">5 estrellas — Excelente</option>
+                                <option value="4">4 estrellas — Muy bueno</option>
+                                <option value="3">3 estrellas — Bueno</option>
+                                <option value="2">2 estrellas — Regular</option>
+                                <option value="1">1 estrella — Malo</option>
+                            </select>
+                        </div>
+                    </div>
+                    <textarea class="form-control form-control-sm mt-2" id="resenaComentario" rows="2" placeholder="Comentario (opcional)"></textarea>
+                    <div class="small text-danger d-none mt-2" id="resenaError"></div>
+                    <div class="small text-success d-none mt-2" id="resenaExito">¡Gracias! Tu reseña quedará visible luego de ser revisada.</div>
+                    <button type="submit" class="btn btn-agregar btn-sm mt-2">Enviar reseña</button>
+                </form>
+            </div>
+        `;
+    }
+
     function renderDetalleModal(p) {
         productoDetalleActual = p;
         const content = document.getElementById('modalDetalleContent');
@@ -396,7 +453,7 @@
                     </div>
                     <div class="col-12 col-md-7">
                         ${p.categoria ? `<span class="card-producto-categoria detalle-categoria">${escaparHtml(p.categoria)}</span>` : ''}
-                        <h3 class="fw-bold mt-2">${escaparHtml(p.nombre)}</h3>
+                        <h3 class="fw-bold mt-2" id="modalDetalleProductoTitulo">${escaparHtml(p.nombre)}</h3>
                         <p class="text-muted">${escaparHtml(p.descripcion) || 'Producto dental de calidad, con precio verificado.'}</p>
                         <div class="card-producto-precio mb-1" style="font-size:1.7rem;">${formatCurrency(p.precio)}</div>
                         <div class="card-producto-unidad mb-4">por ${escaparHtml(p.unidadMedida)}</div>
@@ -415,6 +472,7 @@
                     <div class="fw-bold mb-3">También te puede interesar</div>
                     <div class="mini-productos-grid">${p.relacionados.map(miniProductoHtml).join('')}</div>
                 ` : ''}
+                ${resenasSeccionHtml(p)}
             </div>
         `;
     }
@@ -477,6 +535,41 @@
         }
         const mini = e.target.closest('.mini-producto');
         if (mini) abrirDetalle(Number(mini.dataset.id));
+        const btnMostrarFormResena = e.target.closest('#btnMostrarFormResena');
+        if (btnMostrarFormResena) {
+            document.getElementById('formResena')?.classList.remove('d-none');
+            btnMostrarFormResena.classList.add('d-none');
+        }
+    });
+
+    document.getElementById('modalDetalleContent')?.addEventListener('submit', async (e) => {
+        const form = e.target.closest('#formResena');
+        if (!form || !productoDetalleActual) return;
+        e.preventDefault();
+
+        const errorBox = document.getElementById('resenaError');
+        const exitoBox = document.getElementById('resenaExito');
+        errorBox.classList.add('d-none');
+        exitoBox.classList.add('d-none');
+
+        try {
+            const res = await fetch(`/api/tienda/productos/${productoDetalleActual.id}/resenas`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    clienteNombre: document.getElementById('resenaNombre').value,
+                    calificacion: Number(document.getElementById('resenaCalificacion').value),
+                    comentario: document.getElementById('resenaComentario').value,
+                }),
+            }).then((r) => r.json());
+            if (!res.ok) throw new Error(res.error || 'No se pudo enviar la reseña');
+            form.reset();
+            form.classList.add('d-none');
+            exitoBox.classList.remove('d-none');
+        } catch (err) {
+            errorBox.textContent = err.message;
+            errorBox.classList.remove('d-none');
+        }
     });
 
     // .mini-producto es un <div role="button"> (no un elemento nativo), así

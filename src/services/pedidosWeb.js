@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { calcularPVP } = require('./pricingEngine');
 const { obtenerConfigActiva } = require('./tableroPrecios');
+const { validarCupon, incrementarUso } = require('./cupones');
 
 const ESTADOS_VALIDOS = ['pendiente', 'atendido', 'cancelado'];
 
@@ -12,7 +13,7 @@ const ESTADOS_VALIDOS = ['pendiente', 'atendido', 'cancelado'];
  * valida y descuenta stock); este registro solo existe para que la
  * solicitud no se pierda en el chat de WhatsApp.
  */
-async function registrarPedidoWeb({ items, cliente, telefono }) {
+async function registrarPedidoWeb({ items, cliente, telefono, cuponCodigo }) {
     if (!Array.isArray(items) || items.length === 0) {
         throw new Error('El pedido debe incluir al menos un producto');
     }
@@ -65,9 +66,21 @@ async function registrarPedidoWeb({ items, cliente, telefono }) {
 
         total = Math.round(total * 100) / 100;
 
+        // El cupón se valida contra el subtotal real de items (no lo que el
+        // cliente diga en el body) para que no se pueda falsear el descuento
+        // desde el navegador.
+        let descuento = 0;
+        let codigoAplicado = null;
+        if (cuponCodigo) {
+            const resultado = await validarCupon(cuponCodigo, total);
+            descuento = resultado.descuento;
+            codigoAplicado = resultado.codigo;
+            total = Math.round((total - descuento) * 100) / 100;
+        }
+
         const { rows: pedidoRows } = await client.query(
-            `INSERT INTO pedidos_web (cliente, telefono, total) VALUES ($1, $2, $3) RETURNING *`,
-            [cliente || null, telefono || null, total]
+            `INSERT INTO pedidos_web (cliente, telefono, total, cupon_codigo, descuento) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [cliente || null, telefono || null, total, codigoAplicado, descuento]
         );
         const pedido = pedidoRows[0];
 
@@ -80,6 +93,7 @@ async function registrarPedidoWeb({ items, cliente, telefono }) {
         }
 
         await client.query('COMMIT');
+        if (codigoAplicado) await incrementarUso(codigoAplicado);
         return { ...pedido, items: detalle };
     } catch (err) {
         await client.query('ROLLBACK');

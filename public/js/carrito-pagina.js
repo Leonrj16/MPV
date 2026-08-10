@@ -23,6 +23,8 @@
     const vacioEl = document.getElementById('carritoPaginaVacio');
     const contenidoEl = document.getElementById('carritoPaginaContenido');
 
+    let cuponAplicado = null; // { codigo, tipo, valor, descuento }
+
     function itemHtml(item) {
         const imagenHtml = item.imagenUrl
             ? `<img src="${escaparHtml(item.imagenUrl)}" alt="${escaparHtml(item.nombre)}" onerror="manejarErrorImagen(this)">`
@@ -61,11 +63,56 @@
         listaEl.innerHTML = items.map(itemHtml).join('');
 
         const cantidadTotal = items.reduce((s, i) => s + i.cantidad, 0);
-        const total = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
+        const subtotal = items.reduce((s, i) => s + i.precio * i.cantidad, 0);
         document.getElementById('resumenCantidadItems').textContent = `${cantidadTotal} producto${cantidadTotal === 1 ? '' : 's'}`;
-        document.getElementById('resumenSubtotal').textContent = formatCurrency(total);
-        document.getElementById('resumenTotal').textContent = formatCurrency(total);
+        document.getElementById('resumenSubtotal').textContent = formatCurrency(subtotal);
+        renderDescuento(subtotal);
     }
+
+    function totalConDescuento(subtotal) {
+        return Math.max(0, subtotal - (cuponAplicado?.descuento || 0));
+    }
+
+    function renderDescuento(subtotal) {
+        const fila = document.getElementById('resumenDescuentoFila');
+        if (cuponAplicado) {
+            fila.classList.remove('d-none');
+            document.getElementById('resumenCuponCodigo').textContent = cuponAplicado.codigo;
+            document.getElementById('resumenDescuento').textContent = `-${formatCurrency(cuponAplicado.descuento)}`;
+        } else {
+            fila.classList.add('d-none');
+        }
+        document.getElementById('resumenTotal').textContent = formatCurrency(totalConDescuento(subtotal));
+    }
+
+    function mostrarMensajeCupon(texto, esError) {
+        const el = document.getElementById('carritoCuponMensaje');
+        el.textContent = texto;
+        el.classList.remove('d-none', 'text-success', 'text-danger');
+        el.classList.add(esError ? 'text-danger' : 'text-success');
+    }
+
+    document.getElementById('btnAplicarCupon').addEventListener('click', async () => {
+        const input = document.getElementById('carritoCupon');
+        const codigo = input.value.trim();
+        if (!codigo) return;
+        const subtotal = Carrito.calcularTotal();
+        try {
+            const res = await fetch('/api/tienda/cupones/validar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo, subtotal }),
+            }).then((r) => r.json());
+            if (!res.ok) throw new Error(res.error || 'Cupón no válido');
+            cuponAplicado = res.data;
+            mostrarMensajeCupon(`Cupón "${res.data.codigo}" aplicado.`, false);
+            renderDescuento(subtotal);
+        } catch (err) {
+            cuponAplicado = null;
+            mostrarMensajeCupon(err.message, true);
+            renderDescuento(subtotal);
+        }
+    });
 
     listaEl.addEventListener('click', (e) => {
         const btnSumar = e.target.closest('.btn-sumar');
@@ -80,17 +127,20 @@
         if (confirm('¿Vaciar todo el carrito?')) Carrito.vaciar();
     });
 
-    document.getElementById('btnFinalizarPedidoPagina').addEventListener('click', () => {
+    document.getElementById('btnFinalizarPedidoPagina').addEventListener('click', async () => {
         const items = Carrito.obtener();
         if (items.length === 0) return;
 
+        const subtotal = Carrito.calcularTotal();
         const lineas = items.map((i) => `• ${i.cantidad} x ${i.nombre} — ${formatCurrency(i.precio * i.cantidad)}`);
         const mensaje = [
             'Hola, quisiera hacer el siguiente pedido:',
             '',
             ...lineas,
             '',
-            `Total: ${formatCurrency(Carrito.calcularTotal())}`,
+            `Subtotal: ${formatCurrency(subtotal)}`,
+            ...(cuponAplicado ? [`Cupón ${cuponAplicado.codigo}: -${formatCurrency(cuponAplicado.descuento)}`] : []),
+            `Total: ${formatCurrency(totalConDescuento(subtotal))}`,
         ].join('\n');
 
         // window.open() va primero y sin await para que el navegador lo
@@ -98,15 +148,63 @@
         window.open(`https://wa.me/${CONFIG.WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener');
 
         const nombreCliente = document.getElementById('carritoPaginaNombre')?.value.trim();
-        fetch('/api/tienda/pedidos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                items: items.map((i) => ({ productoId: i.id, cantidad: i.cantidad })),
-                cliente: nombreCliente || undefined,
-            }),
-        }).catch(() => {});
+        const avisarme = document.getElementById('carritoAvisarme')?.checked;
+        try {
+            const res = await fetch('/api/tienda/pedidos', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    items: items.map((i) => ({ productoId: i.id, cantidad: i.cantidad })),
+                    cliente: nombreCliente || undefined,
+                    cuponCodigo: cuponAplicado?.codigo || undefined,
+                }),
+            }).then((r) => r.json());
+
+            if (res.ok && avisarme) {
+                await suscribirPushPedido(res.data.id);
+            }
+        } catch {
+            // El pedido por WhatsApp ya se envió; si el registro interno o la
+            // suscripción push fallan, no debe bloquear al cliente.
+        }
     });
+
+    // -------- Notificaciones push (Fase G3) --------
+    function urlBase64ToUint8Array(base64) {
+        const padding = '='.repeat((4 - (base64.length % 4)) % 4);
+        const base64Normalizado = (base64 + padding).replace(/-/g, '+').replace(/_/g, '/');
+        const raw = atob(base64Normalizado);
+        return Uint8Array.from([...raw].map((c) => c.charCodeAt(0)));
+    }
+
+    async function suscribirPushPedido(pedidoId) {
+        try {
+            const { data } = await fetch('/api/push/vapid-public-key').then((r) => r.json());
+            if (!data.configurado) return;
+
+            const registro = await navigator.serviceWorker.ready;
+            const permiso = await Notification.requestPermission();
+            if (permiso !== 'granted') return;
+
+            const suscripcion = await registro.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(data.publicKey),
+            });
+
+            await fetch(`/api/tienda/pedidos/${pedidoId}/push-subscripcion`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(suscripcion),
+            });
+        } catch {
+            // Sin soporte del navegador o permiso denegado: el pedido sigue
+            // válido, simplemente no habrá notificación de confirmación.
+        }
+    }
+
+    if ('serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window) {
+        document.getElementById('carritoAvisarmeWrap')?.classList.remove('d-none');
+    }
 
     Carrito.suscribir(renderCarritoPagina);
 

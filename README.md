@@ -633,6 +633,163 @@ páginas del panel tras el cambio, descarga real de los 3 reportes
 verificada de punta a punta en el navegador (no solo por `curl`), y
 `file` confirmando que los `.xlsx`/`.pdf` generados son archivos válidos.
 
+## Fases F, G y H — Analítica, engagement de tienda y operación
+
+Tres fases implementadas juntas tras la Fase D, en el orden pedido
+(G, H, F). Igual que la Fase E, cualquier cosa que dependa de pagos reales
+o facturación SUNAT sigue fuera de alcance a propósito.
+
+### Fase G1 — Cupones de descuento internos
+
+Tabla `cupones` (`006_cupones.sql`... `007_cupones.sql`) con tipo
+`porcentaje` o `monto_fijo`, expiración, tope de usos y compra mínima
+opcionales. `src/services/cupones.js` separa **validar** (calcula el
+descuento contra un subtotal, sin efectos secundarios — es lo que llama
+el carrito en vivo) de **incrementar el uso** (solo al confirmar el
+pedido, en `registrarPedidoWeb`). El código se guarda y compara en
+mayúsculas (`UPPER(codigo)`) para que "bienvenido10" y "BIENVENIDO10"
+sean el mismo cupón.
+
+En `public/carrito.html` el campo de cupón valida contra
+`POST /api/tienda/cupones/validar` y recalcula el total al vuelo; el
+código aplicado viaja en el pedido (`cuponCodigo`) y en el mensaje de
+WhatsApp. Se gestionan (crear/activar/desactivar) desde el panel nuevo
+**Herramientas** (`public/herramientas.html`).
+
+No se usa bloqueo de fila (`SELECT ... FOR UPDATE`) para el contador de
+usos, a diferencia del descuento de stock en `registrarVenta` — es una
+decisión consciente: dos clientes agotando el último uso de un cupón al
+mismo tiempo es un escenario de bajísima probabilidad para un negocio de
+este tamaño, y no justifica la complejidad de una transacción extra.
+
+### Fase G2 — Reseñas y calificaciones de producto
+
+Tabla `resenas_producto` (`008_resenas.sql`): cualquier visitante puede
+dejar una reseña (`POST /api/tienda/productos/:id/resenas`, sin sesión),
+pero queda con `aprobado = FALSE` y no se muestra en la tienda hasta que
+un admin la modera desde **Herramientas**. Aprobar hace `UPDATE`;
+rechazar hace `DELETE` directo — no existe un estado "rechazada" que
+mostrar en ningún lado, así que no tiene sentido conservar la fila.
+
+El modal de detalle de producto (`public/js/tienda.js`) muestra el
+promedio, la cantidad de reseñas y la lista, más un formulario para dejar
+una nueva. `GET /api/tienda/productos/:id` ahora también devuelve
+`resenas`, `calificacionPromedio` y `totalResenas`.
+
+### Fase G3 — Notificaciones push reales
+
+VAPID (`web-push`) con clave pública/privada propias en `.env`
+(`.env.example` trae el comando para generar un par nuevo). El cliente se
+suscribe a un **pedido específico**, no a una cuenta — no existe sistema
+de cuentas de cliente en la tienda — vía el checkbox "Avisarme cuando
+confirmen mi pedido" en `carrito.html`, que pide permiso de notificación
+y registra la suscripción (`push_subscripciones`, `009_...sql`) recién
+después de crear el pedido.
+
+`src/services/push.js` solo notifica en las transiciones a `atendido` o
+`cancelado` (nunca en "pendiente"), es best-effort a propósito (nunca
+lanza — un error de push jamás debe romper el flujo de atender un
+pedido) y borra automáticamente las suscripciones que el navegador del
+cliente ya invalidó (HTTP 404/410 al enviar). `public/service-worker.js`
+suma los listeners `push` y `notificationclick` que faltaban.
+
+### Fase H1 — Backups de base de datos
+
+`src/services/backups.js` corre `pg_dump` vía `execFile` (nunca `exec`,
+para no exponerse a inyección de shell) con las mismas variables de
+conexión que `src/config/db.js`, y programa un backup automático diario
+además del botón "Generar ahora" en Herramientas. El nombre de archivo
+se valida con una expresión regular estricta antes de tocar el
+filesystem en la descarga (`GET /api/backups/:nombre/descargar`),
+específicamente para bloquear path traversal. `backups/` está en
+`.gitignore`: son datos reales de clientes y ventas, nunca se versionan.
+
+### Fase H2 — Modo oscuro
+
+Como todo el sistema de diseño ya vivía en variables CSS
+(`--mpv-*`/`--tienda-*`), activar `[data-theme="dark"]` en `<html>`
+redefine la paleta completa sin tocar un solo componente. Dos matices que
+sí hicieron falta:
+
+- Separar los tokens que son **texto sobre fondo claro** (badges de
+  margen, íconos de alerta) de los que son **estructurales/decorativos**
+  (gradiente del sidebar) cuando compartían la misma variable — se
+  crearon tokens dedicados (`--mpv-blue-text`, `--mpv-emerald-text`, etc.)
+  para que redefinir uno no rompiera el otro.
+- Las bandas "siempre oscuras" de la tienda (topstrip, confianza, footer,
+  toast) usaban `--tienda-ink`, que en modo oscuro pasa a ser un color
+  claro (es el texto normal del cuerpo) — se creó `--tienda-banda-oscura`,
+  fija en ambos temas, para que esas bandas no se aclararan.
+
+Bootstrap 5.3 trae soporte nativo de `data-bs-theme="dark"`, así que
+formularios, modales y dropdowns se re-temizan solos. El botón de
+alternar (`public/js/theme.js`) persiste la preferencia en
+`localStorage` y se aplica antes del primer pintado (script inline en
+`<head>`) para evitar el parpadeo de tema claro→oscuro.
+
+### Fase H3 — Onboarding guiado
+
+`public/js/onboarding.js`: un recorrido de 4 pasos (Dashboard, Punto de
+Venta, Productos, campana de alertas) que resalta cada elemento real de
+la interfaz — sin librería externa — la primera vez que alguien entra al
+Dashboard. Se puede saltar en cualquier momento; una bandera en
+`localStorage` evita que vuelva a aparecer.
+
+### Fase F1 — Tendencia de ventas
+
+`obtenerTendenciaVentas()` usa `generate_series` para construir una serie
+continua día por día de los últimos 30 días (por defecto), rellenando con
+S/ 0.00 los días sin ventas — así el gráfico de línea del Dashboard
+(Chart.js) no muestra huecos. Las fechas se serializan como `YYYY-MM-DD`
+desde el backend (no como ISO completo con hora/zona) para que el
+frontend no tenga que lidiar con desfases de huso horario al reconstruir
+el objeto `Date`.
+
+### Fase F2 — Historial de movimientos de stock
+
+Tabla `movimientos_stock` (`010_movimientos_stock.sql`): cada venta
+inserta automáticamente una fila (`tipo='venta'`, delta negativo) dentro
+de la misma transacción que descuenta el stock en `registrarVenta`, así
+el movimiento y el cambio real nunca pueden desincronizarse. Se sumó un
+ajuste manual (`tipo='ajuste_manual'`, delta positivo o negativo, con
+motivo obligatorio) para conteos físicos, mermas o correcciones de
+error, con el mismo patrón de `SELECT ... FOR UPDATE` que ya usaba
+`registrarVenta`. El botón "Movimientos de stock" en el modal de editar
+producto (`productos.html`) muestra el historial completo y el
+formulario de ajuste.
+
+### Fase F3 — Alertas de reabastecimiento por velocidad de venta
+
+Extensión de `src/services/alertas.js`: calcula la velocidad de venta
+diaria de cada producto (unidades vendidas / 30 días) y avisa cuando, al
+ritmo actual, el stock se agotaría en 7 días o menos — antes de que
+llegue a "stock bajo" por umbral fijo. Se excluyen a propósito los
+productos que ya disparan la alerta de stock bajo/agotado, para no
+duplicar el mismo aviso con otro ícono.
+
+### Fase F4 — Fecha de vencimiento por producto
+
+Columna `fecha_vencimiento` (`011_productos_vencimiento.sql`), un único
+campo por producto en vez de lotes múltiples con FEFO (first-expire-
+first-out): manejar varios lotes con vencimientos distintos del mismo
+producto exigiría rediseñar cómo `registrarVenta` descuenta stock (hoy es
+un solo entero por producto), un cambio mucho más grande y riesgoso que
+lo que un negocio pequeño necesita en una primera versión. La campana de
+alertas avisa cuando un producto vence en 30 días o menos.
+
+Verificado con `npx jest` (135/135) y con Playwright de punta a punta:
+alta de cupón → aplicarlo en el carrito con descuento visible → cupón
+inválido rechazado; reseña enviada desde la tienda → aprobada desde
+Herramientas → visible en el modal de detalle; backup generado y
+descargado; modo oscuro en las 11 páginas (incluyendo el panel nuevo);
+gráfico de tendencia con fechas correctas. Auditoría de accesibilidad con
+`axe-core` sobre las páginas y modales nuevos: sin violaciones de
+`wcag2a`/`wcag2aa`, salvo un `heading-order` moderado preexistente
+(los títulos de modal usan `<h5>` en todo el panel, incluso después de un
+`<h2>` de sección) que ya afectaba a los modales anteriores a esta fase y
+queda fuera de alcance por implicar renumerar encabezados en todo el
+sistema de diseño.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación
@@ -1051,6 +1208,14 @@ mockea con Jest):
 - `usuariosController.test.js` — que un admin no pueda desactivarse ni
   quitarse su propio rol, y que la contraseña nunca se guarde en texto
   plano.
+- `bitacora.test.js`, `alertas.test.js` — que el registro de auditoría
+  nunca lance (best-effort) y que las alertas de stock, precio,
+  reabastecimiento y vencimiento se agreguen y cuenten bien.
+- `ventas.test.js` — venta con motor de precios, descuento de stock
+  transaccional (con `movimientos_stock` en la misma transacción) y la
+  serie diaria de `obtenerTendenciaVentas`.
+- `movimientosStock.test.js` — ajuste manual de stock: rechaza delta 0,
+  rechaza sin motivo, hace `ROLLBACK` si el ajuste deja stock negativo.
 
 Ambas vistas consumen la API mediante `public/js/api.js` y no requieren build
 step: se sirven como estáticos desde el propio Express (`npm run dev`).
@@ -1075,8 +1240,8 @@ modal de historial.
 
 ## Próximas fases sugeridas
 
-Fases A, B, C y D ya implementadas (ver secciones arriba). Pendiente,
-sin empezar por decisión explícita del negocio:
+Fases A, B, C, D, F, G y H ya implementadas (ver secciones arriba).
+Pendiente, sin empezar por decisión explícita del negocio:
 
 - **Fase E** — pasarela de pago real, facturación electrónica SUNAT,
   cuentas de cliente, multi-sucursal. Bloqueada a propósito: el negocio

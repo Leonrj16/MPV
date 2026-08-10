@@ -177,6 +177,7 @@ const MPV = (() => {
         },
         abrirBoleta,
         getVentasKpis: () => request('/ventas/kpis'),
+        getTendenciaVentas: (dias = 30) => request(`/ventas/tendencia?dias=${dias}`),
         getPedidosWeb: (params = {}) => {
             const qs = new URLSearchParams(params).toString();
             return request(`/pedidos-web${qs ? `?${qs}` : ''}`);
@@ -189,6 +190,16 @@ const MPV = (() => {
             return request(`/bitacora${qs ? `?${qs}` : ''}`);
         },
         getAlertas: () => request('/alertas'),
+        getMovimientosStock: (productoId) => request(`/productos/${productoId}/movimientos`),
+        ajustarStock: (productoId, payload) => request(`/productos/${productoId}/movimientos`, { method: 'POST', body: JSON.stringify(payload) }),
+        getCupones: () => request('/cupones'),
+        crearCupon: (payload) => request('/cupones', { method: 'POST', body: JSON.stringify(payload) }),
+        actualizarCupon: (id, payload) => request(`/cupones/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
+        getResenasPendientes: () => request('/resenas/pendientes'),
+        moderarResena: (id, aprobado) => request(`/resenas/${id}/moderar`, { method: 'PUT', body: JSON.stringify({ aprobado }) }),
+        getBackups: () => request('/backups'),
+        generarBackup: () => request('/backups', { method: 'POST' }),
+        descargarBackup: (nombre) => descargarArchivo(`/backups/${nombre}/descargar`),
         exportarVentasExcel: (params) => descargarArchivo('/ventas/exportar/excel', params),
         exportarVentasPDF: (params) => descargarArchivo('/ventas/exportar/pdf', params),
         exportarPedidosWebExcel: (params) => descargarArchivo('/pedidos-web/exportar/excel', params),

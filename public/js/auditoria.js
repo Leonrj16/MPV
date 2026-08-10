@@ -8,12 +8,14 @@ MPVAuth.exigirRol('admin');
     const ETIQUETAS_ACCION = {
         crear: 'Creó',
         actualizar: 'Actualizó',
+        eliminar: 'Eliminó',
         cambiar_estado: 'Cambió estado',
         iniciar_sesion: 'Inició sesión',
     };
     const CLASE_BADGE_ACCION = {
         crear: 'alto',
         actualizar: 'medio',
+        eliminar: 'bajo',
         cambiar_estado: 'medio',
         iniciar_sesion: 'bajo',
     };
@@ -26,6 +28,9 @@ MPVAuth.exigirRol('admin');
         configuracion_tienda: 'Tienda virtual',
         venta: 'Venta',
         pedido_web: 'Pedido web',
+        stock: 'Stock',
+        cupon: 'Cupón',
+        resena: 'Reseña',
         sesion: 'Sesión',
     };
 

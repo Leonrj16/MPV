@@ -35,6 +35,18 @@
     --sidebar-width: 260px;
     --sidebar-inset: 14px;
 
+    --mpv-page-bg: #e9f0ea;
+    --mpv-surface: #ffffff;
+    --mpv-topbar-bg: rgba(233, 240, 234, 0.85);
+
+    /* Texto sobre fondos "-soft" (badges, íconos) — separado de
+       --mpv-blue-dark porque ese token también arma gradientes/botones que
+       no deben aclararse en modo oscuro, solo el texto sobre fondo suave. */
+    --mpv-blue-text: var(--mpv-blue-dark);
+    --mpv-emerald-text: #047857;
+    --mpv-amber-text: #b45309;
+    --mpv-red-text: #b91c1c;
+
     /* Mapeo a los tokens genéricos de base.css */
     --empty-color: var(--mpv-ink-soft);
     --empty-icon-color: var(--mpv-gray-300);
@@ -42,8 +54,38 @@
     --focus-ring: var(--mpv-blue);
 }
 
+/* ---------------------------------------------------------------------- */
+/* Modo oscuro — mismos tokens semánticos, valores distintos. Ningún        */
+/* componente necesita su propio override: todo ya usa var(--mpv-*).       */
+/* ---------------------------------------------------------------------- */
+[data-theme="dark"] {
+    --mpv-ink: #e7ede9;
+    --mpv-ink-soft: #9fb2a6;
+    --mpv-gray-50: #1a2620;
+    --mpv-gray-100: #223027;
+    --mpv-gray-200: #32433a;
+    --mpv-gray-300: #4b5f53;
+
+    --mpv-page-bg: #0f1712;
+    --mpv-surface: #17221c;
+
+    --mpv-emerald-soft: rgba(63, 156, 114, 0.18);
+    --mpv-amber-soft: rgba(232, 147, 92, 0.18);
+    --mpv-red-soft: rgba(224, 87, 76, 0.18);
+    --mpv-blue-soft: rgba(63, 156, 114, 0.16);
+
+    --mpv-blue-text: #7dd3ac;
+    --mpv-emerald-text: #6ee7b7;
+    --mpv-amber-text: #fbbf76;
+    --mpv-red-text: #fca5a5;
+
+    --mpv-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -12px rgba(0, 0, 0, 0.5);
+    --mpv-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.35), 0 16px 32px -12px rgba(0, 0, 0, 0.55);
+    --mpv-topbar-bg: rgba(15, 23, 18, 0.85);
+}
+
 body {
-    background: #e9f0ea;
+    background: var(--mpv-page-bg);
     color: var(--mpv-ink);
     font-size: 0.9375rem;
 }
@@ -211,7 +253,7 @@ body {
     position: sticky;
     top: 0;
     z-index: 1020;
-    background: rgba(233, 240, 234, 0.85);
+    background: var(--mpv-topbar-bg);
     backdrop-filter: blur(8px);
     border-bottom: 1px solid var(--mpv-gray-200);
     padding: 1rem 1.75rem;
@@ -322,7 +364,7 @@ body {
 /* ---------------------------------------------------------------------- */
 .kpi-card {
     position: relative;
-    background: #fff;
+    background: var(--mpv-surface);
     border: 1px solid var(--mpv-gray-200);
     border-radius: var(--mpv-radius);
     padding: 1.35rem 1.5rem;
@@ -359,7 +401,7 @@ body {
     margin-bottom: 0.9rem;
 }
 
-.kpi-icon.bg-blue { background: var(--mpv-blue-soft); color: var(--mpv-blue-dark); }
+.kpi-icon.bg-blue { background: var(--mpv-blue-soft); color: var(--mpv-blue-text); }
 .kpi-icon.bg-emerald { background: var(--mpv-emerald-soft); color: var(--mpv-emerald); }
 .kpi-icon.bg-amber { background: var(--mpv-amber-soft); color: var(--mpv-amber); }
 .kpi-icon.bg-red { background: var(--mpv-red-soft); color: var(--mpv-red); }
@@ -402,7 +444,7 @@ body {
 /* Tarjetas generales / paneles                                            */
 /* ---------------------------------------------------------------------- */
 .mpv-panel {
-    background: #fff;
+    background: var(--mpv-surface);
     border: 1px solid var(--mpv-gray-200);
     border-radius: var(--mpv-radius);
     box-shadow: var(--mpv-shadow);
@@ -455,7 +497,7 @@ body {
 }
 
 .mpv-search input:focus {
-    background: #fff;
+    background: var(--mpv-surface);
     border-color: var(--mpv-blue);
     box-shadow: 0 0 0 3px var(--mpv-blue-soft);
 }
@@ -595,7 +637,7 @@ body {
     height: 38px;
     border-radius: 10px;
     background: var(--mpv-blue-soft);
-    color: var(--mpv-blue-dark);
+    color: var(--mpv-blue-text);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -619,7 +661,7 @@ body {
     /* var(--mpv-emerald) da 3.38:1 sobre blanco a este tamaño de texto —
        por debajo del mínimo 4.5:1 de WCAG AA; se usa el mismo verde oscuro
        que ya pasa en .badge-margin.alto. */
-    color: #047857;
+    color: var(--mpv-emerald-text);
 }
 
 .supplier-badge .dot {
@@ -640,9 +682,9 @@ body {
     font-weight: 700;
 }
 
-.badge-margin.alto { background: var(--mpv-emerald-soft); color: #047857; }
-.badge-margin.medio { background: var(--mpv-amber-soft); color: #b45309; }
-.badge-margin.bajo { background: var(--mpv-red-soft); color: #b91c1c; }
+.badge-margin.alto { background: var(--mpv-emerald-soft); color: var(--mpv-emerald-text); }
+.badge-margin.medio { background: var(--mpv-amber-soft); color: var(--mpv-amber-text); }
+.badge-margin.bajo { background: var(--mpv-red-soft); color: var(--mpv-red-text); }
 
 .alert-price-up {
     display: inline-flex;
@@ -652,7 +694,7 @@ body {
     font-weight: 700;
     /* var(--mpv-red) da 3.19:1 sobre var(--mpv-red-soft) — igual que
        .badge-margin.bajo, que ya usa este rojo más oscuro y sí pasa AA. */
-    color: #b91c1c;
+    color: var(--mpv-red-text);
     background: var(--mpv-red-soft);
     padding: 0.2rem 0.55rem;
     border-radius: 999px;
@@ -675,7 +717,7 @@ body {
     height: 32px;
     border-radius: 9px;
     border: 1px solid var(--mpv-gray-200);
-    background: #fff;
+    background: var(--mpv-surface);
     color: var(--mpv-ink-soft);
     display: inline-flex;
     align-items: center;
@@ -685,7 +727,7 @@ body {
 
 .btn-icon-sm:hover {
     background: var(--mpv-blue-soft);
-    color: var(--mpv-blue-dark);
+    color: var(--mpv-blue-text);
     border-color: var(--mpv-blue-soft);
 }
 
@@ -731,10 +773,10 @@ body {
     flex-shrink: 0;
     font-size: 0.95rem;
 }
-.alerta-item .icono.agotado { background: var(--mpv-red-soft); color: #b91c1c; }
-.alerta-item .icono.stock-bajo { background: var(--mpv-amber-soft); color: #b45309; }
-.alerta-item .icono.precio { background: var(--mpv-blue-soft); color: var(--mpv-blue-dark); }
-.alerta-item .icono.pedido { background: var(--mpv-emerald-soft); color: #047857; }
+.alerta-item .icono.agotado { background: var(--mpv-red-soft); color: var(--mpv-red-text); }
+.alerta-item .icono.stock-bajo { background: var(--mpv-amber-soft); color: var(--mpv-amber-text); }
+.alerta-item .icono.precio { background: var(--mpv-blue-soft); color: var(--mpv-blue-text); }
+.alerta-item .icono.pedido { background: var(--mpv-emerald-soft); color: var(--mpv-emerald-text); }
 .alerta-item .titulo { font-weight: 650; font-size: 0.82rem; color: var(--mpv-ink); }
 .alerta-item .desc { font-size: 0.75rem; color: var(--mpv-ink-soft); }
 .alertas-grupo-titulo {
@@ -766,7 +808,7 @@ body {
 }
 
 .btn-mpv-outline {
-    background: #fff;
+    background: var(--mpv-surface);
     border: 1px solid var(--mpv-gray-200);
     color: var(--mpv-ink-soft);
     font-weight: 600;
@@ -793,7 +835,7 @@ body {
     border: 1px solid var(--mpv-gray-200);
     border-radius: var(--mpv-radius-sm);
     padding: 0.9rem 1rem;
-    background: #fff;
+    background: var(--mpv-surface);
     transition: box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
@@ -850,3 +892,31 @@ body {
 }
 
 /* .mpv-empty y el scrollbar viven en base.css (compartidos con la tienda virtual) */
+
+/* ---------------------------------------------------------------------- */
+/* Tour guiado de bienvenida (Fase H3)                                     */
+/* ---------------------------------------------------------------------- */
+#onboardingOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(15, 23, 18, 0.55);
+}
+#onboardingResaltado {
+    position: fixed;
+    border-radius: 10px;
+    box-shadow: 0 0 0 4px var(--mpv-emerald), 0 0 0 9999px rgba(15, 23, 18, 0.55);
+    transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+    pointer-events: none;
+}
+#onboardingCard {
+    position: fixed;
+    width: 300px;
+    max-width: calc(100vw - 32px);
+    background: var(--mpv-surface);
+    border-radius: var(--mpv-radius);
+    box-shadow: var(--mpv-shadow-hover);
+    padding: 1.1rem;
+    transition: top 0.25s ease, left 0.25s ease;
+}
+#onboardingTitulo { color: var(--mpv-ink); font-size: 1rem; }

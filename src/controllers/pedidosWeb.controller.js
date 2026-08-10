@@ -1,6 +1,7 @@
 const ExcelJS = require('exceljs');
 const { registrarPedidoWeb, listarPedidosWeb, actualizarEstadoPedido } = require('../services/pedidosWeb');
 const { registrarEvento } = require('../services/bitacora');
+const { notificarCambioEstado } = require('../services/push');
 
 const ESTADO_LABEL = { pendiente: 'Pendiente', atendido: 'Atendido', cancelado: 'Cancelado' };
 const timestampArchivo = () => new Date().toISOString().slice(0, 10);
@@ -9,8 +10,8 @@ const resumenProductos = (items) => (items || []).map((i) => `${i.producto} x${i
 /** POST /api/tienda/pedidos — pública, la llama la tienda antes de abrir WhatsApp. */
 async function crearPedido(req, res) {
     try {
-        const { items, cliente, telefono } = req.body;
-        const pedido = await registrarPedidoWeb({ items, cliente, telefono });
+        const { items, cliente, telefono, cuponCodigo } = req.body;
+        const pedido = await registrarPedidoWeb({ items, cliente, telefono, cuponCodigo });
         res.status(201).json({ ok: true, data: pedido });
     } catch (err) {
         res.status(400).json({ ok: false, error: err.message });
@@ -42,6 +43,7 @@ async function actualizarEstado(req, res) {
             entidadId: pedido.id,
             detalle: `Cambió el estado del pedido web #${pedido.id} a "${pedido.estado}"`,
         });
+        notificarCambioEstado(pedido.id, pedido.estado).catch((err) => console.error('push:', err.message));
         res.json({ ok: true, data: pedido });
     } catch (err) {
         res.status(400).json({ ok: false, error: err.message });

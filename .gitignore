@@ -8,3 +8,7 @@ npm-debug.log*
 # carpeta (.gitkeep) para que exista al clonar el repo.
 public/uploads/*
 !public/uploads/.gitkeep
+
+# Backups de la base de datos generados por src/services/backups.js —
+# contienen datos reales de clientes/ventas, nunca se versionan.
+backups/

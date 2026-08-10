@@ -46,6 +46,13 @@
             `<div class="mpv-empty"><i class="bi bi-plug-fill"></i>No se pudieron cargar las ventas.</div>`;
     }
 
+    try {
+        const { data: tendencia } = await MPV.getTendenciaVentas(30);
+        renderGraficoTendencia(tendencia);
+    } catch (err) {
+        console.error('Error cargando tendencia de ventas:', err);
+    }
+
     let tablero = [];
     try {
         ({ data: tablero } = await MPV.getTableroPrecios());
@@ -118,6 +125,44 @@
                 <div class="pvp-value" style="font-size:0.85rem; flex-shrink:0;">${MPV.formatCurrency(p.ingresoTotal)}</div>
             </div>
         `).join('');
+    }
+
+    /** Línea: ingresos día a día del Punto de Venta, últimos 30 días. */
+    function renderGraficoTendencia(tendencia) {
+        const canvas = document.getElementById('chartTendenciaVentas');
+        if (!canvas || !tendencia || tendencia.length === 0) return;
+
+        new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: tendencia.map((d) => new Date(`${d.fecha}T00:00:00`).toLocaleDateString('es-PE', { day: '2-digit', month: 'short' })),
+                datasets: [{
+                    data: tendencia.map((d) => d.ingresos),
+                    borderColor: '#3f9c72',
+                    backgroundColor: 'rgba(63, 156, 114, 0.12)',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2,
+                    pointHoverRadius: 5,
+                }],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => MPV.formatCurrency(ctx.parsed.y),
+                        },
+                    },
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: (v) => MPV.formatCurrency(v) }, grid: { color: '#eaf0ea' } },
+                    x: { grid: { display: false } },
+                },
+            },
+        });
     }
 
     /**

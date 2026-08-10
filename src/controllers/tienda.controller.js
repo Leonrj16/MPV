@@ -1,6 +1,7 @@
 const pool = require('../config/db');
 const { calcularPVP } = require('../services/pricingEngine');
 const { obtenerConfigActiva } = require('../services/tableroPrecios');
+const { listarResenasAprobadas } = require('../services/resenas');
 
 function mapearFila(fila, config) {
     const { pvpSugerido } = calcularPVP({ precioCompra: Number(fila.precio_compra_unitario), config });
@@ -125,7 +126,9 @@ async function obtenerProductoDetalle(req, res) {
             relacionados = relFilas.map((f) => mapearFila(f, config));
         }
 
-        res.json({ ok: true, data: { ...producto, relacionados } });
+        const { resenas, promedio, total: totalResenas } = await listarResenasAprobadas(id);
+
+        res.json({ ok: true, data: { ...producto, relacionados, resenas, calificacionPromedio: promedio, totalResenas } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ ok: false, error: err.message });

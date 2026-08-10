@@ -74,7 +74,8 @@ async function registrarVenta({ items, cliente, metodoPago, usuarioId }) {
             );
 
             const subtotal = Math.round(pvpSugerido * cantidad * 100) / 100;
-            detalle.push({ productoId, nombre: producto.nombre, cantidad, precioUnitario: pvpSugerido, subtotal });
+            const stockResultante = producto.stock_actual - cantidad;
+            detalle.push({ productoId, nombre: producto.nombre, cantidad, precioUnitario: pvpSugerido, subtotal, stockResultante });
             total += subtotal;
         }
 
@@ -92,6 +93,14 @@ async function registrarVenta({ items, cliente, metodoPago, usuarioId }) {
                 `INSERT INTO venta_detalle (venta_id, producto_id, cantidad, precio_unitario, subtotal)
                  VALUES ($1, $2, $3, $4, $5)`,
                 [venta.id, linea.productoId, linea.cantidad, linea.precioUnitario, linea.subtotal]
+            );
+            // Deja rastro de por qué bajó el stock — complementa a venta_detalle
+            // (que es sobre la venta) con un registro pensado para reconstruir
+            // el historial de cantidades de un producto específico.
+            await client.query(
+                `INSERT INTO movimientos_stock (producto_id, tipo, cantidad_delta, stock_resultante, venta_id, usuario_id)
+                 VALUES ($1, 'venta', $2, $3, $4, $5)`,
+                [linea.productoId, -linea.cantidad, linea.stockResultante, venta.id, usuarioId || null]
             );
         }
 
@@ -231,6 +240,33 @@ async function obtenerKpisVentas() {
     };
 }
 
+/**
+ * Serie diaria de ingresos para el gráfico de tendencia del dashboard.
+ * Usa generate_series para no dejar huecos en los días sin ventas — el
+ * gráfico necesita una línea continua, no puntos salteados.
+ */
+async function obtenerTendenciaVentas({ dias = 30 } = {}) {
+    const n = Number.isInteger(Number(dias)) && Number(dias) > 0 ? Number(dias) : 30;
+    const { rows } = await pool.query(
+        `SELECT dia::date AS fecha,
+                COALESCE(SUM(v.total), 0) AS ingresos,
+                COUNT(v.id) AS cantidad_ventas
+         FROM generate_series(CURRENT_DATE - ($1::int - 1), CURRENT_DATE, interval '1 day') AS dia
+         LEFT JOIN ventas v ON v.created_at >= dia AND v.created_at < dia + interval '1 day'
+         GROUP BY dia
+         ORDER BY dia ASC`,
+        [n]
+    );
+    return rows.map((fila) => ({
+        // pg devuelve DATE como objeto Date; toISOString() lo llevaría a UTC
+        // y podría correr el día. toLocaleDateString con formato sv da
+        // directo YYYY-MM-DD en la fecha calendario que Postgres calculó.
+        fecha: fila.fecha.toLocaleDateString('sv-SE'),
+        ingresos: Number(fila.ingresos),
+        cantidadVentas: Number(fila.cantidad_ventas),
+    }));
+}
+
 /** Una venta puntual con su detalle, para generar la boleta provisional. */
 async function obtenerVentaPorId(id) {
     const { rows } = await pool.query(
@@ -255,4 +291,4 @@ async function obtenerVentaPorId(id) {
     return rows[0] || null;
 }
 
-module.exports = { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId, obtenerKpisVentas };
+module.exports = { registrarVenta, listarVentas, listarProductosDisponibles, obtenerVentaPorId, obtenerKpisVentas, obtenerTendenciaVentas };

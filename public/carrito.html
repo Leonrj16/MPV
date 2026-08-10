@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if(localStorage.getItem('mpv_theme')==='dark'){document.documentElement.setAttribute('data-theme','dark');document.documentElement.setAttribute('data-bs-theme','dark');}</script>
     <title>Tu Carrito | San Judas Tadeo Botica Dental</title>
     <meta name="description" content="Revisa tu pedido antes de enviarlo por WhatsApp a San Judas Tadeo Botica Dental.">
     <meta name="robots" content="noindex">
@@ -42,7 +43,11 @@
             </div>
         </a>
 
-        <a href="tienda.html#catalogo" class="btn-hero-outline ms-auto">
+        <button type="button" class="btn-carrito ms-auto" id="btnTema" data-tema-boton title="Cambiar a modo oscuro" aria-label="Cambiar a modo oscuro">
+            <i class="bi bi-moon-stars-fill" data-tema-icono></i>
+        </button>
+
+        <a href="tienda.html#catalogo" class="btn-hero-outline">
             <i class="bi bi-arrow-left me-1"></i> Seguir comprando
         </a>
     </div>
@@ -70,6 +75,10 @@
                     <span id="resumenCantidadItems">0 productos</span>
                     <span id="resumenSubtotal">S/ 0.00</span>
                 </div>
+                <div class="d-flex justify-content-between small mb-2 d-none" id="resumenDescuentoFila">
+                    <span class="text-success">Cupón <span id="resumenCuponCodigo"></span></span>
+                    <span class="text-success" id="resumenDescuento">-S/ 0.00</span>
+                </div>
                 <hr>
                 <div class="d-flex justify-content-between align-items-center mb-3">
                     <span class="fw-semibold">Total</span>
@@ -77,8 +86,22 @@
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label small fw-semibold mb-1" for="carritoCupon">¿Tienes un cupón de descuento?</label>
+                    <div class="d-flex gap-2">
+                        <input type="text" class="form-control form-control-sm text-uppercase" id="carritoCupon" placeholder="Código del cupón">
+                        <button type="button" class="btn btn-outline-secondary btn-sm flex-shrink-0" id="btnAplicarCupon">Aplicar</button>
+                    </div>
+                    <div class="small mt-1 d-none" id="carritoCuponMensaje"></div>
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label small fw-semibold mb-1" for="carritoPaginaNombre">Tu nombre (opcional)</label>
                     <input type="text" class="form-control form-control-sm" id="carritoPaginaNombre" placeholder="Para identificar tu pedido">
+                </div>
+
+                <div class="form-check mb-3 d-none" id="carritoAvisarmeWrap">
+                    <input class="form-check-input" type="checkbox" id="carritoAvisarme" checked>
+                    <label class="form-check-label small" for="carritoAvisarme">Avisarme cuando confirmen mi pedido</label>
                 </div>
 
                 <button class="btn btn-agregar w-100 mb-2" id="btnFinalizarPedidoPagina">
@@ -142,6 +165,7 @@
 </div>
 
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/carrito.js"></script>
 <script src="js/carrito-pagina.js"></script>
 </body>

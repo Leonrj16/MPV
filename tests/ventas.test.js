@@ -1,6 +1,6 @@
 jest.mock('../src/config/db', () => ({ query: jest.fn(), connect: jest.fn() }));
 const pool = require('../src/config/db');
-const { registrarVenta, listarProductosDisponibles, listarVentas, obtenerVentaPorId, obtenerKpisVentas } = require('../src/services/ventas');
+const { registrarVenta, listarProductosDisponibles, listarVentas, obtenerVentaPorId, obtenerKpisVentas, obtenerTendenciaVentas } = require('../src/services/ventas');
 
 const configRow = {
     margen_utilidad_defecto_pct: '35.00',
@@ -90,6 +90,7 @@ describe('registrarVenta', () => {
             .mockResolvedValueOnce({}) // UPDATE stock
             .mockResolvedValueOnce({ rows: [{ id: 1, total: '44.30', cliente: null, metodo_pago: 'efectivo' }] }) // INSERT ventas
             .mockResolvedValueOnce({}) // INSERT venta_detalle
+            .mockResolvedValueOnce({}) // INSERT movimientos_stock
             .mockResolvedValueOnce({}); // COMMIT
         pool.connect.mockResolvedValueOnce(client);
 
@@ -176,6 +177,33 @@ describe('obtenerKpisVentas', () => {
             ventasHoy: 4,
             topProductos: [{ nombre: 'Resina Compuesta', sku: 'RES-001', cantidadVendida: 12, ingresoTotal: 224.4 }],
         });
+    });
+});
+
+describe('obtenerTendenciaVentas', () => {
+    test('mapea la serie diaria a camelCase con números', async () => {
+        pool.query.mockResolvedValueOnce({
+            rows: [
+                { fecha: new Date('2026-08-08T00:00:00'), ingresos: '0', cantidad_ventas: '0' },
+                { fecha: new Date('2026-08-09T00:00:00'), ingresos: '150.50', cantidad_ventas: '3' },
+            ],
+        });
+
+        const tendencia = await obtenerTendenciaVentas({ dias: 2 });
+
+        expect(tendencia).toEqual([
+            { fecha: '2026-08-08', ingresos: 0, cantidadVentas: 0 },
+            { fecha: '2026-08-09', ingresos: 150.5, cantidadVentas: 3 },
+        ]);
+        const [, params] = pool.query.mock.calls[0];
+        expect(params).toEqual([2]);
+    });
+
+    test('usa 30 días por defecto si el parámetro no es un entero válido', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+        await obtenerTendenciaVentas({ dias: 'x' });
+        const [, params] = pool.query.mock.calls[0];
+        expect(params).toEqual([30]);
     });
 });
 

@@ -14,6 +14,12 @@ const uploadsRoutes = require('./routes/uploads.routes');
 const pedidosWebRoutes = require('./routes/pedidosWeb.routes');
 const bitacoraRoutes = require('./routes/bitacora.routes');
 const alertasRoutes = require('./routes/alertas.routes');
+const cuponesRoutes = require('./routes/cupones.routes');
+const resenasRoutes = require('./routes/resenas.routes');
+const pushRoutes = require('./routes/push.routes');
+const backupsRoutes = require('./routes/backups.routes');
+const movimientosStockRoutes = require('./routes/movimientosStock.routes');
+const { iniciarBackupsProgramados } = require('./services/backups');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +39,11 @@ app.use('/api', uploadsRoutes);
 app.use('/api', pedidosWebRoutes);
 app.use('/api', bitacoraRoutes);
 app.use('/api', alertasRoutes);
+app.use('/api', cuponesRoutes);
+app.use('/api', resenasRoutes);
+app.use('/api', pushRoutes);
+app.use('/api', backupsRoutes);
+app.use('/api', movimientosStockRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true, service: 'mpv-dental-api' }));
 
@@ -42,4 +53,5 @@ app.use((req, res) => {
 
 app.listen(PORT, () => {
     console.log(`MPV Dental API escuchando en http://localhost:${PORT}`);
+    iniciarBackupsProgramados();
 });

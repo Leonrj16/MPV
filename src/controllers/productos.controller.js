@@ -21,15 +21,15 @@ async function listarProductos(req, res) {
 
 async function crearProducto(req, res) {
     try {
-        const { sku, nombre, descripcion, categoriaId, unidadMedida, imagenUrl, stockActual } = req.body;
+        const { sku, nombre, descripcion, categoriaId, unidadMedida, imagenUrl, stockActual, fechaVencimiento } = req.body;
         if (!sku || !nombre) {
             return res.status(400).json({ ok: false, error: 'sku y nombre son obligatorios' });
         }
         const { rows } = await pool.query(
-            `INSERT INTO productos (sku, nombre, descripcion, categoria_id, unidad_medida, imagen_url, stock_actual)
-             VALUES ($1, $2, $3, $4, COALESCE($5, 'unidad'), $6, COALESCE($7, 0))
+            `INSERT INTO productos (sku, nombre, descripcion, categoria_id, unidad_medida, imagen_url, stock_actual, fecha_vencimiento)
+             VALUES ($1, $2, $3, $4, COALESCE($5, 'unidad'), $6, COALESCE($7, 0), $8)
              RETURNING *`,
-            [sku, nombre, descripcion || null, categoriaId || null, unidadMedida, imagenUrl || null, stockActual ?? null]
+            [sku, nombre, descripcion || null, categoriaId || null, unidadMedida, imagenUrl || null, stockActual ?? null, fechaVencimiento || null]
         );
         await registrarEvento({
             usuarioId: req.user?.sub,
@@ -52,7 +52,7 @@ async function crearProducto(req, res) {
 async function actualizarProducto(req, res) {
     try {
         const { id } = req.params;
-        const { nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual, activo, imagenUrl } = req.body;
+        const { nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual, activo, imagenUrl, fechaVencimiento } = req.body;
 
         const { rows } = await pool.query(
             `UPDATE productos
@@ -63,10 +63,11 @@ async function actualizarProducto(req, res) {
                  stock_minimo = COALESCE($5, stock_minimo),
                  stock_actual = COALESCE($6, stock_actual),
                  activo = COALESCE($7, activo),
-                 imagen_url = COALESCE($8, imagen_url)
-             WHERE id = $9
+                 imagen_url = COALESCE($8, imagen_url),
+                 fecha_vencimiento = COALESCE($9, fecha_vencimiento)
+             WHERE id = $10
              RETURNING *`,
-            [nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual ?? null, activo, imagenUrl, id]
+            [nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual ?? null, activo, imagenUrl, fechaVencimiento || null, id]
         );
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Producto no encontrado' });
