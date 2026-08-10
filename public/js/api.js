@@ -203,6 +203,7 @@ const MPV = (() => {
         exportarVentasExcel: (params) => descargarArchivo('/ventas/exportar/excel', params),
         exportarVentasPDF: (params) => descargarArchivo('/ventas/exportar/pdf', params),
         exportarPedidosWebExcel: (params) => descargarArchivo('/pedidos-web/exportar/excel', params),
+        descargarCatalogoPdf: () => descargarArchivo('/catalogo/pdf'),
         formatCurrency,
     };
 })();

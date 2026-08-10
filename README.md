@@ -822,6 +822,74 @@ la API, no solo a las fases nuevas:
   configurado, y que el uso normal (login válido, cargar la tienda,
   validar un cupón) sigue respondiendo con normalidad.
 
+## Catálogo de productos en PDF (`GET /api/catalogo/pdf`)
+
+Pensado para un caso muy concreto: el staff quiere mandarle a una clínica
+un PDF con el catálogo completo por WhatsApp o email, no un link a la
+tienda. Se genera bajo demanda desde **Herramientas** ("Catálogo para
+clientes") y nunca se cachea — siempre refleja el catálogo y los precios
+del momento exacto en que se pide.
+
+### Por qué Puppeteer y no PDFKit (como las boletas/reportes)
+
+Las boletas y los reportes de ventas (`src/controllers/ventas.controller.js`,
+`export.controller.js`) usan PDFKit: calculan coordenadas de texto y cajas
+a mano, funciona bien para tablas y documentos simples. Un catálogo con
+tarjetas de producto, imágenes, una portada con degradado de marca y
+secciones por categoría es básicamente un layout de página web — armarlo
+coordenada por coordenada en PDFKit hubiera sido mucho más trabajo para un
+resultado visualmente más pobre. En cambio, `src/templates/catalogoPdf.js`
+arma un documento HTML con CSS normal (Grid para la grilla de productos,
+un degradado azul→verde igual al de la marca de la tienda) y
+`src/services/catalogoPdf.js` lo renderiza a PDF con Puppeteer
+(Chromium headless) — el mismo enfoque que usaría cualquier generador de
+reportes "bonitos" en producción.
+
+El costo real de esto es que Puppeteer trae su propio Chromium: la
+primera vez que se corre `npm install` puede tardar más y descargar
+~200 MB, y generar cada catálogo usa más CPU/RAM que un reporte con
+PDFKit (unos ~2-3 segundos por catálogo en las pruebas). Aceptable porque
+se genera bajo demanda, no en cada visita a la tienda — por eso además
+tiene su propio límite de generación (6 veces cada 15 minutos) en
+`src/middleware/rateLimit.middleware.js`, para que nadie deje sin CPU al
+servidor apretando el botón sin parar.
+
+### Contenido y diseño
+
+- **Portada**: degradado azul→verde de marca, logo (o iniciales del
+  negocio si no hay logo cargado), nombre, eslogan, cantidad total de
+  productos, fecha de generación y datos de contacto.
+- **Una sección por categoría**, en orden alfabético, con encabezado
+  propio y grilla de 3 columnas de tarjetas (imagen o un ícono de cápsula
+  como placeholder, nombre, unidad, precio).
+- Solo entran productos **activos y con un proveedor activo** (mismo
+  criterio que "vendible" en `listarProductosDisponibles` de
+  `services/ventas.js`) — un producto sin proveedor no tiene PVP
+  calculable, así que no tiene sentido publicarlo en un catálogo para
+  clientes.
+- Las categorías **fluyen sin salto de página forzado**: la primera
+  versión forzaba una página nueva por categoría, pero con pocos
+  productos (típico de un negocio recién empezando) eso dejaba páginas
+  casi vacías. Se cambió a flujo continuo con `break-after: avoid` en el
+  encabezado de categoría para que al menos no quede solo al final de una
+  hoja — se verificó generando un catálogo real: bajó de 6 páginas a 3
+  con el mismo catálogo de prueba.
+- Pie de página con el nombre del negocio y "Página X de Y" en cada hoja
+  (vía `headerTemplate`/`footerTemplate` de Puppeteer).
+
+### Un bug real que apareció al probarlo de punta a punta
+
+`page.pdf()` de Puppeteer devuelve un `Uint8Array`, no un `Buffer` real de
+Node. Pasado tal cual a `res.send()`, Express no lo reconoce como binario
+y lo serializa como JSON (`{"0":37,"1":80,...}` — cada byte como una
+clave numérica) en vez de mandar el PDF. Se detectó generando un catálogo
+real contra el servidor corriendo y abriendo el archivo descargado (decía
+"JSON text data", no "PDF document"), no solo con las pruebas unitarias
+—ahí es donde vale la pena probar de verdad además de mockear. Corregido
+envolviendo el resultado en `Buffer.from(pdf)` dentro de
+`generarCatalogoPdfBuffer`, con un test de regresión que verifica
+`Buffer.isBuffer(resultado) === true`.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación
@@ -1288,6 +1356,21 @@ sudo mkdir -p /opt/mpv-dental
 Cloná el repo en `/opt/mpv-dental`, corré `npm install --omit=dev` y creá
 la base de datos + usuario de PostgreSQL (mismo `schema.sql` y
 migraciones de `database/migrations/` que en desarrollo, en orden).
+
+`npm install` también descarga el Chromium que usa Puppeteer para el
+catálogo en PDF (Fase F/G, ver más arriba) — en un Ubuntu/Debian mínimo
+sin entorno gráfico le faltan algunas librerías del sistema que Chrome
+necesita para poder correr en modo headless:
+
+```bash
+sudo apt install -y libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 \
+    libdrm2 libxkbcommon0 libxcomposite1 libxdamage1 libxfixes3 \
+    libxrandr2 libgbm1 libasound2
+```
+
+Si después de `npm install` no aparece nada en `~/.cache/puppeteer/`,
+corré `npx puppeteer browsers install chrome` a mano dentro de
+`/opt/mpv-dental`.
 
 ### 2. Variables de entorno
 

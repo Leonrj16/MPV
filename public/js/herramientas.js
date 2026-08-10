@@ -9,6 +9,24 @@
         return div.innerHTML;
     }
 
+    // -------- Catálogo PDF --------
+    document.getElementById('btnGenerarCatalogo').addEventListener('click', async () => {
+        const btn = document.getElementById('btnGenerarCatalogo');
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        // Genera un PDF real con Puppeteer del lado del servidor — puede
+        // tardar unos segundos, no es instantáneo como los demás reportes.
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Generando…';
+        try {
+            await MPV.descargarCatalogoPdf();
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    });
+
     // -------- Cupones --------
     const ETIQUETAS_TIPO_CUPON = { porcentaje: '%', monto_fijo: 'S/' };
 

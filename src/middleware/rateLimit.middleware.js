@@ -40,4 +40,14 @@ const limiteCupones = crearLimitador({
     mensaje: 'Demasiados intentos de cupón en poco tiempo. Intenta de nuevo en unos minutos.',
 });
 
-module.exports = { limiteLogin, limitePedidos, limiteResenas, limiteCupones };
+// Este endpoint requiere sesión (admin/operador), así que el riesgo no es
+// abuso anónimo sino gastar CPU/RAM de más lanzando Chromium repetidas
+// veces en poco tiempo en un VPS chico — nadie necesita generar el
+// catálogo más de un puñado de veces en 15 minutos.
+const limiteCatalogoPdf = crearLimitador({
+    ventanaMinutos: 15,
+    maximo: 6,
+    mensaje: 'Ya generaste el catálogo varias veces seguidas. Espera unos minutos antes de volver a intentarlo.',
+});
+
+module.exports = { limiteLogin, limitePedidos, limiteResenas, limiteCupones, limiteCatalogoPdf };

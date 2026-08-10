@@ -31,6 +31,8 @@ MPVAuth.exigirRol('admin');
         stock: 'Stock',
         cupon: 'Cupón',
         resena: 'Reseña',
+        catalogo_pdf: 'Catálogo PDF',
+        backup: 'Copia de seguridad',
         sesion: 'Sesión',
     };
 
