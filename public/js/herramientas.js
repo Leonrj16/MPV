@@ -3,6 +3,12 @@
         document.getElementById('mpvSidebar').classList.toggle('show');
     });
 
+    function escaparHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto ?? '';
+        return div.innerHTML;
+    }
+
     // -------- Cupones --------
     const ETIQUETAS_TIPO_CUPON = { porcentaje: '%', monto_fijo: 'S/' };
 
@@ -15,7 +21,7 @@
         const expira = c.fecha_expiracion ? new Date(`${c.fecha_expiracion}`).toLocaleDateString('es-PE') : 'No expira';
         return `
             <tr>
-                <td data-label="Código"><span class="fw-semibold">${c.codigo}</span></td>
+                <td data-label="Código"><span class="fw-semibold">${escaparHtml(c.codigo)}</span></td>
                 <td data-label="Descuento">${formatearDescuentoCupon(c)}${Number(c.monto_minimo) > 0 ? ` <span class="pvp-sub">mín. ${MPV.formatCurrency(c.monto_minimo)}</span>` : ''}</td>
                 <td data-label="Usos">${usos}</td>
                 <td data-label="Expira">${expira}</td>
@@ -81,10 +87,10 @@
         const estrellas = Array.from({ length: 5 }, (_, i) => `<i class="bi ${i < r.calificacion ? 'bi-star-fill' : 'bi-star'}" style="color:#e8935c;"></i>`).join('');
         return `
             <tr>
-                <td data-label="Producto">${r.producto_nombre} <span class="pvp-sub">${r.sku}</span></td>
-                <td data-label="Cliente">${r.cliente_nombre}</td>
+                <td data-label="Producto">${escaparHtml(r.producto_nombre)} <span class="pvp-sub">${escaparHtml(r.sku)}</span></td>
+                <td data-label="Cliente">${escaparHtml(r.cliente_nombre)}</td>
                 <td data-label="Calificación">${estrellas}</td>
-                <td data-label="Comentario">${r.comentario || '<span class="pvp-sub">Sin comentario</span>'}</td>
+                <td data-label="Comentario">${r.comentario ? escaparHtml(r.comentario) : '<span class="pvp-sub">Sin comentario</span>'}</td>
                 <td class="text-end">
                     <button class="btn-icon-sm" title="Aprobar" data-moderar-resena="${r.id}" data-aprobado="true"><i class="bi bi-check-lg text-success"></i></button>
                     <button class="btn-icon-sm" title="Rechazar" data-moderar-resena="${r.id}" data-aprobado="false"><i class="bi bi-x-lg text-danger"></i></button>
