@@ -6,6 +6,13 @@
     const CLAVE = 'mpv_onboarding_visto';
     if (localStorage.getItem(CLAVE) === '1') return;
 
+    // Por debajo de 992px el sidebar es un panel off-canvas oculto hasta que
+    // se abre con el botón hamburguesa — resaltar sus enlaces ahí generaría
+    // un recuadro en una posición sin sentido. No se marca como "visto":
+    // si esta primera sesión fue desde el celular, el recorrido se ofrece
+    // igual la próxima vez que entren desde una pantalla de escritorio.
+    if (window.innerWidth < 992) return;
+
     const PASOS = [
         {
             selector: 'a[href="index.html"]',

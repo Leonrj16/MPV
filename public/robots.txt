@@ -15,5 +15,7 @@ Disallow: /proveedores.html
 Disallow: /usuarios.html
 Disallow: /configuracion.html
 Disallow: /ventas.html
+Disallow: /auditoria.html
+Disallow: /herramientas.html
 
 Sitemap: https://www.sanjudastadeo.dental/sitemap.xml
