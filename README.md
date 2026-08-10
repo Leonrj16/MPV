@@ -790,6 +790,38 @@ gráfico de tendencia con fechas correctas. Auditoría de accesibilidad con
 queda fuera de alcance por implicar renumerar encabezados en todo el
 sistema de diseño.
 
+### Endurecimiento de seguridad post-verificación
+
+Una revisión posterior a estas fases encontró y corrigió un XSS
+almacenado real en `public/js/herramientas.js`: `cliente_nombre` y
+`comentario` de una reseña vienen de un endpoint público sin sesión
+(`POST /api/tienda/productos/:id/resenas`) y se renderizaban en la
+tabla de moderación con `innerHTML` sin escapar — cualquier visitante
+podía inyectar HTML/script que se ejecutaría en la sesión autenticada
+del admin al abrir Herramientas. Corregido con la misma función
+`escaparHtml()` que ya usaban `tienda.js` y `auditoria.js`, aplicada
+también a `producto_nombre`, `sku` y el código de cupón por defensa en
+profundidad.
+
+De paso se sumaron dos capas de endurecimiento que le faltaban a toda
+la API, no solo a las fases nuevas:
+
+- **`helmet`** en `src/server.js` (headers `X-Content-Type-Options`,
+  `X-Frame-Options`, `Strict-Transport-Security`, etc.). La
+  `Content-Security-Policy` por defecto queda desactivada a propósito:
+  bloquearía los scripts inline que ya usa el frontend (pre-pintado del
+  tema, JSON-LD de la tienda) y migrarlos todos a nonces es un cambio
+  más grande que el de esta fase.
+- **`express-rate-limit`** (`src/middleware/rateLimit.middleware.js`)
+  en los endpoints públicos sin sesión que antes no tenían ningún
+  freno: login (10 intentos/15 min — fuerza bruta de contraseñas),
+  crear pedido y suscribirse a push (20/15 min), enviar reseña
+  (10/15 min) y validar cupón (30/15 min, más permisivo porque un
+  cliente real puede tipear mal el código un par de veces). Verificado
+  con `curl` que el límite corta en 429 justo después del máximo
+  configurado, y que el uso normal (login válido, cargar la tienda,
+  validar un cupón) sigue respondiendo con normalidad.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación

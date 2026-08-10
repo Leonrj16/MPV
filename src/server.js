@@ -1,5 +1,6 @@
 require('dotenv').config();
 const express = require('express');
+const helmet = require('helmet');
 const path = require('path');
 
 const authRoutes = require('./routes/auth.routes');
@@ -23,6 +24,14 @@ const { iniciarBackupsProgramados } = require('./services/backups');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// La Content-Security-Policy por defecto de helmet bloquearía los scripts
+// inline que ya usa el frontend (pre-pintado del tema en <head>, JSON-LD de
+// la tienda) — activarla exigiría migrarlos todos a nonces, un cambio más
+// grande que el de esta fase. Se deja desactivada y se conservan el resto
+// de cabeceras de helmet (X-Content-Type-Options, X-Frame-Options, HSTS,
+// Referrer-Policy, etc.), que sí son gratis y no rompen nada.
+app.use(helmet({ contentSecurityPolicy: false }));
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, '..', 'public')));
