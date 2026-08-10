@@ -1270,6 +1270,90 @@ sin sesión, error de credenciales, dashboard autenticado con datos reales,
 buscador y filtros de la tabla de precios, y el gráfico de tendencia del
 modal de historial.
 
+## Despliegue en producción
+
+Todo lo que sigue asume un VPS propio (Ubuntu/Debian) con Node.js ≥18,
+PostgreSQL 16 y nginx — es el camino más simple y barato para el tamaño
+de este negocio, sin depender de servicios administrados que no hacen
+falta todavía.
+
+### 1. Preparar el servidor
+
+```bash
+sudo apt update && sudo apt install -y nginx postgresql certbot python3-certbot-nginx
+sudo useradd --system --no-create-home --shell /usr/sbin/nologin mpvdental
+sudo mkdir -p /opt/mpv-dental
+```
+
+Cloná el repo en `/opt/mpv-dental`, corré `npm install --omit=dev` y creá
+la base de datos + usuario de PostgreSQL (mismo `schema.sql` y
+migraciones de `database/migrations/` que en desarrollo, en orden).
+
+### 2. Variables de entorno
+
+Copiá `.env.example` a `.env` dentro de `/opt/mpv-dental` y completá:
+
+- `JWT_SECRET` — una cadena larga y aleatoria nueva, **no** la de
+  desarrollo (`node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`).
+- `DB_PASSWORD` — una contraseña real de PostgreSQL, no `postgres`.
+- `VAPID_PUBLIC_KEY` / `VAPID_PRIVATE_KEY` / `VAPID_SUBJECT` — un par
+  propio (`node -e "console.log(require('web-push').generateVAPIDKeys())"`),
+  con `VAPID_SUBJECT` apuntando a un email real de contacto.
+- `TRUST_PROXY=1` — recién ahora tiene sentido activarlo, porque en este
+  paso a paso sí hay un nginx real por delante (ver la nota de seguridad
+  más abajo).
+
+### 3. systemd — mantener la API corriendo
+
+Usa `deploy/mpv-dental.service.example` como plantilla (instrucciones de
+instalación en el propio archivo). Con eso la API se reinicia sola si se
+cae y arranca sola cuando el servidor reinicia.
+
+### 4. nginx + HTTPS
+
+Usa `deploy/nginx.conf.example` como plantilla, apuntando tu dominio real
+al servidor, y corré Certbot para el certificado:
+
+```bash
+sudo certbot --nginx -d tu-dominio.com -d www.tu-dominio.com
+```
+
+**HTTPS no es opcional acá**: las notificaciones push (Fase G3) y el
+manifest de la PWA (Fase C) solo funcionan sobre HTTPS fuera de
+`localhost` — es una restricción del navegador, no de esta app.
+
+### 5. Verificar
+
+- `curl https://tu-dominio.com/health` → `{"ok":true,...}`
+- Login real, un pedido de prueba en la tienda, y que la notificación
+  push llegue de verdad al confirmar un pedido — esto último **no se
+  pudo probar durante el desarrollo** (ver nota abajo), así que vale la
+  pena confirmarlo una vez publicado.
+- `sudo journalctl -u mpv-dental -f` para ver los logs en vivo.
+
+### Nota de seguridad: `TRUST_PROXY`
+
+Los limitadores de `express-rate-limit` (login, pedidos, reseñas,
+cupones — ver más abajo) identifican al cliente por su IP. Detrás de
+nginx, esa IP le llega a Express en el header `X-Forwarded-For`, pero
+Express solo lo respeta si `app.set('trust proxy', ...)` está activo. Se
+dejó **apagado por defecto** y solo se prende con `TRUST_PROXY=1`: si se
+activara sin un proxy real por delante, cualquier visitante podría
+falsificar ese header para hacerse pasar por otra IP y saltarse su
+propio límite (o culpar a otra IP del suyo). En este paso a paso sí
+corresponde activarlo, porque nginx es un proxy real.
+
+### Nota: no se pudo probar el push en vivo desde este entorno
+
+Durante el desarrollo se intentó una prueba de punta a punta del flujo de
+notificaciones push (Fase G3) con un navegador real, y `pushManager.subscribe()`
+quedó colgado indefinidamente. La causa más probable: el Chromium de este
+entorno de desarrollo es una build sin marca, sin la API key de Google que
+un navegador necesita para registrarse contra el servicio de push real
+(FCM) — una limitación conocida de Chromium open-source, no del código de
+la app. Con el sitio ya en HTTPS y un Chrome/Edge real, debería funcionar
+sin cambios; de todos modos conviene confirmarlo apenas se publique.
+
 ## Próximas fases sugeridas
 
 Fases A, B, C, D, F, G y H ya implementadas (ver secciones arriba).

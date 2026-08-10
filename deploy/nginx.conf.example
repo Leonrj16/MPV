@@ -1,0 +1,40 @@
+# Configuración de nginx como reverse proxy para MPV Dental.
+#
+# Reemplaza sanjudastadeo.dental por tu dominio real y copia este archivo a
+# /etc/nginx/sites-available/mpv-dental, después:
+#   sudo ln -s /etc/nginx/sites-available/mpv-dental /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# Para el certificado HTTPS (obligatorio: Web Push y el manifest de PWA no
+# funcionan bien sin HTTPS fuera de localhost), usa Certbot:
+#   sudo apt install certbot python3-certbot-nginx
+#   sudo certbot --nginx -d sanjudastadeo.dental -d www.sanjudastadeo.dental
+# Certbot reescribe este bloque para agregar los certificados y el
+# redirect automático de HTTP a HTTPS — no hace falta configurarlo a mano.
+
+server {
+    listen 80;
+    listen [::]:80;
+    server_name sanjudastadeo.dental www.sanjudastadeo.dental;
+
+    # Certbot reemplaza este bloque entero por la config HTTPS + redirect.
+    location / {
+        proxy_pass http://127.0.0.1:3000;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+
+        # Necesario si en el futuro se agrega algo por WebSocket; no molesta
+        # a las peticiones HTTP normales dejarlo puesto.
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+
+    # Límite de subida de imágenes (logo/portada/productos vía
+    # src/routes/uploads.routes.js, que ya rechaza archivos de más de 3 MB) —
+    # un poco por encima de eso para que sea la app, no nginx, quien dé el
+    # mensaje de error claro.
+    client_max_body_size 5M;
+}

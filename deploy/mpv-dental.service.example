@@ -1,0 +1,36 @@
+# Servicio systemd para mantener la API de MPV Dental corriendo: la
+# reinicia sola si se cae, y la levanta sola cuando el servidor reinicia.
+#
+# Instalación:
+#   1. Ajusta User, WorkingDirectory y la ruta de node si hace falta.
+#   2. sudo cp deploy/mpv-dental.service.example /etc/systemd/system/mpv-dental.service
+#   3. sudo systemctl daemon-reload
+#   4. sudo systemctl enable --now mpv-dental
+#
+# Logs:  sudo journalctl -u mpv-dental -f
+# Reiniciar tras un cambio de código:  sudo systemctl restart mpv-dental
+
+[Unit]
+Description=MPV Dental — API y panel de precios
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+# Crea este usuario sin privilegios de login para no correr la app como
+# root: sudo useradd --system --no-create-home --shell /usr/sbin/nologin mpvdental
+User=mpvdental
+WorkingDirectory=/opt/mpv-dental
+EnvironmentFile=/opt/mpv-dental/.env
+ExecStart=/usr/bin/node src/server.js
+Restart=on-failure
+RestartSec=5
+
+# Endurecimiento estándar de systemd — no necesita acceso a nada fuera de
+# su propio directorio (el pool de PostgreSQL corre aparte, por red/socket).
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/opt/mpv-dental/backups /opt/mpv-dental/public/uploads
+
+[Install]
+WantedBy=multi-user.target

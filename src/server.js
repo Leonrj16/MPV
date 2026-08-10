@@ -25,6 +25,17 @@ const { iniciarBackupsProgramados } = require('./services/backups');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Solo se activa detrás de un reverse proxy real (nginx en producción, ver
+// deploy/nginx.conf.example) — ahí Express necesita confiar en el header
+// X-Forwarded-For para que express-rate-limit identifique al cliente real
+// y no a nginx. Confiar en ese header SIN un proxy real por delante dejaría
+// que cualquiera lo falsifique para saltarse el límite de peticiones, por
+// eso queda apagado por defecto y se enciende explícitamente con la
+// variable de entorno TRUST_PROXY=1.
+if (process.env.TRUST_PROXY === '1') {
+    app.set('trust proxy', 1);
+}
+
 // La Content-Security-Policy por defecto de helmet bloquearía los scripts
 // inline que ya usa el frontend (pre-pintado del tema en <head>, JSON-LD de
 // la tienda) — activarla exigiría migrarlos todos a nonces, un cambio más
