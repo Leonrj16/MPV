@@ -99,7 +99,7 @@ body {
     left: var(--sidebar-inset);
     bottom: var(--sidebar-inset);
     width: var(--sidebar-width);
-    background: linear-gradient(165deg, var(--mpv-blue), var(--mpv-blue-dark));
+    background: var(--mpv-blue-dark);
     border-radius: var(--mpv-radius);
     box-shadow: 0 20px 44px -20px rgba(23, 36, 32, 0.35);
     display: flex;
@@ -134,6 +134,7 @@ body {
     font-weight: 700;
     font-size: 1.02rem;
     line-height: 1.1;
+    letter-spacing: -0.01em;
     color: #fff;
 }
 
@@ -266,6 +267,7 @@ body {
 .mpv-topbar h1 {
     font-size: 1.15rem;
     font-weight: 700;
+    letter-spacing: -0.01em;
     margin: 0;
 }
 
@@ -278,9 +280,6 @@ body {
 .mpv-content {
     padding: 1.75rem;
     flex: 1;
-    background:
-        radial-gradient(circle at 100% 0%, rgba(47, 84, 69, 0.05), transparent 40%),
-        radial-gradient(circle at 0% 100%, rgba(63, 156, 114, 0.04), transparent 40%);
 }
 
 @media (max-width: 991.98px) {
@@ -379,7 +378,7 @@ body {
     position: absolute;
     top: 0; left: 0; right: 0;
     height: 3px;
-    background: linear-gradient(90deg, var(--mpv-blue), var(--mpv-emerald));
+    background: var(--mpv-emerald);
     opacity: 0;
     transition: opacity var(--dur-base) var(--ease-out);
 }
@@ -463,6 +462,7 @@ body {
 .mpv-panel-header h2 {
     font-size: 1.02rem;
     font-weight: 700;
+    letter-spacing: -0.01em;
     margin: 0;
 }
 
@@ -790,21 +790,22 @@ body {
 
 /* Botón primario de marca */
 .btn-mpv-primary {
-    background: linear-gradient(135deg, var(--mpv-blue), var(--mpv-blue-dark));
+    background: var(--mpv-blue);
     border: none;
     color: #fff;
     font-weight: 650;
     border-radius: 10px;
     padding: 0.55rem 1.1rem;
     font-size: 0.85rem;
-    box-shadow: 0 4px 10px -4px rgba(37, 99, 235, 0.5);
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: 0 4px 10px -4px rgba(47, 84, 69, 0.45);
+    transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-mpv-primary:hover {
+    background: var(--mpv-blue-dark);
     color: #fff;
     transform: translateY(-1px);
-    box-shadow: 0 8px 16px -6px rgba(37, 99, 235, 0.55);
+    box-shadow: 0 8px 16px -6px rgba(47, 84, 69, 0.5);
 }
 
 .btn-mpv-outline {
