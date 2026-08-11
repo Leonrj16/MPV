@@ -12,6 +12,8 @@
     const btnRegistrar = document.getElementById('btnRegistrarVenta');
     const errorBox = document.getElementById('posError');
     const exitoBox = document.getElementById('posExito');
+    const escaner = document.getElementById('posEscaner');
+    const escanerError = document.getElementById('posEscanerError');
 
     document.getElementById('btnToggleSidebar')?.addEventListener('click', () => {
         document.getElementById('mpvSidebar').classList.toggle('show');
@@ -114,6 +116,31 @@
         renderCarrito();
     }
 
+    function mostrarErrorEscaner(mensaje) {
+        escanerError.textContent = mensaje;
+        escanerError.classList.remove('d-none');
+    }
+
+    function procesarEscaneo(codigo) {
+        escanerError.classList.add('d-none');
+        const valor = codigo.trim();
+        if (!valor) return;
+
+        const producto = productos.find((p) => p.codigoBarras === valor);
+        if (!producto) {
+            mostrarErrorEscaner(`Ningún producto tiene el código "${valor}".`);
+        } else if (!producto.vendible) {
+            mostrarErrorEscaner(`"${producto.nombre}" no tiene proveedor activo, no se puede vender.`);
+        } else if ((carrito.get(producto.id)?.cantidad || 0) >= producto.stockActual) {
+            mostrarErrorEscaner(`"${producto.nombre}" no tiene stock disponible.`);
+        } else {
+            agregarAlCarrito(producto.id);
+        }
+
+        escaner.value = '';
+        escaner.focus();
+    }
+
     function cambiarCantidad(productoId, nuevaCantidad) {
         const entrada = carrito.get(productoId);
         if (!entrada) return;
@@ -172,6 +199,18 @@
     });
 
     buscador.addEventListener('input', renderGrid);
+
+    escaner.addEventListener('keydown', (e) => {
+        if (e.key !== 'Enter') return;
+        e.preventDefault();
+        procesarEscaneo(escaner.value);
+    });
+
+    document.getElementById('btnEscanearPos').addEventListener('click', () => {
+        BarcodeScanner.abrir({ onDetectado: (codigo) => procesarEscaneo(codigo) });
+    });
+
+    escaner.focus();
 
     async function cargarProductos() {
         try {

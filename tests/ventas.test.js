@@ -114,15 +114,15 @@ describe('listarProductosDisponibles', () => {
             .mockResolvedValueOnce({ rows: [configRow] })
             .mockResolvedValueOnce({
                 rows: [
-                    { id: 1, sku: 'RES-001', nombre: 'Resina', unidad_medida: 'jeringa', stock_actual: 40, categoria_nombre: 'Resinas', precio_compra_unitario: '8.50' },
-                    { id: 6, sku: 'HIL-500', nombre: 'Hilo', unidad_medida: 'caja', stock_actual: 0, categoria_nombre: 'Bioseguridad', precio_compra_unitario: null },
+                    { id: 1, sku: 'RES-001', nombre: 'Resina', unidad_medida: 'jeringa', stock_actual: 40, codigo_barras: '7501234567890', categoria_nombre: 'Resinas', precio_compra_unitario: '8.50' },
+                    { id: 6, sku: 'HIL-500', nombre: 'Hilo', unidad_medida: 'caja', stock_actual: 0, codigo_barras: null, categoria_nombre: 'Bioseguridad', precio_compra_unitario: null },
                 ],
             });
 
         const productos = await listarProductosDisponibles();
 
-        expect(productos[0]).toMatchObject({ id: 1, vendible: true, pvpSugerido: 20.88 });
-        expect(productos[1]).toMatchObject({ id: 6, vendible: false, pvpSugerido: null });
+        expect(productos[0]).toMatchObject({ id: 1, vendible: true, pvpSugerido: 20.88, codigoBarras: '7501234567890' });
+        expect(productos[1]).toMatchObject({ id: 6, vendible: false, pvpSugerido: null, codigoBarras: null });
     });
 });
 

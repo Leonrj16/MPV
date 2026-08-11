@@ -87,6 +87,17 @@
                             <input type="text" id="posBuscador" class="form-control" placeholder="Buscar por producto o SKU…">
                         </div>
                     </div>
+                    <div class="px-3 pt-3">
+                        <label class="form-label small fw-semibold" for="posEscaner">Escanear código de barras</label>
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="bi bi-upc-scan"></i></span>
+                            <input type="text" id="posEscaner" class="form-control" placeholder="Escanea con el lector o apunta la cámara, y presiona Enter" autocomplete="off">
+                            <button type="button" class="btn btn-mpv-outline" id="btnEscanearPos" title="Escanear con la cámara del celular">
+                                <i class="bi bi-camera-fill"></i>
+                            </button>
+                        </div>
+                        <div class="alert alert-warning py-2 small d-none mt-2" id="posEscanerError"></div>
+                    </div>
                     <div class="p-3" id="posGrid">
                         <div class="mpv-empty"><i class="bi bi-hourglass-split"></i>Cargando productos…</div>
                     </div>
@@ -140,6 +151,7 @@
 <script src="js/theme.js"></script>
 <script src="js/api.js"></script>
 <script src="js/alertas-bell.js"></script>
+<script src="js/barcode-scanner.js"></script>
 <script src="js/punto-venta.js"></script>
 </body>
 </html>

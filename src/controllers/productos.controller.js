@@ -21,15 +21,15 @@ async function listarProductos(req, res) {
 
 async function crearProducto(req, res) {
     try {
-        const { sku, nombre, descripcion, categoriaId, unidadMedida, imagenUrl, stockActual, fechaVencimiento } = req.body;
+        const { sku, nombre, descripcion, categoriaId, unidadMedida, imagenUrl, stockActual, fechaVencimiento, codigoBarras } = req.body;
         if (!sku || !nombre) {
             return res.status(400).json({ ok: false, error: 'sku y nombre son obligatorios' });
         }
         const { rows } = await pool.query(
-            `INSERT INTO productos (sku, nombre, descripcion, categoria_id, unidad_medida, imagen_url, stock_actual, fecha_vencimiento)
-             VALUES ($1, $2, $3, $4, COALESCE($5, 'unidad'), $6, COALESCE($7, 0), $8)
+            `INSERT INTO productos (sku, nombre, descripcion, categoria_id, unidad_medida, imagen_url, stock_actual, fecha_vencimiento, codigo_barras)
+             VALUES ($1, $2, $3, $4, COALESCE($5, 'unidad'), $6, COALESCE($7, 0), $8, $9)
              RETURNING *`,
-            [sku, nombre, descripcion || null, categoriaId || null, unidadMedida, imagenUrl || null, stockActual ?? null, fechaVencimiento || null]
+            [sku, nombre, descripcion || null, categoriaId || null, unidadMedida, imagenUrl || null, stockActual ?? null, fechaVencimiento || null, codigoBarras || null]
         );
         await registrarEvento({
             usuarioId: req.user?.sub,
@@ -42,7 +42,11 @@ async function crearProducto(req, res) {
         res.status(201).json({ ok: true, data: rows[0] });
     } catch (err) {
         if (err.code === '23505') {
-            return res.status(409).json({ ok: false, error: 'Ya existe un producto con ese SKU' });
+            const esCodigoBarras = err.constraint?.includes('codigo_barras');
+            return res.status(409).json({
+                ok: false,
+                error: esCodigoBarras ? 'Ya existe un producto con ese código de barras' : 'Ya existe un producto con ese SKU',
+            });
         }
         console.error(err);
         res.status(500).json({ ok: false, error: err.message });
@@ -52,7 +56,7 @@ async function crearProducto(req, res) {
 async function actualizarProducto(req, res) {
     try {
         const { id } = req.params;
-        const { nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual, activo, imagenUrl, fechaVencimiento } = req.body;
+        const { nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual, activo, imagenUrl, fechaVencimiento, codigoBarras } = req.body;
 
         const { rows } = await pool.query(
             `UPDATE productos
@@ -64,10 +68,11 @@ async function actualizarProducto(req, res) {
                  stock_actual = COALESCE($6, stock_actual),
                  activo = COALESCE($7, activo),
                  imagen_url = COALESCE($8, imagen_url),
-                 fecha_vencimiento = COALESCE($9, fecha_vencimiento)
-             WHERE id = $10
+                 fecha_vencimiento = COALESCE($9, fecha_vencimiento),
+                 codigo_barras = COALESCE($10, codigo_barras)
+             WHERE id = $11
              RETURNING *`,
-            [nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual ?? null, activo, imagenUrl, fechaVencimiento || null, id]
+            [nombre, descripcion, categoriaId, unidadMedida, stockMinimo, stockActual ?? null, activo, imagenUrl, fechaVencimiento || null, codigoBarras || null, id]
         );
         if (rows.length === 0) {
             return res.status(404).json({ ok: false, error: 'Producto no encontrado' });
@@ -82,6 +87,9 @@ async function actualizarProducto(req, res) {
         });
         res.json({ ok: true, data: rows[0] });
     } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ ok: false, error: 'Ya existe un producto con ese código de barras' });
+        }
         console.error(err);
         res.status(500).json({ ok: false, error: err.message });
     }

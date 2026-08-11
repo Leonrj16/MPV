@@ -120,6 +120,13 @@
 
     buscador.addEventListener('input', aplicarFiltro);
 
+    document.getElementById('btnEscanearNuevo').addEventListener('click', () => {
+        BarcodeScanner.abrir({ onDetectado: (codigo) => { document.getElementById('nuevoCodigoBarras').value = codigo; } });
+    });
+    document.getElementById('btnEscanearEditar').addEventListener('click', () => {
+        BarcodeScanner.abrir({ onDetectado: (codigo) => { document.getElementById('editarCodigoBarras').value = codigo; } });
+    });
+
     const modalNuevo = new bootstrap.Modal(document.getElementById('modalNuevoProducto'));
     const modalEditar = new bootstrap.Modal(document.getElementById('modalEditarProducto'));
     const modalMovimientos = new bootstrap.Modal(document.getElementById('modalMovimientosStock'));
@@ -139,6 +146,7 @@
             document.getElementById('editarDescripcion').value = p.descripcion || '';
             document.getElementById('editarImagenUrl').value = p.imagen_url || '';
             document.getElementById('editarFechaVencimiento').value = p.fecha_vencimiento ? p.fecha_vencimiento.slice(0, 10) : '';
+            document.getElementById('editarCodigoBarras').value = p.codigo_barras || '';
             document.getElementById('editarActivo').checked = p.activo;
             document.getElementById('editarProductoError').classList.add('d-none');
             modalEditar.show();
@@ -215,6 +223,7 @@
                 imagenUrl: document.getElementById('nuevoImagenUrl').value || null,
                 stockActual: Number(document.getElementById('nuevoStock').value) || 0,
                 fechaVencimiento: document.getElementById('nuevoFechaVencimiento').value || null,
+                codigoBarras: document.getElementById('nuevoCodigoBarras').value.trim() || null,
             });
             modalNuevo.hide();
             document.getElementById('formNuevoProducto').reset();
@@ -245,6 +254,7 @@
                 stockActual: Number(document.getElementById('editarStock').value),
                 stockMinimo: Number(document.getElementById('editarStockMinimo').value),
                 fechaVencimiento: document.getElementById('editarFechaVencimiento').value || null,
+                codigoBarras: document.getElementById('editarCodigoBarras').value.trim() || null,
             });
             modalEditar.hide();
             await cargar();

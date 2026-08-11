@@ -959,6 +959,74 @@ completó el *font-swap* — se agregó `await page.evaluate(() => document.font
 antes de `page.pdf()` para no capturar la página un instante antes de que
 la tipografía/íconos ya estén listos para dibujarse.
 
+## Código de barras — Productos y Punto de Venta
+
+Los productos ahora pueden tener un código de barras asignado
+(`productos.codigo_barras`, migración `013_productos_codigo_barras.sql`,
+`VARCHAR(64) UNIQUE` y nullable — no todos los productos lo van a tener
+cargado de entrada, y Postgres permite múltiples `NULL` en una columna
+`UNIQUE` sin necesidad de un índice parcial). Con eso se puede:
+
+- **Asignarlo** al crear o editar un producto (`public/productos.html`),
+  escribiéndolo a mano o escaneándolo con la cámara.
+- **Usarlo en el Punto de Venta** para agregar el producto a la venta
+  escaneando, en vez de buscarlo por nombre en la grilla.
+
+### Dos formas de escanear, cero librerías de terceros
+
+- **Lector físico USB/Bluetooth**: no necesita ninguna integración de
+  software. Casi todos estos lectores funcionan como un teclado — "tipean"
+  los dígitos del código en el campo que tenga el foco en ese momento y
+  rematan con un Enter. Por eso el input `#posEscaner` en Punto de Venta
+  viene con foco automático al cargar la página y escucha la tecla Enter;
+  con el lector conectado, basta con disparar el gatillo.
+- **Cámara del celular/laptop**: `public/js/barcode-scanner.js` usa la API
+  nativa del navegador `BarcodeDetector` (Shape Detection API) en vez de
+  vendorizar una librería JS de escaneo (tipo ZXing) — evita sumar una
+  dependencia externa solo para esto. Construye su propio modal Bootstrap
+  con un `<video>`, pide la cámara trasera con
+  `getUserMedia({ video: { facingMode: 'environment' } })` y corre un loop
+  de detección por `requestAnimationFrame` hasta encontrar un código o que
+  se cierre el modal. Se usa el mismo módulo desde Productos (botón junto
+  al campo de código de barras) y desde Punto de Venta (botón de cámara
+  junto al input de escaneo).
+  - **Soporte de navegador**: `BarcodeDetector` está disponible en Chrome
+    de escritorio y Chrome/WebView de Android, pero no en Safari ni
+    Firefox al día de hoy. El módulo hace *feature-detection*
+    (`'BarcodeDetector' in window`) y, si no está disponible, muestra una
+    alerta explicando que se puede seguir usando un lector físico o
+    escribir el código a mano — degradación explícita en vez de un botón
+    que falla en silencio.
+
+### Punto de Venta no necesitó un endpoint nuevo
+
+`listarProductosDisponibles()` (`src/services/ventas.js`) ya cargaba en
+memoria, del lado del cliente, la lista completa de productos vendibles
+con su stock y PVP — Punto de Venta la usa para pintar la grilla. Bastó
+con agregar `codigo_barras` al `SELECT` y exponerlo como `codigoBarras` en
+la respuesta; el escaneo en `punto-venta.js` resuelve el código contra ese
+mismo arreglo ya cargado (`productos.find(p => p.codigoBarras === valor)`)
+sin ida y vuelta al servidor. Un código que no matchea ningún producto, o
+que matchea uno sin proveedor activo o sin stock, muestra un aviso inline
+en vez de fallar silenciosamente — la misma lógica de "por qué no se puede
+vender" que ya usa la grilla normal.
+
+### Conflictos de código duplicado
+
+`crearProducto`/`actualizarProducto` (`src/controllers/productos.controller.js`)
+distinguen, ante un error `23505` (violación de restricción `UNIQUE`) de
+Postgres, si el conflicto fue por SKU duplicado o por código de barras
+duplicado inspeccionando `err.constraint` (contiene el nombre de la
+restricción, ej. `productos_codigo_barras_key`), para devolver el mensaje
+correcto en vez de uno genérico.
+
+Verificado con Playwright contra PostgreSQL real: asignar un código de
+barras a un producto existente desde Productos, confirmar que persiste
+reabriendo el modal de edición, y luego escanearlo (tipeando el código +
+Enter, simulando un lector físico) en Punto de Venta y confirmar que el
+producto se agrega al carrito — además del caso de un código que no
+corresponde a ningún producto, que muestra el aviso sin romper la página.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación

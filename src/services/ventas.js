@@ -124,7 +124,7 @@ async function registrarVenta({ items, cliente, metodoPago, usuarioId }) {
 async function listarProductosDisponibles() {
     const config = await obtenerConfigActiva();
     const { rows } = await pool.query(
-        `SELECT p.id, p.sku, p.nombre, p.unidad_medida, p.stock_actual,
+        `SELECT p.id, p.sku, p.nombre, p.unidad_medida, p.stock_actual, p.codigo_barras,
                 c.nombre AS categoria_nombre,
                 opt.precio_compra_unitario
          FROM productos p
@@ -145,6 +145,7 @@ async function listarProductosDisponibles() {
             nombre: fila.nombre,
             unidadMedida: fila.unidad_medida,
             stockActual: fila.stock_actual,
+            codigoBarras: fila.codigo_barras,
             categoria: fila.categoria_nombre,
             pvpSugerido,
             vendible,
