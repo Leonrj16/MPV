@@ -12,3 +12,7 @@ public/uploads/*
 # Backups de la base de datos generados por src/services/backups.js —
 # contienen datos reales de clientes/ventas, nunca se versionan.
 backups/
+
+# Estado local del harness de Claude Code (worktrees temporales de
+# subagentes, etc.) — no es contenido del proyecto.
+.claude/
