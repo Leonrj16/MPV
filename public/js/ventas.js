@@ -19,6 +19,7 @@
         tarjeta: 'Tarjeta',
         yape_plin: 'Yape / Plin',
         transferencia: 'Transferencia',
+        mixto: 'Pago dividido',
     };
 
     function formatearFecha(iso) {
