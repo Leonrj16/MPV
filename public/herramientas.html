@@ -88,6 +88,63 @@
             </div>
         </div>
 
+        <!-- Inventario valorizado -->
+        <div class="mpv-panel mb-4">
+            <div class="mpv-panel-header">
+                <div>
+                    <h2>Inventario valorizado</h2>
+                    <div class="panel-sub">Cuánto dinero hay parado en stock hoy, a precio de compra y a precio de venta potencial</div>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-mpv-outline" id="btnExportarInventarioExcel"><i class="bi bi-file-earmark-excel-fill me-1"></i>Excel</button>
+                    <button class="btn btn-mpv-outline" id="btnExportarInventarioPDF"><i class="bi bi-file-earmark-pdf-fill me-1"></i>PDF</button>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="row g-3 mb-2">
+                    <div class="col-12 col-md-4">
+                        <div class="kpi-card">
+                            <div class="kpi-icon bg-blue"><i class="bi bi-box-seam-fill"></i></div>
+                            <div class="kpi-value kpi-value-money" id="inventarioValorCompra">S/ 0.00</div>
+                            <div class="kpi-label">Valor de compra (stock actual)</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="kpi-card">
+                            <div class="kpi-icon bg-emerald"><i class="bi bi-graph-up-arrow"></i></div>
+                            <div class="kpi-value kpi-value-money" id="inventarioValorVenta">S/ 0.00</div>
+                            <div class="kpi-label">Venta potencial (a PVP sugerido)</div>
+                        </div>
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <div class="kpi-card">
+                            <div class="kpi-icon bg-amber"><i class="bi bi-cash-stack"></i></div>
+                            <div class="kpi-value kpi-value-money" id="inventarioMargenPotencial">S/ 0.00</div>
+                            <div class="kpi-label">Margen potencial si se vende todo</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-warning py-2 small d-none" id="inventarioAvisoSinPrecio"></div>
+            </div>
+            <div class="mpv-table-wrap" tabindex="0" role="region" aria-label="Tabla de inventario valorizado con desplazamiento horizontal">
+                <table class="mpv-table sin-acciones">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Stock</th>
+                            <th>P. Compra</th>
+                            <th>Valor Compra</th>
+                            <th>Valor Venta Pot.</th>
+                        </tr>
+                    </thead>
+                    <tbody id="inventarioTableBody">
+                        <tr class="skeleton-row"><td colspan="6"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
         <!-- Cupones de descuento -->
         <div class="mpv-panel mb-4">
             <div class="mpv-panel-header">

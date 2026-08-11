@@ -39,6 +39,7 @@
                         <span class="dot"></span> ${p.productos_count} producto${p.productos_count === '1' ? '' : 's'}
                     </span>
                 </td>
+                <td data-label="Entrega prom.">${p.tiempo_entrega_promedio !== null ? `${p.tiempo_entrega_promedio} días` : '<span class="pvp-sub">Sin datos</span>'}</td>
                 <td data-label="Estado">${p.activo ? '<span class="supplier-badge optimo"><span class="dot"></span> Activo</span>' : '<span class="supplier-badge"><span class="dot"></span> Inactivo</span>'}</td>
                 <td class="text-end">
                     ${esAdmin ? `
@@ -49,6 +50,45 @@
                 </td>
             </tr>
         `;
+    }
+
+    function tarjetaRankingHtml(p, posicion) {
+        const medallas = ['🥇', '🥈', '🥉'];
+        return `
+            <div class="col-12 col-md-4">
+                <div class="kpi-card h-100" style="display:flex; flex-direction:column; gap:0.35rem;">
+                    <div class="d-flex align-items-center justify-content-between">
+                        <span class="fw-semibold">${medallas[posicion] || ''} ${p.nombre}</span>
+                        ${estrellas(p.calificacion)}
+                    </div>
+                    <div class="pvp-sub d-flex flex-wrap gap-3">
+                        <span><i class="bi bi-truck"></i> ${p.tiempo_entrega_promedio !== null ? `${p.tiempo_entrega_promedio} días de entrega` : 'Sin datos de entrega'}</span>
+                        <span><i class="bi bi-box-seam"></i> ${p.productos_count} producto${p.productos_count === '1' ? '' : 's'} activo${p.productos_count === '1' ? '' : 's'}</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderRanking(proveedores) {
+        const cont = document.getElementById('rankingProveedoresRow');
+        const panel = document.getElementById('panelRankingProveedores');
+        const candidatos = proveedores.filter((p) => p.activo && Number(p.calificacion) > 0);
+        if (candidatos.length === 0) {
+            panel.classList.add('d-none');
+            return;
+        }
+        panel.classList.remove('d-none');
+        const top = [...candidatos]
+            .sort((a, b) => {
+                if (Number(b.calificacion) !== Number(a.calificacion)) return Number(b.calificacion) - Number(a.calificacion);
+                const entregaA = a.tiempo_entrega_promedio === null ? Infinity : Number(a.tiempo_entrega_promedio);
+                const entregaB = b.tiempo_entrega_promedio === null ? Infinity : Number(b.tiempo_entrega_promedio);
+                if (entregaA !== entregaB) return entregaA - entregaB;
+                return Number(b.productos_count) - Number(a.productos_count);
+            })
+            .slice(0, 3);
+        cont.innerHTML = top.map((p, i) => tarjetaRankingHtml(p, i)).join('');
     }
 
     function aplicarFiltro() {
@@ -64,7 +104,7 @@
     function renderTabla(proveedores) {
         resultCount.textContent = `${proveedores.length} proveedor${proveedores.length === 1 ? '' : 'es'} registrado${proveedores.length === 1 ? '' : 's'}`;
         if (proveedores.length === 0) {
-            tbody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-search"></i>No se encontraron proveedores.</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="mpv-empty"><i class="bi bi-search"></i>No se encontraron proveedores.</td></tr>`;
             return;
         }
         tbody.innerHTML = proveedores.map(filaHtml).join('');
@@ -75,9 +115,11 @@
             const { data } = await MPV.getProveedores();
             proveedoresCompletos = data;
             renderTabla(proveedoresCompletos);
+            renderRanking(proveedoresCompletos);
         } catch (err) {
-            tbody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
+            tbody.innerHTML = `<tr><td colspan="8" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
             resultCount.textContent = 'Sin conexión';
+            document.getElementById('panelRankingProveedores').classList.add('d-none');
         }
     }
 

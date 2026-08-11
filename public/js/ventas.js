@@ -6,6 +6,12 @@
         document.getElementById('mpvSidebar').classList.toggle('show');
     });
 
+    function escaparHtml(texto) {
+        const div = document.createElement('div');
+        div.textContent = texto ?? '';
+        return div.innerHTML;
+    }
+
     function debounce(fn, ms) {
         let timeout;
         return (...args) => {
@@ -36,18 +42,77 @@
     // -------- Selector de pestaña --------
     const tabMostrador = document.getElementById('tabMostrador');
     const tabPedidosWeb = document.getElementById('tabPedidosWeb');
+    const tabClientesFrecuentes = document.getElementById('tabClientesFrecuentes');
     const panelMostrador = document.getElementById('panelMostrador');
     const panelPedidosWeb = document.getElementById('panelPedidosWeb');
+    const panelClientesFrecuentes = document.getElementById('panelClientesFrecuentes');
+
+    let clientesFrecuentesCargados = false;
 
     function mostrarTab(tab) {
-        const esMostrador = tab === 'mostrador';
-        panelMostrador.classList.toggle('d-none', !esMostrador);
-        panelPedidosWeb.classList.toggle('d-none', esMostrador);
-        tabMostrador.className = esMostrador ? 'btn btn-mpv-primary' : 'btn btn-mpv-outline';
-        tabPedidosWeb.className = esMostrador ? 'btn btn-mpv-outline' : 'btn btn-mpv-primary';
+        panelMostrador.classList.toggle('d-none', tab !== 'mostrador');
+        panelPedidosWeb.classList.toggle('d-none', tab !== 'pedidos');
+        panelClientesFrecuentes.classList.toggle('d-none', tab !== 'clientes');
+        tabMostrador.className = tab === 'mostrador' ? 'btn btn-mpv-primary' : 'btn btn-mpv-outline';
+        tabPedidosWeb.className = tab === 'pedidos' ? 'btn btn-mpv-primary' : 'btn btn-mpv-outline';
+        tabClientesFrecuentes.className = tab === 'clientes' ? 'btn btn-mpv-primary' : 'btn btn-mpv-outline';
+        if (tab === 'clientes' && !clientesFrecuentesCargados) {
+            clientesFrecuentesCargados = true;
+            cargarClientesFrecuentes();
+        }
     }
     tabMostrador.addEventListener('click', () => mostrarTab('mostrador'));
     tabPedidosWeb.addEventListener('click', () => mostrarTab('pedidos'));
+    tabClientesFrecuentes.addEventListener('click', () => mostrarTab('clientes'));
+
+    // -------- Clientes Frecuentes --------
+    const clientesFrecuentesTableBody = document.getElementById('clientesFrecuentesTableBody');
+
+    function filaClienteFrecuenteHtml(c) {
+        return `
+            <tr>
+                <td data-label="Cliente">${escaparHtml(c.nombre)}</td>
+                <td data-label="Teléfono">${c.telefono ? escaparHtml(c.telefono) : '<span class="pvp-sub">Sin teléfono</span>'}</td>
+                <td data-label="Compras">
+                    <span class="supplier-badge optimo"><span class="dot"></span> ${c.cantidadCompras} compras</span>
+                </td>
+                <td data-label="Total Gastado" class="text-end">${MPV.formatCurrency(c.totalGastado)}</td>
+                <td data-label="Ticket Promedio" class="text-end">${MPV.formatCurrency(c.ticketPromedio)}</td>
+                <td data-label="Última Compra">${formatearFecha(c.ultimaCompra)}</td>
+            </tr>
+        `;
+    }
+
+    async function cargarClientesFrecuentes() {
+        try {
+            const { data } = await MPV.getClientesFrecuentes();
+            document.getElementById('clientesFrecuentesCantidad').textContent = data.totales.clientesFrecuentes;
+            document.getElementById('clientesFrecuentesTotal').textContent = MPV.formatCurrency(data.totales.totalGastado);
+            document.getElementById('clientesResultCount').textContent =
+                `${data.clientes.length} cliente${data.clientes.length === 1 ? '' : 's'} con más de una compra`;
+            clientesFrecuentesTableBody.innerHTML = data.clientes.length
+                ? data.clientes.map(filaClienteFrecuenteHtml).join('')
+                : `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-people"></i>Todavía no hay clientes con más de una compra.</td></tr>`;
+        } catch (err) {
+            clientesFrecuentesTableBody.innerHTML = `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
+            document.getElementById('clientesResultCount').textContent = 'Sin conexión';
+        }
+    }
+
+    document.getElementById('exportarClientesExcel').addEventListener('click', async (e) => {
+        const btn = e.currentTarget;
+        const original = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        try {
+            await MPV.exportarClientesFrecuentesExcel();
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
+    });
 
     // -------- Ventas de Mostrador --------
     const ventasTableBody = document.getElementById('ventasTableBody');
@@ -57,7 +122,7 @@
         return `
             <tr>
                 <td data-label="Fecha">${formatearFecha(v.created_at)}</td>
-                <td data-label="Cliente">${v.cliente || 'Cliente varios'}</td>
+                <td data-label="Cliente">${v.cliente ? escaparHtml(v.cliente) : 'Cliente varios'}</td>
                 <td data-label="Productos"><span class="pvp-sub">${resumenProductos(v.items)}</span></td>
                 <td data-label="Método de Pago">${ETIQUETAS_METODO_PAGO[v.metodo_pago] || v.metodo_pago}</td>
                 <td data-label="Atendido por">${v.usuario_nombre || '—'}</td>
@@ -165,7 +230,7 @@
         return `
             <tr>
                 <td data-label="Fecha">${formatearFecha(p.created_at)}</td>
-                <td data-label="Cliente">${p.cliente || 'Cliente web'}${p.telefono ? `<div class="pvp-sub">${p.telefono}</div>` : ''}${p.direccion ? `<div class="pvp-sub">${p.direccion}</div>` : ''}</td>
+                <td data-label="Cliente">${p.cliente ? escaparHtml(p.cliente) : 'Cliente web'}${p.telefono ? `<div class="pvp-sub">${escaparHtml(p.telefono)}</div>` : ''}${p.direccion ? `<div class="pvp-sub">${escaparHtml(p.direccion)}</div>` : ''}</td>
                 <td data-label="Productos"><span class="pvp-sub">${resumenProductos(p.items)}</span></td>
                 <td data-label="Estado"><span class="badge-margin ${ESTADO_BADGE_CLASE[p.estado]}">${ESTADO_LABEL[p.estado]}</span></td>
                 <td class="text-end pvp-value" data-label="Total">${MPV.formatCurrency(p.total)}</td>

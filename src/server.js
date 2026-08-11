@@ -32,6 +32,7 @@ const backupsRoutes = require('./routes/backups.routes');
 const movimientosStockRoutes = require('./routes/movimientosStock.routes');
 const catalogoPdfRoutes = require('./routes/catalogoPdf.routes');
 const cajaRoutes = require('./routes/caja.routes');
+const reportesRoutes = require('./routes/reportes.routes');
 const { iniciarBackupsProgramados } = require('./services/backups');
 
 const app = express();
@@ -78,6 +79,7 @@ app.use('/api', backupsRoutes);
 app.use('/api', movimientosStockRoutes);
 app.use('/api', catalogoPdfRoutes);
 app.use('/api', cajaRoutes);
+app.use('/api', reportesRoutes);
 
 app.get('/health', (req, res) => res.json({ ok: true, service: 'mpv-dental-api' }));
 

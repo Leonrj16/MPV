@@ -77,6 +77,18 @@
     </header>
 
     <main class="mpv-content">
+        <div class="mpv-panel" id="panelRankingProveedores">
+            <div class="mpv-panel-header">
+                <div>
+                    <h2>Ranking de confiabilidad</h2>
+                    <div class="panel-sub">Los mejor calificados, con menor tiempo de entrega y más productos activos</div>
+                </div>
+            </div>
+            <div class="row g-3 p-3 pt-0" id="rankingProveedoresRow">
+                <div class="col-12 mpv-empty"><i class="bi bi-hourglass-split"></i>Cargando…</div>
+            </div>
+        </div>
+
         <div class="mpv-panel">
             <div class="mpv-panel-header">
                 <div>
@@ -97,12 +109,13 @@
                             <th>Teléfono / Email</th>
                             <th>Calificación</th>
                             <th>Productos</th>
+                            <th>Entrega prom.</th>
                             <th>Estado</th>
                             <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
                     <tbody id="proveedoresTableBody">
-                        <tr class="skeleton-row"><td colspan="7"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                        <tr class="skeleton-row"><td colspan="8"><div class="skeleton-bar" style="width:100%"></div></td></tr>
                     </tbody>
                 </table>
             </div>

@@ -210,6 +210,11 @@ const MPV = (() => {
         exportarVentasExcel: (params) => descargarArchivo('/ventas/exportar/excel', params),
         exportarVentasPDF: (params) => descargarArchivo('/ventas/exportar/pdf', params),
         exportarPedidosWebExcel: (params) => descargarArchivo('/pedidos-web/exportar/excel', params),
+        getInventarioValorizado: () => request('/reportes/inventario'),
+        exportarInventarioExcel: () => descargarArchivo('/reportes/inventario/exportar/excel'),
+        exportarInventarioPDF: () => descargarArchivo('/reportes/inventario/exportar/pdf'),
+        getClientesFrecuentes: () => request('/reportes/clientes-frecuentes'),
+        exportarClientesFrecuentesExcel: () => descargarArchivo('/reportes/clientes-frecuentes/exportar/excel'),
         descargarCatalogoPdf: () => descargarArchivo('/catalogo/pdf'),
         formatCurrency,
     };

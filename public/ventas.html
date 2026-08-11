@@ -84,6 +84,9 @@
                 <i class="bi bi-globe me-1"></i> Pedidos Web
                 <span class="badge-margin bajo ms-1 d-none" id="badgePendientes">0</span>
             </button>
+            <button type="button" class="btn btn-mpv-outline" id="tabClientesFrecuentes">
+                <i class="bi bi-people-fill me-1"></i> Clientes Frecuentes
+            </button>
         </div>
 
         <!-- Panel: Ventas de Mostrador -->
@@ -175,6 +178,54 @@
                             </tr>
                         </thead>
                         <tbody id="pedidosTableBody">
+                            <tr class="skeleton-row"><td colspan="6"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel: Clientes Frecuentes -->
+        <div id="panelClientesFrecuentes" class="d-none">
+            <div class="row g-3 mb-3">
+                <div class="col-12 col-md-4">
+                    <div class="kpi-card">
+                        <div class="kpi-icon bg-blue"><i class="bi bi-people-fill"></i></div>
+                        <div class="kpi-value" id="clientesFrecuentesCantidad">0</div>
+                        <div class="kpi-label">Clientes con más de una compra</div>
+                    </div>
+                </div>
+                <div class="col-12 col-md-4">
+                    <div class="kpi-card">
+                        <div class="kpi-icon bg-emerald"><i class="bi bi-cash-stack"></i></div>
+                        <div class="kpi-value kpi-value-money" id="clientesFrecuentesTotal">S/ 0.00</div>
+                        <div class="kpi-label">Total gastado por clientes frecuentes</div>
+                    </div>
+                </div>
+            </div>
+            <div class="mpv-panel">
+                <div class="mpv-panel-header">
+                    <div>
+                        <h2>Clientes Frecuentes</h2>
+                        <div class="panel-sub" id="clientesResultCount">Cargando…</div>
+                    </div>
+                    <button class="btn btn-mpv-outline" id="exportarClientesExcel" title="Descargar Excel (.xlsx)">
+                        <i class="bi bi-file-earmark-excel-fill text-success me-1"></i> Exportar
+                    </button>
+                </div>
+                <div class="mpv-table-wrap" tabindex="0" role="region" aria-label="Tabla con desplazamiento horizontal">
+                    <table class="mpv-table">
+                        <thead>
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Teléfono</th>
+                                <th>Compras</th>
+                                <th class="text-end">Total Gastado</th>
+                                <th class="text-end">Ticket Promedio</th>
+                                <th>Última Compra</th>
+                            </tr>
+                        </thead>
+                        <tbody id="clientesFrecuentesTableBody">
                             <tr class="skeleton-row"><td colspan="6"><div class="skeleton-bar" style="width:100%"></div></td></tr>
                         </tbody>
                     </table>

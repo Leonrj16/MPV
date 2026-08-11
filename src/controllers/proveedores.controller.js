@@ -4,7 +4,8 @@ const { registrarEvento } = require('../services/bitacora');
 async function listarProveedores(req, res) {
     try {
         const { rows } = await pool.query(
-            `SELECT pv.*, COUNT(pp.id) FILTER (WHERE pp.activo) AS productos_count
+            `SELECT pv.*, COUNT(pp.id) FILTER (WHERE pp.activo) AS productos_count,
+                    ROUND(AVG(pp.tiempo_entrega_dias) FILTER (WHERE pp.activo), 1) AS tiempo_entrega_promedio
              FROM proveedores pv
              LEFT JOIN proveedor_producto pp ON pp.proveedor_id = pv.id
              GROUP BY pv.id

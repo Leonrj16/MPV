@@ -1773,6 +1773,98 @@ fue la que encontró el bug de posicionamiento del dropdown. 199 tests de
 Jest, todos verdes (sin cambios de backend salvo `direccion`, que sí
 tiene su propio test de regresión).
 
+## Funcionalidad de negocio — inventario valorizado, proveedores y clientes frecuentes
+
+Última fase del roadmap "supermega pro": reportes que ya se podían armar a
+mano cruzando varias pantallas, ahora en un solo lugar. Todo construido
+sobre datos que el sistema ya capturaba (stock, calificación de proveedor,
+cliente/teléfono de cada venta) — nada de facturación electrónica, pasarela
+de pago real ni cuentas de cliente, que siguen bloqueadas hasta que el
+negocio tenga RUC.
+
+### Reporte de inventario valorizado (`Herramientas`)
+
+Cuánto dinero hay parado en stock hoy (a precio de compra del proveedor
+óptimo vigente) y cuánto se recuperaría si se vendiera todo al PVP
+sugerido. Nuevo `src/services/reportes.js` con `obtenerInventarioValorizado()`,
+panel en `herramientas.html` con 3 tarjetas KPI (valor de compra, venta
+potencial, margen potencial) y exportación a Excel/PDF siguiendo el mismo
+estilo que el resto de reportes del sistema (encabezado azul, autofiltro,
+fila TOTAL en negrita).
+
+Decisión de diseño deliberada: un producto activo con stock pero sin
+proveedor activo (por lo tanto sin PVP calculable) se incluye en la lista
+con valor 0 y se marca `sinPrecio: true` en vez de excluirse silenciosamente
+— es justo el caso que más le interesa ver a un dueño de negocio ("tengo
+stock que no puedo valorizar"). Se resalta en rojo en la tabla, el Excel y
+el PDF, y un aviso arriba de la tabla cuenta cuántos productos están en esa
+situación.
+
+### Ranking de confiabilidad de proveedores (`Proveedores`)
+
+El campo `calificacion` (1–5 estrellas) ya se capturaba al editar un
+proveedor, pero no se usaba para nada más allá de mostrarse en su propia
+fila — no había forma de comparar proveedores entre sí de un vistazo. Se
+agregó:
+
+- `tiempo_entrega_promedio` al `listarProveedores` existente — promedio de
+  `tiempo_entrega_dias` entre todos los productos activos que ofrece cada
+  proveedor (columna nueva en la tabla del directorio).
+- Panel "Ranking de confiabilidad" arriba del directorio con los 3 mejores
+  proveedores activos (calificación como criterio principal, tiempo de
+  entrega promedio como desempate, cantidad de productos activos como
+  segundo desempate) — mismas tarjetas KPI que usa el resto del sistema,
+  con medalla, estrellas, días de entrega y cantidad de productos.
+- El panel se oculta solo si ningún proveedor activo tiene calificación
+  cargada, en vez de mostrar un ranking vacío o con ceros.
+
+### Clientes frecuentes (`Ventas` → pestaña nueva)
+
+No existe una tabla de clientes real — `ventas.cliente` y
+`pedidos_web.cliente`/`telefono` son texto libre, cargado a mano en el
+punto de venta o escrito por el cliente en el checkout de la tienda. En
+vez de forzar una migración a cuentas de cliente (bloqueado por el límite
+de RUC), `obtenerClientesFrecuentes()` agrupa por una clave de identidad
+aproximada:
+
+- **Pedidos web**: por teléfono normalizado (solo dígitos, así
+  `"999-123-456"` y `"999 123 456"` caen en el mismo cliente).
+- **Ventas de mostrador** (no tienen columna de teléfono): por nombre
+  normalizado (minúsculas, sin espacios extra) — una aproximación
+  consciente: dos clientes distintos con el mismo nombre se cuentan como
+  uno solo.
+
+Solo se listan clientes con **más de una compra** (mostrador + web
+combinados) — un comprador de una sola vez no es "frecuente". La nueva
+pestaña en `ventas.html` muestra cantidad de compras, total gastado,
+ticket promedio y fecha de la última compra, con las mismas tarjetas KPI y
+exportación a Excel que el resto del sistema.
+
+**Bug de seguridad real encontrado al construir esto**: al agregar la fila
+de la tabla para el nombre del cliente, noté que `ventas.js` ya insertaba
+`cliente`/`telefono`/`direccion` directo en el HTML sin escapar — esos tres
+campos son texto libre que un cliente escribe en el checkout público de la
+tienda, así que un nombre como `<img src=x onerror=...>` se habría
+ejecutado como HTML en el panel interno (XSS almacenado). Se agregó
+`escaparHtml()` (mismo patrón que ya usaba `herramientas.js`) y se aplicó
+tanto a la pestaña nueva de Clientes Frecuentes como a las dos tablas
+existentes (Ventas de Mostrador y Pedidos Web) que tenían el mismo problema.
+
+### Verificación
+
+212 tests de Jest, todos verdes (9 nuevos sobre los 203 que ya existían:
+6 para el controller de proveedores — incluyendo `tiempo_entrega_promedio`
+en el listado — y 3 para `obtenerClientesFrecuentes`). Los tres reportes
+se probaron en vivo contra
+PostgreSQL: inventario valorizado con `curl` (JSON, `.xlsx` y `.pdf`
+válidos) y captura de Playwright; ranking de proveedores con datos reales
+de la base (proveedores con distinta calificación y tiempo de entrega,
+orden verificado visualmente); clientes frecuentes con filas de prueba
+insertadas a propósito (mismo cliente con variaciones de mayúsculas y
+formato de teléfono) para confirmar que el agrupamiento y los totales dan
+el resultado esperado, capturado con Playwright y luego eliminado de la
+base para no dejar datos de prueba.
+
 ## Estado de verificación
 
 El esquema y la API fueron probados de extremo a extremo contra una

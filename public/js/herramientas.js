@@ -27,6 +27,61 @@
         }
     });
 
+    // -------- Inventario valorizado --------
+    function filaInventarioHtml(p) {
+        return `
+            <tr>
+                <td data-label="Producto"><span class="fw-semibold${p.sinPrecio ? ' text-danger' : ''}">${escaparHtml(p.nombre)}</span> <span class="pvp-sub">${escaparHtml(p.sku)}</span></td>
+                <td data-label="Categoría">${escaparHtml(p.categoria)}</td>
+                <td data-label="Stock">${p.stock}</td>
+                <td data-label="P. Compra">${p.sinPrecio ? '<span class="pvp-sub">Sin proveedor</span>' : MPV.formatCurrency(p.precioCompraUnitario)}</td>
+                <td data-label="Valor Compra">${MPV.formatCurrency(p.valorCompra)}</td>
+                <td data-label="Valor Venta Pot.">${MPV.formatCurrency(p.valorVentaPotencial)}</td>
+            </tr>
+        `;
+    }
+
+    async function cargarInventarioValorizado() {
+        const tbody = document.getElementById('inventarioTableBody');
+        try {
+            const { data } = await MPV.getInventarioValorizado();
+            document.getElementById('inventarioValorCompra').textContent = MPV.formatCurrency(data.totales.valorCompra);
+            document.getElementById('inventarioValorVenta').textContent = MPV.formatCurrency(data.totales.valorVentaPotencial);
+            document.getElementById('inventarioMargenPotencial').textContent = MPV.formatCurrency(data.totales.margenPotencial);
+
+            const aviso = document.getElementById('inventarioAvisoSinPrecio');
+            if (data.totales.productosSinPrecio > 0) {
+                aviso.textContent = `${data.totales.productosSinPrecio} producto${data.totales.productosSinPrecio === 1 ? '' : 's'} con stock no se pudo${data.totales.productosSinPrecio === 1 ? '' : 'n'} valorizar por no tener proveedor activo — no suma${data.totales.productosSinPrecio === 1 ? '' : 'n'} al total.`;
+                aviso.classList.remove('d-none');
+            } else {
+                aviso.classList.add('d-none');
+            }
+
+            tbody.innerHTML = data.productos.length
+                ? data.productos.map(filaInventarioHtml).join('')
+                : `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-box"></i>No hay productos activos.</td></tr>`;
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
+        }
+    }
+
+    async function exportarInventario(boton, exportador) {
+        const original = boton.innerHTML;
+        boton.disabled = true;
+        boton.innerHTML = '<span class="spinner-border spinner-border-sm"></span>';
+        try {
+            await exportador();
+        } catch (err) {
+            alert(err.message);
+        } finally {
+            boton.disabled = false;
+            boton.innerHTML = original;
+        }
+    }
+
+    document.getElementById('btnExportarInventarioExcel').addEventListener('click', (e) => exportarInventario(e.currentTarget, MPV.exportarInventarioExcel));
+    document.getElementById('btnExportarInventarioPDF').addEventListener('click', (e) => exportarInventario(e.currentTarget, MPV.exportarInventarioPDF));
+
     // -------- Cupones --------
     const ETIQUETAS_TIPO_CUPON = { porcentaje: '%', monto_fijo: 'S/' };
 
@@ -196,6 +251,7 @@
         }
     });
 
+    cargarInventarioValorizado();
     cargarCupones();
     cargarResenas();
     cargarBackups();
