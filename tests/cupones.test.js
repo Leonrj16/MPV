@@ -1,6 +1,6 @@
 jest.mock('../src/config/db', () => ({ query: jest.fn() }));
 const pool = require('../src/config/db');
-const { crearCupon, validarCupon, incrementarUso } = require('../src/services/cupones');
+const { crearCupon, validarCupon, consumirUso } = require('../src/services/cupones');
 
 afterEach(() => jest.clearAllMocks());
 
@@ -77,12 +77,33 @@ describe('validarCupon', () => {
     });
 });
 
-describe('incrementarUso', () => {
-    test('incrementa usos_actuales del cupón indicado', async () => {
-        pool.query.mockResolvedValueOnce({});
-        await incrementarUso('DIEZ');
+describe('consumirUso', () => {
+    test('incrementa usos_actuales del cupón indicado y devuelve la fila actualizada', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [{ codigo: 'DIEZ', usos_actuales: 3 }] });
+
+        const resultado = await consumirUso('DIEZ');
+
         const [sql, params] = pool.query.mock.calls[0];
         expect(sql).toContain('usos_actuales = usos_actuales + 1');
+        expect(sql).toContain('usos_actuales < usos_maximos');
         expect(params).toEqual(['DIEZ']);
+        expect(resultado).toEqual({ codigo: 'DIEZ', usos_actuales: 3 });
+    });
+
+    test('devuelve null (sin lanzar) si el cupón ya llegó a su límite de usos — el UPDATE no afecta ninguna fila', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+
+        const resultado = await consumirUso('AGOTADO');
+
+        expect(resultado).toBeNull();
+    });
+
+    test('usa el client de una transacción cuando se le pasa uno, en vez del pool', async () => {
+        const client = { query: jest.fn().mockResolvedValueOnce({ rows: [{ codigo: 'DIEZ' }] }) };
+
+        await consumirUso('DIEZ', client);
+
+        expect(client.query).toHaveBeenCalledTimes(1);
+        expect(pool.query).not.toHaveBeenCalled();
     });
 });

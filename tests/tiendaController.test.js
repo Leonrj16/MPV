@@ -74,6 +74,32 @@ describe('listarCatalogo', () => {
         expect(producto).not.toHaveProperty('precioCompraUnitario');
         expect(producto).not.toHaveProperty('proveedor');
     });
+
+    test('acota la suma de vendidos a los productos de esta página, no a toda la tabla', async () => {
+        pool.query
+            .mockResolvedValueOnce({ rows: [configRow] })
+            .mockResolvedValueOnce({ rows: [filaProducto] })
+            .mockResolvedValueOnce({ rows: [{ producto_id: 1, total: '5' }] });
+
+        const res = mockRes();
+        await listarCatalogo({ query: {} }, res);
+
+        const [sql, params] = pool.query.mock.calls[2];
+        expect(sql).toContain('WHERE producto_id = ANY($1::int[])');
+        expect(params).toEqual([[1]]);
+    });
+
+    test('no consulta ventas agregadas si el catálogo filtrado no devuelve productos', async () => {
+        pool.query
+            .mockResolvedValueOnce({ rows: [configRow] })
+            .mockResolvedValueOnce({ rows: [] }); // catálogo vacío (ej. búsqueda sin resultados)
+
+        const res = mockRes();
+        await listarCatalogo({ query: { busqueda: 'nada-coincide' } }, res);
+
+        expect(pool.query).toHaveBeenCalledTimes(2); // nunca llega a la 3ra query
+        expect(res.json).toHaveBeenCalledWith({ ok: true, data: [] });
+    });
 });
 
 describe('obtenerProductoDetalle', () => {

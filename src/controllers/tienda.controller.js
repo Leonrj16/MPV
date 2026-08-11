@@ -61,10 +61,19 @@ async function listarCatalogo(req, res) {
         // filtrado/orden ocurre en el cliente (sin ida y vuelta al
         // servidor por cada tecla o cambio de orden) — vendidosTotal viaja
         // con cada producto para poder ordenar por popularidad ahí mismo.
-        const { rows: ventasRows } = await pool.query(
-            'SELECT producto_id, SUM(cantidad) AS total FROM venta_detalle GROUP BY producto_id'
-        );
-        const vendidosPorProducto = new Map(ventasRows.map((f) => [f.producto_id, Number(f.total)]));
+        // La suma se acota a los productos de esta página: sin el WHERE,
+        // agregaba TODA la tabla venta_detalle (que solo crece) en cada
+        // carga de este endpoint público sin autenticación, el más
+        // visitado de todo el sistema.
+        const idsProductos = rows.map((fila) => fila.id);
+        const vendidosPorProducto = new Map();
+        if (idsProductos.length > 0) {
+            const { rows: ventasRows } = await pool.query(
+                'SELECT producto_id, SUM(cantidad) AS total FROM venta_detalle WHERE producto_id = ANY($1::int[]) GROUP BY producto_id',
+                [idsProductos]
+            );
+            ventasRows.forEach((f) => vendidosPorProducto.set(f.producto_id, Number(f.total)));
+        }
 
         const productos = rows.map((fila) => ({
             ...mapearFila(fila, config),

@@ -40,6 +40,17 @@ const limiteCupones = crearLimitador({
     mensaje: 'Demasiados intentos de cupón en poco tiempo. Intenta de nuevo en unos minutos.',
 });
 
+// Los GET públicos de la tienda (catálogo, destacados, detalle, categorías)
+// no tenían ningún freno, a diferencia del resto de endpoints públicos de
+// este archivo — cualquiera podía golpearlos sin límite. El máximo es
+// generoso (es tráfico de navegación normal, no una acción sensible como
+// login) para no afectar a un visitante real cargando la tienda.
+const limiteCatalogoTienda = crearLimitador({
+    ventanaMinutos: 5,
+    maximo: 300,
+    mensaje: 'Demasiadas solicitudes en poco tiempo. Intenta de nuevo en unos minutos.',
+});
+
 // Este endpoint requiere sesión (admin/operador), así que el riesgo no es
 // abuso anónimo sino gastar CPU/RAM de más lanzando Chromium repetidas
 // veces en poco tiempo en un VPS chico — nadie necesita generar el
@@ -50,4 +61,4 @@ const limiteCatalogoPdf = crearLimitador({
     mensaje: 'Ya generaste el catálogo varias veces seguidas. Espera unos minutos antes de volver a intentarlo.',
 });
 
-module.exports = { limiteLogin, limitePedidos, limiteResenas, limiteCupones, limiteCatalogoPdf };
+module.exports = { limiteLogin, limitePedidos, limiteResenas, limiteCupones, limiteCatalogoPdf, limiteCatalogoTienda };

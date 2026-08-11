@@ -1568,6 +1568,116 @@ mockea con Jest):
 Ambas vistas consumen la API mediante `public/js/api.js` y no requieren build
 step: se sirven como estáticos desde el propio Express (`npm run dev`).
 
+## Robustez técnica
+
+Pasada de auditoría (rendimiento, seguridad, manejo de errores, cobertura de
+tests) sobre el backend ya existente — sin reescribir nada, solo cerrando
+gaps concretos encontrados revisando cada servicio, controller y middleware.
+
+### Seguridad
+
+- **`JWT_SECRET` obligatorio en producción**: `auth.middleware.js` siempre
+  tuvo un fallback hardcodeado (`'mpv-dental-dev-secret-change-in-production'`)
+  para no romper el entorno de desarrollo — pero ese mismo fallback es
+  público (está en el repo), así que si alguna vez se desplegaba sin
+  configurar la variable de entorno, cualquiera podía forjar un token con
+  rol `admin`. `server.js` ahora corta el arranque (`process.exit(1)`) si
+  `NODE_ENV=production` y falta `JWT_SECRET`, en vez de arrancar
+  silenciosamente con esa falla. Test de regresión
+  (`serverStartup.test.js`) que efectivamente arranca el proceso real vía
+  `child_process.spawnSync` y confirma que corta con el mensaje correcto.
+- **Rate limit en los endpoints públicos de la tienda**: `/tienda/productos`,
+  `/tienda/destacados`, `/tienda/productos/:id`, `/tienda/categorias` y
+  `/tienda/configuracion` eran las únicas rutas públicas del sistema sin
+  ningún límite de peticiones — el resto (pedidos, reseñas, cupones, login)
+  ya lo tenía desde la fase de "Endurecimiento de seguridad". Se agregó
+  `limiteCatalogoTienda` (300 pedidos / 5 min, generoso porque es tráfico
+  de navegación normal, no una acción sensible).
+- **bcrypt síncrono → asíncrono**: `bcrypt.compareSync`/`hashSync` en login
+  y en creación/cambio de contraseña de usuarios bloqueaban el event loop
+  de Node por decenas de milisegundos en cada llamada — bajo carga
+  concurrente (varias cajas vendiendo a la vez), eso significa latencia
+  agregada en *todas* las requests en curso, no solo en la de login.
+  Cambiado a `bcrypt.compare`/`bcrypt.hash` (versión async) en
+  `auth.controller.js` y `usuarios.controller.js`.
+
+### Condición de carrera en cupones
+
+`validarCupon` (lee `usos_actuales`) e `incrementarUso` (lo suma) eran dos
+queries separadas sin transacción — dos pedidos concurrentes con el mismo
+cupón cerca del límite podían pasar la validación *los dos* antes de que
+cualquiera incrementara el contador, superando `usos_maximos`. Se
+reemplazó por `consumirUso()`: un único `UPDATE ... WHERE activo AND
+(usos_maximos IS NULL OR usos_actuales < usos_maximos) RETURNING *` — el
+`UPDATE` toma el lock de la fila, así que una segunda llamada concurrente
+espera y ve el contador ya actualizado, devolviendo `null` si el cupón se
+agotó en el medio. Además, ahora se ejecuta con el `client` de la propia
+transacción de `registrarPedidoWeb` (antes del `COMMIT`, no después), así
+que si el pedido falla por cualquier otro motivo, el `ROLLBACK` también
+deshace el incremento.
+
+### Rendimiento
+
+- **Query sin acotar en el endpoint público más visitado**: `listarCatalogo`
+  (tienda pública, sin autenticación) hacía
+  `SELECT producto_id, SUM(cantidad) FROM venta_detalle GROUP BY producto_id`
+  — un agregado sobre **toda** la tabla de líneas de venta, en cada carga
+  del catálogo, sin importar cuántos productos se estuvieran mostrando. Se
+  acotó con `WHERE producto_id = ANY($1)` a los productos de esa página
+  (y se salta la query por completo si el catálogo filtrado no devuelve
+  nada) — el costo ahora es proporcional al tamaño del catálogo mostrado,
+  no al historial completo de ventas del negocio.
+- **Índice compuesto para el hot-path de precios**: la vista
+  `vw_proveedor_optimo` (`DISTINCT ON (producto_id) ... WHERE activo
+  ORDER BY producto_id, precio_compra_unitario, tiempo_entrega_dias`) se
+  consulta en el camino crítico de `registrarVenta`, `registrarPedidoWeb`,
+  `listarProductosDisponibles` y el catálogo público — es decir, en casi
+  cualquier acción que involucre un precio. Antes solo existían índices
+  separados por `producto_id` y por `activo`; la migración
+  `016_indices_rendimiento.sql` agrega
+  `idx_pp_optimo (producto_id, precio_compra_unitario, tiempo_entrega_dias)
+  WHERE activo = TRUE`, que cubre exactamente el filtro y el orden de la
+  vista. De paso, agrega índices a foreign keys que no lo tenían
+  (`pedido_web_detalle.producto_id`, `movimientos_stock.venta_id`/
+  `usuario_id`, `bitacora.usuario_id`/`entidad_id`) — bajo volumen hoy,
+  pero evitan un table scan a medida que el histórico crece.
+- **Timeouts del pool de PostgreSQL**: `src/config/db.js` no tenía
+  `connectionTimeoutMillis` ni `statement_timeout` — una base de datos
+  caída o una query colgada dejaban la request esperando indefinidamente
+  en vez de fallar rápido con un error claro. Ahora configurables por
+  variable de entorno (`DB_POOL_MAX`, `DB_CONNECTION_TIMEOUT_MS`,
+  `DB_STATEMENT_TIMEOUT_MS`), con defaults razonables (10 conexiones, 5s
+  para conseguir una conexión, 15s para que el servidor corte una query).
+
+### Manejo de errores global
+
+Ningún error que se escapara del `try/catch` de un controller tenía red de
+seguridad — el caso típico es un body JSON malformado, que
+`express.json()` rechaza *antes* de llegar a cualquier controller: sin un
+error handler, esa request caía en la página HTML de error por defecto de
+Express, rompiendo el contrato de que todo `/api` responde JSON. Se agregó
+un middleware de error final (4 argumentos, después del handler 404) más
+`process.on('uncaughtException'/'unhandledRejection')` para loguear con
+contexto y no dejar al proceso en un estado indefinido. No reemplaza los
+`try/catch` existentes — sigue siendo eso lo que da el mensaje de error
+específico de cada endpoint — es lo que atrapa lo que se escapa de esa
+capa. Para poder probarlo con `supertest` sin abrir un puerto real,
+`server.js` ahora exporta `app` (`module.exports = app`) y solo llama
+`app.listen()` cuando se ejecuta directamente (`require.main === module`),
+así el mismo archivo sirve de entrypoint real y de módulo testeable.
+
+### Cobertura de tests
+
+`auth.controller.js` (login completo, incluida la firma del JWT),
+`precios.controller.js` y `configuracion.controller.js` (márgenes e
+impuestos — los inputs que alimentan el PVP de *todo* el catálogo) no
+tenían ningún test, pese a que son los puntos más sensibles del sistema
+(dinero y autenticación) y el resto del proyecto tiene una disciplina de
+testing consistente. Se agregaron `authController.test.js`,
+`preciosController.test.js` y `configuracionController.test.js`, más
+`serverStartup.test.js` y `serverErrorHandling.test.js` para los dos
+puntos anteriores. 198 tests en total, todos verdes.
+
 ## Estado de verificación
 
 El esquema y la API fueron probados de extremo a extremo contra una

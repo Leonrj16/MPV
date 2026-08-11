@@ -28,7 +28,7 @@ async function crearUsuario(req, res) {
             return res.status(400).json({ ok: false, error: 'Rol inválido' });
         }
 
-        const passwordHash = bcrypt.hashSync(password, 10);
+        const passwordHash = await bcrypt.hash(password, 10);
         const { rows } = await pool.query(
             `INSERT INTO usuarios (nombre, email, password_hash, rol)
              VALUES ($1, $2, $3, COALESCE($4, 'operador'))
@@ -101,7 +101,7 @@ async function cambiarPassword(req, res) {
             return res.status(400).json({ ok: false, error: 'La contraseña debe tener al menos 8 caracteres' });
         }
 
-        const passwordHash = bcrypt.hashSync(password, 10);
+        const passwordHash = await bcrypt.hash(password, 10);
         const { rows } = await pool.query(
             `UPDATE usuarios SET password_hash = $1 WHERE id = $2 RETURNING id, nombre`,
             [passwordHash, id]

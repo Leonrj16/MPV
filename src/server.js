@@ -1,4 +1,14 @@
 require('dotenv').config();
+
+// Sin esta variable, auth.middleware.js firma y verifica tokens con un
+// secreto de desarrollo hardcodeado y público en el repositorio — cualquiera
+// podría forjar un token con rol "admin". Se corta el arranque en vez de
+// dejar que el servidor sirva tráfico con esa falla.
+if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+    console.error('JWT_SECRET no está configurado. Es obligatorio en producción (NODE_ENV=production) — el servidor no va a arrancar sin él.');
+    process.exit(1);
+}
+
 const express = require('express');
 const helmet = require('helmet');
 const path = require('path');
@@ -75,7 +85,42 @@ app.use((req, res) => {
     res.status(404).json({ ok: false, error: 'Ruta no encontrada' });
 });
 
-app.listen(PORT, () => {
-    console.log(`MPV Dental API escuchando en http://localhost:${PORT}`);
-    iniciarBackupsProgramados();
+// Red de seguridad final: sin esto, un error que no pasa por el try/catch de
+// ningún controller (el caso típico es un body JSON malformado, que
+// express.json() rechaza ANTES de llegar a cualquier controller) cae en la
+// página de error HTML por defecto de Express — rompiendo el contrato de
+// que /api siempre responde JSON. No reemplaza los try/catch de cada
+// controller (esos siguen siendo lo que da el mensaje de error específico),
+// es lo que atrapa lo que se escapa de esa capa.
+app.use((err, req, res, next) => {
+    if (res.headersSent) return next(err);
+    console.error(err);
+    res.status(err.status || err.statusCode || 500).json({ ok: false, error: err.message || 'Error interno del servidor' });
 });
+
+// Un error async que ningún try/catch atrapó (o una excepción síncrona fuera
+// de cualquier request) deja al proceso en un estado indefinido — se loguea
+// con contexto y se corta el proceso en vez de seguir sirviendo tráfico con
+// estado corrupto. En producción (ver README, systemd) el proceso se
+// reinicia solo.
+process.on('unhandledRejection', (reason) => {
+    console.error('Promesa rechazada sin manejar:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('Excepción no capturada:', err);
+    process.exit(1);
+});
+
+// require.main === module es falso cuando este archivo se importa (como
+// hacen los tests con supertest, para hacer requests contra `app` sin abrir
+// un puerto real) — así el mismo archivo sirve de entrypoint real
+// (`node src/server.js`) y de módulo testeable sin duplicar la app.
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`MPV Dental API escuchando en http://localhost:${PORT}`);
+        iniciarBackupsProgramados();
+    });
+}
+
+module.exports = app;

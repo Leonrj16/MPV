@@ -35,7 +35,7 @@ async function actualizarCupon(id, { activo, fechaExpiracion, usosMaximos, valor
 /**
  * Valida un cupón contra un subtotal y devuelve el descuento resultante —
  * no lo marca como usado todavía (eso pasa recién cuando el pedido se
- * confirma de verdad, en incrementarUso).
+ * confirma de verdad, en consumirUso).
  */
 async function validarCupon(codigo, subtotal) {
     if (!codigo) throw new Error('Ingresa un código de cupón');
@@ -59,8 +59,33 @@ async function validarCupon(codigo, subtotal) {
     return { codigo: cupon.codigo, tipo: cupon.tipo, valor: Number(cupon.valor), descuento };
 }
 
-async function incrementarUso(codigo) {
-    await pool.query('UPDATE cupones SET usos_actuales = usos_actuales + 1 WHERE UPPER(codigo) = UPPER($1)', [codigo]);
+/**
+ * Consume un uso del cupón de forma atómica: revalida el límite de usos y
+ * lo incrementa en la misma sentencia (UPDATE ... WHERE ... RETURNING). Es
+ * a propósito una operación distinta de validarCupon(): si en vez de esto
+ * el pedido llamara primero a validarCupon (SELECT) y recién después
+ * incrementara el contador en una query separada, dos pedidos concurrentes
+ * con el mismo cupón cerca del límite podrían pasar la validación los dos
+ * antes de que cualquiera incremente — superando usos_maximos. El UPDATE
+ * toma el lock de la fila, así que una segunda llamada concurrente espera y
+ * ve el contador ya actualizado, y si el cupón llegó a su límite en el
+ * medio, devuelve null en vez de "colarse".
+ *
+ * Recibe `client` para poder ejecutarse dentro de la misma transacción que
+ * registra el pedido (ver pedidosWeb.js) — si el pedido falla, el
+ * ROLLBACK también deshace este incremento.
+ */
+async function consumirUso(codigo, client = pool) {
+    const { rows } = await client.query(
+        `UPDATE cupones
+         SET usos_actuales = usos_actuales + 1
+         WHERE UPPER(codigo) = UPPER($1)
+           AND activo = TRUE
+           AND (usos_maximos IS NULL OR usos_actuales < usos_maximos)
+         RETURNING *`,
+        [codigo]
+    );
+    return rows[0] || null;
 }
 
-module.exports = { listarCupones, crearCupon, actualizarCupon, validarCupon, incrementarUso };
+module.exports = { listarCupones, crearCupon, actualizarCupon, validarCupon, consumirUso };

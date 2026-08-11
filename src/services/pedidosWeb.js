@@ -1,7 +1,7 @@
 const pool = require('../config/db');
 const { calcularPVP } = require('./pricingEngine');
 const { obtenerConfigActiva } = require('./tableroPrecios');
-const { validarCupon, incrementarUso } = require('./cupones');
+const { validarCupon, consumirUso } = require('./cupones');
 
 const ESTADOS_VALIDOS = ['pendiente', 'atendido', 'cancelado'];
 
@@ -92,8 +92,19 @@ async function registrarPedidoWeb({ items, cliente, telefono, cuponCodigo }) {
             );
         }
 
+        // Se consume dentro de la misma transacción (con `client`, no
+        // `pool`) para que un ROLLBACK del pedido también deshaga el
+        // incremento del cupón, y para que la revalidación del límite de
+        // usos sea atómica con el resto del pedido — ver el comentario de
+        // consumirUso() en services/cupones.js.
+        if (codigoAplicado) {
+            const consumido = await consumirUso(codigoAplicado, client);
+            if (!consumido) {
+                throw new Error('Este cupón alcanzó su límite de usos justo ahora — volvé a intentar sin el cupón');
+            }
+        }
+
         await client.query('COMMIT');
-        if (codigoAplicado) await incrementarUso(codigoAplicado);
         return { ...pedido, items: detalle };
     } catch (err) {
         await client.query('ROLLBACK');
