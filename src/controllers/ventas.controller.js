@@ -6,8 +6,8 @@ const { registrarEvento } = require('../services/bitacora');
 
 async function crearVenta(req, res) {
     try {
-        const { items, cliente, metodoPago } = req.body;
-        const venta = await registrarVenta({ items, cliente, metodoPago, usuarioId: req.user?.sub });
+        const { items, cliente, metodoPago, pagos } = req.body;
+        const venta = await registrarVenta({ items, cliente, metodoPago, pagos, usuarioId: req.user?.sub });
         await registrarEvento({
             usuarioId: req.user?.sub,
             usuarioNombre: req.user?.nombre,
@@ -74,6 +74,7 @@ const ETIQUETAS_METODO_PAGO = {
     tarjeta: 'Tarjeta',
     yape_plin: 'Yape / Plin',
     transferencia: 'Transferencia',
+    mixto: 'Pago dividido',
 };
 
 const timestampArchivo = () => new Date().toISOString().slice(0, 10);
@@ -288,7 +289,14 @@ async function generarBoletaPdf(req, res) {
         doc.text(`N° de comprobante: ${numeroBoleta}`);
         doc.text(`Fecha: ${new Date(venta.created_at).toLocaleString('es-PE')}`);
         doc.text(`Cliente: ${venta.cliente || 'Cliente varios'}`);
-        doc.text(`Método de pago: ${ETIQUETAS_METODO_PAGO[venta.metodo_pago] || venta.metodo_pago}`);
+        if (venta.pagos && venta.pagos.length > 1) {
+            const desglose = venta.pagos
+                .map((p) => `${ETIQUETAS_METODO_PAGO[p.metodoPago] || p.metodoPago} ${formatoMoneda(p.monto)}`)
+                .join(' + ');
+            doc.text(`Método de pago: ${desglose}`);
+        } else {
+            doc.text(`Método de pago: ${ETIQUETAS_METODO_PAGO[venta.metodo_pago] || venta.metodo_pago}`);
+        }
         if (venta.usuario_nombre) doc.text(`Atendido por: ${venta.usuario_nombre}`);
 
         doc.moveDown(0.5);

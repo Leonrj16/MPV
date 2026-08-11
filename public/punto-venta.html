@@ -61,6 +61,10 @@
             </div>
         </div>
         <div class="d-flex align-items-center gap-2 mpv-topbar-actions">
+            <button type="button" class="btn btn-mpv-outline btn-sm d-flex align-items-center gap-2" id="btnCaja" title="Estado de caja">
+                <i class="bi bi-safe2-fill"></i>
+                <span id="cajaEstadoTexto">Caja: cargando…</span>
+            </button>
             <div class="dropdown">
                 <button class="btn-icon-sm btn-alertas" type="button" data-bs-toggle="dropdown" aria-expanded="false" id="btnAlertas" title="Alertas">
                     <i class="bi bi-bell-fill"></i>
@@ -97,7 +101,11 @@
                             </button>
                         </div>
                         <div class="alert alert-warning py-2 small d-none mt-2" id="posEscanerError"></div>
+                        <div class="pvp-sub mt-2" style="font-size: 0.72rem;">
+                            Atajos: <kbd>F2</kbd> buscar · <kbd>F3</kbd> escanear · <kbd>F8</kbd> cobrar · <kbd>F9</kbd> en espera
+                        </div>
                     </div>
+                    <div class="d-flex flex-wrap gap-2 px-3 pt-3" id="posCategoriaChips"></div>
                     <div class="p-3" id="posGrid">
                         <div class="mpv-empty"><i class="bi bi-hourglass-split"></i>Cargando productos…</div>
                     </div>
@@ -111,7 +119,19 @@
                             <h2>Venta Actual</h2>
                             <div class="panel-sub" id="posCartCount">0 productos</div>
                         </div>
-                        <button class="btn-icon-sm" id="btnVaciarCarrito" title="Vaciar venta"><i class="bi bi-trash3"></i></button>
+                        <div class="d-flex align-items-center gap-1">
+                            <div class="dropdown">
+                                <button class="btn-icon-sm position-relative" id="btnVentasEnEspera" type="button" data-bs-toggle="dropdown" aria-expanded="false" title="Ventas en espera">
+                                    <i class="bi bi-collection"></i>
+                                    <span class="badge-alertas d-none" id="badgeVentasEnEspera">0</span>
+                                </button>
+                                <div class="dropdown-menu dropdown-menu-end shadow-sm p-0" id="panelVentasEnEspera" style="width: 320px; max-height: 360px; overflow-y: auto;">
+                                    <div class="p-3 text-center text-muted small" id="ventasEnEsperaContenido">No hay ventas en espera.</div>
+                                </div>
+                            </div>
+                            <button class="btn-icon-sm" id="btnPonerEnEspera" title="Poner esta venta en espera"><i class="bi bi-pause-circle"></i></button>
+                            <button class="btn-icon-sm" id="btnVaciarCarrito" title="Vaciar venta"><i class="bi bi-trash3"></i></button>
+                        </div>
                     </div>
                     <div class="p-3" id="posCartItems">
                         <div class="mpv-empty"><i class="bi bi-cart"></i>Agrega productos del catálogo para empezar la venta.</div>
@@ -120,13 +140,28 @@
                         <label class="form-label small fw-semibold" for="posCliente">Cliente (opcional)</label>
                         <input type="text" class="form-control" id="posCliente" placeholder="Nombre del cliente">
 
-                        <label class="form-label small fw-semibold mt-3" for="posMetodoPago">Método de pago</label>
+                        <div class="d-flex justify-content-between align-items-center mt-3" id="posMetodoPagoHeader">
+                            <label class="form-label small fw-semibold mb-0" for="posMetodoPago">Método de pago</label>
+                            <button type="button" class="btn btn-link btn-sm p-0" id="btnDividirPago">Dividir pago</button>
+                        </div>
                         <select class="form-select" id="posMetodoPago">
                             <option value="efectivo">Efectivo</option>
                             <option value="tarjeta">Tarjeta</option>
                             <option value="yape_plin">Yape / Plin</option>
                             <option value="transferencia">Transferencia</option>
                         </select>
+
+                        <div class="d-none mt-2" id="posPagosDivididos">
+                            <div id="posPagosLista"></div>
+                            <button type="button" class="btn btn-mpv-outline btn-sm w-100 mt-1" id="btnAgregarLineaPago">
+                                <i class="bi bi-plus-lg me-1"></i> Agregar línea de pago
+                            </button>
+                            <div class="d-flex justify-content-between small mt-2">
+                                <span class="pvp-sub" id="posPagosFaltanteLabel">Falta asignar</span>
+                                <span id="posPagosFaltante">S/ 0.00</span>
+                            </div>
+                            <button type="button" class="btn btn-link btn-sm p-0 mt-1" id="btnCancelarDividirPago">Cancelar pago dividido</button>
+                        </div>
 
                         <div class="d-flex justify-content-between align-items-center mt-3 pt-3" style="border-top: 1px solid var(--mpv-gray-100);">
                             <span class="fw-semibold">Total</span>
@@ -144,6 +179,61 @@
             </div>
         </div>
     </main>
+</div>
+
+<!-- Modal: Abrir Caja (bloqueante — sin botón de cerrar, no se puede vender sin caja abierta) -->
+<div class="modal fade" id="modalAbrirCaja" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false" aria-labelledby="modalAbrirCajaTitulo">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--mpv-radius); border:none;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalAbrirCajaTitulo"><i class="bi bi-safe2-fill me-2"></i>Abrir caja</h5>
+            </div>
+            <form id="formAbrirCaja">
+                <div class="modal-body">
+                    <p class="pvp-sub">Antes de vender, registrá con cuánto efectivo arranca la caja — se usa después para el arqueo al cerrar el turno.</p>
+                    <label class="form-label small fw-semibold" for="cajaMontoApertura">Monto inicial en caja (S/)</label>
+                    <input type="number" class="form-control" id="cajaMontoApertura" min="0" step="0.10" value="0" required>
+                    <label class="form-label small fw-semibold mt-3" for="cajaNotasApertura">Notas (opcional)</label>
+                    <textarea class="form-control" id="cajaNotasApertura" rows="2" placeholder="Ej: turno mañana"></textarea>
+                    <div class="alert alert-danger py-2 small d-none mt-3" id="cajaAbrirError"></div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="submit" class="btn btn-mpv-primary w-100" id="btnConfirmarAbrirCaja">
+                        <i class="bi bi-unlock-fill me-1"></i> Abrir caja y empezar a vender
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Cerrar Caja (arqueo) -->
+<div class="modal fade" id="modalCerrarCaja" tabindex="-1" aria-labelledby="modalCerrarCajaTitulo">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content" style="border-radius: var(--mpv-radius); border:none;">
+            <div class="modal-header border-0 pb-0">
+                <h5 class="modal-title fw-bold" id="modalCerrarCajaTitulo"><i class="bi bi-safe2-fill me-2"></i>Cerrar caja</h5>
+                <button type="button" class="btn-close" id="btnCerrarModalCaja" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <div id="cajaResumenCierre" class="mb-3"><div class="mpv-empty"><i class="bi bi-hourglass-split"></i>Cargando…</div></div>
+                <div id="cajaFormCierre">
+                    <label class="form-label small fw-semibold" for="cajaMontoContado">Efectivo contado en caja (S/)</label>
+                    <input type="number" class="form-control" id="cajaMontoContado" min="0" step="0.10" required>
+                    <label class="form-label small fw-semibold mt-3" for="cajaNotasCierre">Notas (opcional)</label>
+                    <textarea class="form-control" id="cajaNotasCierre" rows="2" placeholder="Ej: faltante por vuelto mal dado"></textarea>
+                    <div class="alert alert-danger py-2 small d-none mt-3" id="cajaCerrarError"></div>
+                </div>
+                <div class="alert py-2 small d-none mt-3" id="cajaCierreResultado"></div>
+            </div>
+            <div class="modal-footer border-0" id="cajaFooterCierre">
+                <button type="button" class="btn btn-mpv-outline" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-mpv-primary" id="btnConfirmarCerrarCaja">
+                    <i class="bi bi-lock-fill me-1"></i> Cerrar caja
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

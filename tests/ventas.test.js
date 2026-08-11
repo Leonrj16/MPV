@@ -24,6 +24,7 @@ describe('registrarVenta', () => {
 
     test('rechaza una cantidad no entera o menor a 1 y hace ROLLBACK', async () => {
         pool.query.mockResolvedValueOnce({ rows: [configRow] }); // obtenerConfigActiva
+        pool.query.mockResolvedValueOnce({ rows: [] }); // obtenerCajaAbierta -> sin caja abierta
         const client = mockClient();
         client.query.mockResolvedValueOnce({}); // BEGIN
         client.query.mockResolvedValueOnce({}); // ROLLBACK
@@ -37,6 +38,7 @@ describe('registrarVenta', () => {
 
     test('rechaza y hace ROLLBACK si el producto no existe', async () => {
         pool.query.mockResolvedValueOnce({ rows: [configRow] });
+        pool.query.mockResolvedValueOnce({ rows: [] }); // obtenerCajaAbierta
         const client = mockClient();
         client.query
             .mockResolvedValueOnce({}) // BEGIN
@@ -50,6 +52,7 @@ describe('registrarVenta', () => {
 
     test('rechaza y hace ROLLBACK si el stock es insuficiente, sin descontar nada', async () => {
         pool.query.mockResolvedValueOnce({ rows: [configRow] });
+        pool.query.mockResolvedValueOnce({ rows: [] }); // obtenerCajaAbierta
         const client = mockClient();
         client.query
             .mockResolvedValueOnce({}) // BEGIN
@@ -67,6 +70,7 @@ describe('registrarVenta', () => {
 
     test('rechaza y hace ROLLBACK si el producto no tiene proveedor activo (sin PVP posible)', async () => {
         pool.query.mockResolvedValueOnce({ rows: [configRow] });
+        pool.query.mockResolvedValueOnce({ rows: [] }); // obtenerCajaAbierta
         const client = mockClient();
         client.query
             .mockResolvedValueOnce({}) // BEGIN
@@ -82,6 +86,7 @@ describe('registrarVenta', () => {
 
     test('registra la venta, descuenta stock y calcula el total con el motor de precios', async () => {
         pool.query.mockResolvedValueOnce({ rows: [configRow] });
+        pool.query.mockResolvedValueOnce({ rows: [] }); // obtenerCajaAbierta -> sin caja abierta
         const client = mockClient();
         client.query
             .mockResolvedValueOnce({}) // BEGIN
@@ -89,6 +94,7 @@ describe('registrarVenta', () => {
             .mockResolvedValueOnce({ rows: [{ precio_compra_unitario: '8.50' }] }) // vw_proveedor_optimo
             .mockResolvedValueOnce({}) // UPDATE stock
             .mockResolvedValueOnce({ rows: [{ id: 1, total: '44.30', cliente: null, metodo_pago: 'efectivo' }] }) // INSERT ventas
+            .mockResolvedValueOnce({}) // INSERT venta_pagos
             .mockResolvedValueOnce({}) // INSERT venta_detalle
             .mockResolvedValueOnce({}) // INSERT movimientos_stock
             .mockResolvedValueOnce({}); // COMMIT
@@ -98,6 +104,7 @@ describe('registrarVenta', () => {
 
         expect(venta.items).toHaveLength(1);
         expect(venta.items[0]).toMatchObject({ productoId: 1, cantidad: 2, precioUnitario: 20.88, subtotal: 41.76 });
+        expect(venta.pagos).toEqual([{ metodoPago: 'efectivo', monto: 41.76 }]);
 
         const updateCall = client.query.mock.calls.find(([sql]) => typeof sql === 'string' && sql.includes('UPDATE productos'));
         expect(updateCall[1]).toEqual([2, 1]); // descuenta exactamente la cantidad vendida
@@ -105,6 +112,102 @@ describe('registrarVenta', () => {
         expect(client.query).toHaveBeenCalledWith('COMMIT');
         expect(client.query).not.toHaveBeenCalledWith('ROLLBACK');
         expect(client.release).toHaveBeenCalled();
+    });
+
+    test('asocia la venta a la caja abierta cuando hay una sesión en curso', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [configRow] });
+        pool.query.mockResolvedValueOnce({ rows: [{ id: 7, usuario_apertura_id: 1, monto_apertura: '100.00' }] }); // obtenerCajaAbierta
+        const client = mockClient();
+        client.query
+            .mockResolvedValueOnce({}) // BEGIN
+            .mockResolvedValueOnce({ rows: [{ id: 1, nombre: 'Resina Compuesta', stock_actual: 40 }] }) // FOR UPDATE
+            .mockResolvedValueOnce({ rows: [{ precio_compra_unitario: '8.50' }] }) // vw_proveedor_optimo
+            .mockResolvedValueOnce({}) // UPDATE stock
+            .mockResolvedValueOnce({ rows: [{ id: 2, total: '20.88', cliente: null, metodo_pago: 'efectivo', caja_sesion_id: 7 }] }) // INSERT ventas
+            .mockResolvedValueOnce({}) // INSERT venta_pagos
+            .mockResolvedValueOnce({}) // INSERT venta_detalle
+            .mockResolvedValueOnce({}) // INSERT movimientos_stock
+            .mockResolvedValueOnce({}); // COMMIT
+        pool.connect.mockResolvedValueOnce(client);
+
+        await registrarVenta({ items: [{ productoId: 1, cantidad: 1 }] });
+
+        const insertVentaCall = client.query.mock.calls.find(([sql]) => typeof sql === 'string' && sql.includes('INSERT INTO ventas'));
+        expect(insertVentaCall[1]).toEqual([null, null, 'efectivo', 20.88, 7]);
+    });
+
+    describe('pago dividido', () => {
+        test('rechaza y hace ROLLBACK si la suma de los pagos no cierra con el total', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [configRow] });
+            pool.query.mockResolvedValueOnce({ rows: [] }); // obtenerCajaAbierta
+            const client = mockClient();
+            client.query
+                .mockResolvedValueOnce({}) // BEGIN
+                .mockResolvedValueOnce({ rows: [{ id: 1, nombre: 'Resina Compuesta', stock_actual: 40 }] }) // FOR UPDATE
+                .mockResolvedValueOnce({ rows: [{ precio_compra_unitario: '8.50' }] }) // vw_proveedor_optimo
+                .mockResolvedValueOnce({}) // UPDATE stock
+                .mockResolvedValueOnce({}); // ROLLBACK
+            pool.connect.mockResolvedValueOnce(client);
+
+            // total real = 20.88, pero los pagos suman 20.00
+            await expect(registrarVenta({
+                items: [{ productoId: 1, cantidad: 1 }],
+                pagos: [{ metodoPago: 'efectivo', monto: 20 }],
+            })).rejects.toThrow(/Los pagos suman S\/ 20\.00 pero el total.*S\/ 20\.88/);
+
+            expect(client.query).toHaveBeenCalledWith('ROLLBACK');
+        });
+
+        test('rechaza un método de pago desconocido en alguna de las líneas', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [configRow] });
+            pool.query.mockResolvedValueOnce({ rows: [] });
+            const client = mockClient();
+            client.query
+                .mockResolvedValueOnce({})
+                .mockResolvedValueOnce({ rows: [{ id: 1, nombre: 'Resina Compuesta', stock_actual: 40 }] })
+                .mockResolvedValueOnce({ rows: [{ precio_compra_unitario: '8.50' }] })
+                .mockResolvedValueOnce({})
+                .mockResolvedValueOnce({}); // ROLLBACK
+            pool.connect.mockResolvedValueOnce(client);
+
+            await expect(registrarVenta({
+                items: [{ productoId: 1, cantidad: 1 }],
+                pagos: [{ metodoPago: 'bitcoin', monto: 20.88 }],
+            })).rejects.toThrow(/Método de pago inválido/);
+        });
+
+        test('registra las líneas de venta_pagos y marca la venta como "mixto" con más de un método', async () => {
+            pool.query.mockResolvedValueOnce({ rows: [configRow] });
+            pool.query.mockResolvedValueOnce({ rows: [] }); // obtenerCajaAbierta
+            const client = mockClient();
+            client.query
+                .mockResolvedValueOnce({}) // BEGIN
+                .mockResolvedValueOnce({ rows: [{ id: 1, nombre: 'Resina Compuesta', stock_actual: 40 }] }) // FOR UPDATE
+                .mockResolvedValueOnce({ rows: [{ precio_compra_unitario: '8.50' }] }) // vw_proveedor_optimo
+                .mockResolvedValueOnce({}) // UPDATE stock
+                .mockResolvedValueOnce({ rows: [{ id: 3, total: '20.88', metodo_pago: 'mixto' }] }) // INSERT ventas
+                .mockResolvedValueOnce({}) // INSERT venta_pagos (efectivo)
+                .mockResolvedValueOnce({}) // INSERT venta_pagos (tarjeta)
+                .mockResolvedValueOnce({}) // INSERT venta_detalle
+                .mockResolvedValueOnce({}) // INSERT movimientos_stock
+                .mockResolvedValueOnce({}); // COMMIT
+            pool.connect.mockResolvedValueOnce(client);
+
+            const venta = await registrarVenta({
+                items: [{ productoId: 1, cantidad: 1 }],
+                pagos: [{ metodoPago: 'efectivo', monto: 10.88 }, { metodoPago: 'tarjeta', monto: 10 }],
+            });
+
+            const insertVentaCall = client.query.mock.calls.find(([sql]) => typeof sql === 'string' && sql.includes('INSERT INTO ventas'));
+            expect(insertVentaCall[1]).toEqual([null, null, 'mixto', 20.88, null]);
+
+            const insertPagosCalls = client.query.mock.calls.filter(([sql]) => typeof sql === 'string' && sql.includes('INSERT INTO venta_pagos'));
+            expect(insertPagosCalls).toHaveLength(2);
+            expect(insertPagosCalls[0][1]).toEqual([3, 'efectivo', 10.88]);
+            expect(insertPagosCalls[1][1]).toEqual([3, 'tarjeta', 10]);
+
+            expect(venta.pagos).toEqual([{ metodoPago: 'efectivo', monto: 10.88 }, { metodoPago: 'tarjeta', monto: 10 }]);
+        });
     });
 });
 

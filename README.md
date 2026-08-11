@@ -1027,6 +1027,117 @@ Enter, simulando un lector físico) en Punto de Venta y confirmar que el
 producto se agrega al carrito — además del caso de un código que no
 corresponde a ningún producto, que muestra el aviso sin romper la página.
 
+## Punto de Venta "pro" — caja, pago dividido, ventas en espera y atajos
+
+Cinco mejoras al mostrador, todas en `public/punto-venta.html` +
+`public/js/punto-venta.js` salvo donde se indica, pensadas para el flujo
+real de una caja física con staff atendiendo rápido.
+
+### Apertura y cierre de caja con arqueo
+
+Migración `014_caja_sesiones.sql` agrega `caja_sesiones` (apertura,
+cierre, montos, usuario) y `ventas.caja_sesion_id`. Reglas:
+
+- **Una sola caja abierta a la vez**, forzado con un índice único parcial
+  (`CREATE UNIQUE INDEX ... WHERE estado = 'abierta'`) en vez de un chequeo
+  a nivel de aplicación — así dos pedidos de apertura simultáneos no
+  pueden colarse los dos.
+- Al entrar a Punto de Venta sin caja abierta, un modal **bloqueante**
+  (`data-bs-backdrop="static"`, sin botón de cerrar) pide el monto inicial
+  antes de dejar vender — la pantalla de venta queda cubierta por el
+  backdrop del modal, así que no hace falta deshabilitar nada aparte.
+- Cada venta registrada (`registrarVenta` en `src/services/ventas.js`)
+  consulta la caja abierta y queda asociada vía `caja_sesion_id` — a nivel
+  de datos esto es opcional (nullable, no bloquea la venta si por algún
+  motivo no hay sesión), la que sí es obligatoria es la experiencia en la
+  UI.
+- **Arqueo de cierre** (`src/services/caja.js`,
+  `obtenerResumenSesion`/`cerrarCaja`): el efectivo esperado es
+  `monto_apertura + efectivo cobrado durante la sesión`; el staff ingresa
+  lo que contó físicamente y el sistema calcula la diferencia (sobra/falta/
+  cuadra exacto). Al cerrar, si el usuario todavía tenía la caja marcada
+  como abierta en otra pestaña, el siguiente refresco vuelve a mostrar el
+  modal de apertura — no queda un estado intermedio ambiguo.
+- Rutas nuevas: `GET /api/caja/actual`, `GET /api/caja/historial` (solo
+  admin), `POST /api/caja/abrir`, `POST /api/caja/cerrar`.
+
+### Pago dividido (efectivo + tarjeta + Yape/Plin + transferencia)
+
+Migración `015_venta_pagos.sql` agrega `venta_pagos` (una fila por línea
+de pago) y permite `'mixto'` en `ventas.metodo_pago` como valor de
+resumen. `registrarVenta` acepta un array `pagos` opcional
+(`[{metodoPago, monto}]`) además del `metodoPago` clásico de un solo
+método — si no se manda `pagos`, el comportamiento es idéntico al de
+antes (nadie que integre contra la API vieja se rompe). Cuando sí se
+manda, valida que la suma cierre exacta con el total (con tolerancia de
+redondeo a centavos) y hace `ROLLBACK` si no cuadra.
+
+**Por qué el arqueo de caja no se calculaba mal con ventas mixtas**: el
+resumen de la sesión se arma desde `venta_pagos`, no desde
+`ventas.metodo_pago` — una venta mitad efectivo/mitad tarjeta figura como
+`'mixto'` en `ventas`, pero su parte en efectivo sigue sumando al
+efectivo esperado del arqueo porque se lee directo de las líneas de pago,
+no del resumen de un solo campo por venta.
+
+En Punto de Venta, el selector simple de "Método de pago" es el flujo por
+defecto (un clic menos para el caso común); un enlace "Dividir pago" lo
+reemplaza por una lista de líneas editables con el total ya precargado en
+la primera. El botón "Registrar Venta" queda deshabilitado mientras la
+suma de las líneas no cierre exacta con el total, con un indicador
+"Falta asignar" / "Sobra asignado" / "Pagos completos" en vivo. La boleta
+provisional (`generarBoletaPdf`) muestra el desglose completo
+(`Efectivo S/ X + Tarjeta S/ Y`) cuando hubo más de un método.
+
+### Ventas en espera ("parking")
+
+Guardadas **solo en `localStorage`** (`mpv_pos_ventas_en_espera`), no en
+el servidor — son borradores de venta, no ventas reales, así que no
+tienen por qué tocar stock ni la base de datos hasta que se confirman.
+Cada ticket en espera guarda `{productoId, cantidad}` por línea, nunca el
+objeto producto completo, porque precio y stock pueden cambiar mientras
+la venta espera: al reanudar, cada línea se resuelve contra el catálogo
+**vigente** en ese momento, no contra una foto vieja. Si un producto ya
+no existe, perdió su proveedor activo, o tiene menos stock que cuando se
+puso en espera, el sistema ajusta la cantidad (o la excluye) y avisa
+exactamente qué cambió, en vez de fallar en silencio o registrar una
+venta con datos desactualizados.
+
+### Atajos de teclado y feedback sonoro al escanear
+
+`F2` foco al buscador, `F3` foco al campo de escaneo, `F8` cobrar, `F9`
+poner en espera — ignorados mientras hay un modal abierto para no
+interferir con esos formularios. Deliberadamente **no hay atajo para
+vaciar el carrito**: una tecla que borra la venta actual de un toque por
+error es un riesgo que no vale la pena por el ahorro de un clic.
+
+Cada escaneo (lector físico o cámara) reproduce un tono corto sintetizado
+con Web Audio (`AudioContext` + `OscillatorNode`, sin archivos de audio
+que vendorizar) — agudo si el producto se agregó, grave si no se pudo
+(código desconocido, sin stock, sin proveedor). Si el navegador bloquea
+audio sin interacción previa o no soporta la API, la función falla en
+silencio: el escaneo sigue agregando productos igual, el sonido es un
+plus, no una dependencia.
+
+### Filtros rápidos por categoría
+
+Chips generados dinámicamente a partir de las categorías presentes en el
+catálogo cargado (sin pedir nada nuevo al backend), combinables con la
+búsqueda por texto existente.
+
+### Verificación
+
+Backend: `tests/caja.test.js` (apertura/cierre, cálculo de diferencia,
+arqueo con pago dividido) y ampliaciones a `tests/ventas.test.js`
+(asociación a la caja abierta, validación de suma de pagos, marca
+`'mixto'`) — 164 tests en total, todos verdes. Frontend verificado de
+punta a punta con Playwright contra PostgreSQL real: bloqueo de venta sin
+caja abierta, cálculo del efectivo esperado, cierre con diferencia,
+pago dividido con el botón deshabilitándose/habilitándose en vivo,
+boleta con el desglose de pagos, poner en espera y reanudar reemplazando
+el carrito activo (con el diálogo de confirmación cuando corresponde),
+atajos de teclado moviendo el foco correctamente, y filtrado por chip de
+categoría.
+
 ## Tienda Virtual (`public/tienda.html`)
 
 Catálogo público de cara al cliente final, separado de la aplicación

@@ -1,6 +1,40 @@
 const pool = require('../config/db');
 const { calcularPVP } = require('./pricingEngine');
 const { obtenerConfigActiva } = require('./tableroPrecios');
+const { obtenerCajaAbierta } = require('./caja');
+
+const METODOS_PAGO_VALIDOS = ['efectivo', 'tarjeta', 'yape_plin', 'transferencia'];
+
+/**
+ * Normaliza la forma de pago de una venta a una lista de líneas
+ * {metodoPago, monto}. Si no se manda `pagos` (flujo clásico, un solo
+ * método), arma una línea única por el total completo — así el llamador
+ * viejo (un solo `metodoPago`) sigue funcionando sin cambios. Si se manda
+ * `pagos` (pago dividido), valida que cada línea tenga un método conocido y
+ * un monto positivo, y que la suma cierre exacta con el total de la venta.
+ */
+function normalizarPagos({ pagos, metodoPago, total }) {
+    if (!Array.isArray(pagos) || pagos.length === 0) {
+        return [{ metodoPago: metodoPago || 'efectivo', monto: total }];
+    }
+
+    const normalizados = pagos.map((p) => {
+        if (!METODOS_PAGO_VALIDOS.includes(p.metodoPago)) {
+            throw new Error(`Método de pago inválido: "${p.metodoPago}"`);
+        }
+        const monto = Math.round(Number(p.monto) * 100) / 100;
+        if (!Number.isFinite(monto) || monto <= 0) {
+            throw new Error('Cada línea de pago debe tener un monto mayor a 0');
+        }
+        return { metodoPago: p.metodoPago, monto };
+    });
+
+    const sumaPagos = Math.round(normalizados.reduce((s, p) => s + p.monto, 0) * 100) / 100;
+    if (sumaPagos !== total) {
+        throw new Error(`Los pagos suman S/ ${sumaPagos.toFixed(2)} pero el total de la venta es S/ ${total.toFixed(2)}`);
+    }
+    return normalizados;
+}
 
 /**
  * Registra una venta de mostrador: valida stock, calcula el precio de venta
@@ -13,15 +47,21 @@ const { obtenerConfigActiva } = require('./tableroPrecios');
  * @param {Object} params
  * @param {Array<{productoId:number, cantidad:number}>} params.items
  * @param {string} [params.cliente]
- * @param {string} [params.metodoPago]
+ * @param {string} [params.metodoPago] método único (flujo clásico)
+ * @param {Array<{metodoPago:string, monto:number}>} [params.pagos] pago dividido
  * @param {number} [params.usuarioId]
  */
-async function registrarVenta({ items, cliente, metodoPago, usuarioId }) {
+async function registrarVenta({ items, cliente, metodoPago, pagos, usuarioId }) {
     if (!Array.isArray(items) || items.length === 0) {
         throw new Error('La venta debe incluir al menos un producto');
     }
 
     const config = await obtenerConfigActiva();
+    // No es obligatorio tener la caja abierta para registrar una venta a
+    // nivel de datos (evita romper otros flujos que no pasan por la UI de
+    // caja) — pero si hay una sesión abierta, la venta queda asociada para
+    // que el arqueo de cierre la contemple.
+    const cajaAbierta = await obtenerCajaAbierta();
     const client = await pool.connect();
 
     try {
@@ -81,12 +121,22 @@ async function registrarVenta({ items, cliente, metodoPago, usuarioId }) {
 
         total = Math.round(total * 100) / 100;
 
+        const listaPagos = normalizarPagos({ pagos, metodoPago, total });
+        const metodoPagoFinal = listaPagos.length === 1 ? listaPagos[0].metodoPago : 'mixto';
+
         const { rows: ventaRows } = await client.query(
-            `INSERT INTO ventas (usuario_id, cliente, metodo_pago, total)
-             VALUES ($1, $2, $3, $4) RETURNING *`,
-            [usuarioId || null, cliente || null, metodoPago || 'efectivo', total]
+            `INSERT INTO ventas (usuario_id, cliente, metodo_pago, total, caja_sesion_id)
+             VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+            [usuarioId || null, cliente || null, metodoPagoFinal, total, cajaAbierta?.id || null]
         );
         const venta = ventaRows[0];
+
+        for (const pago of listaPagos) {
+            await client.query(
+                `INSERT INTO venta_pagos (venta_id, metodo_pago, monto) VALUES ($1, $2, $3)`,
+                [venta.id, pago.metodoPago, pago.monto]
+            );
+        }
 
         for (const linea of detalle) {
             await client.query(
@@ -105,7 +155,7 @@ async function registrarVenta({ items, cliente, metodoPago, usuarioId }) {
         }
 
         await client.query('COMMIT');
-        return { ...venta, items: detalle };
+        return { ...venta, items: detalle, pagos: listaPagos };
     } catch (err) {
         await client.query('ROLLBACK');
         throw err;
@@ -186,7 +236,12 @@ async function listarVentas({ limite = 50, desde, hasta, cliente, metodoPago } =
                     'cantidad', vd.cantidad,
                     'precioUnitario', vd.precio_unitario,
                     'subtotal', vd.subtotal
-                ) ORDER BY vd.id) FILTER (WHERE vd.id IS NOT NULL), '[]') AS items
+                ) ORDER BY vd.id) FILTER (WHERE vd.id IS NOT NULL), '[]') AS items,
+                COALESCE(
+                    (SELECT json_agg(json_build_object('metodoPago', vp.metodo_pago, 'monto', vp.monto) ORDER BY vp.id)
+                     FROM venta_pagos vp WHERE vp.venta_id = v.id),
+                    '[]'
+                ) AS pagos
          FROM ventas v
          LEFT JOIN usuarios u ON u.id = v.usuario_id
          LEFT JOIN venta_detalle vd ON vd.venta_id = v.id
@@ -280,7 +335,12 @@ async function obtenerVentaPorId(id) {
                     'cantidad', vd.cantidad,
                     'precioUnitario', vd.precio_unitario,
                     'subtotal', vd.subtotal
-                ) ORDER BY vd.id) FILTER (WHERE vd.id IS NOT NULL), '[]') AS items
+                ) ORDER BY vd.id) FILTER (WHERE vd.id IS NOT NULL), '[]') AS items,
+                COALESCE(
+                    (SELECT json_agg(json_build_object('metodoPago', vp.metodo_pago, 'monto', vp.monto) ORDER BY vp.id)
+                     FROM venta_pagos vp WHERE vp.venta_id = v.id),
+                    '[]'
+                ) AS pagos
          FROM ventas v
          LEFT JOIN usuarios u ON u.id = v.usuario_id
          LEFT JOIN venta_detalle vd ON vd.venta_id = v.id
