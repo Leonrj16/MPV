@@ -136,6 +136,91 @@ body {
     box-shadow: 0 0 0 4px rgba(0, 123, 255, 0.12);
 }
 
+.buscador-sugerencias {
+    position: absolute;
+    top: calc(100% + 0.5rem);
+    left: 0;
+    right: 0;
+    background: var(--tienda-surface);
+    border: 1px solid var(--tienda-gray-200);
+    border-radius: 14px;
+    box-shadow: 0 12px 32px -12px rgba(0, 0, 0, 0.18);
+    overflow: hidden;
+    z-index: 1050;
+}
+
+.sugerencia-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 0.9rem;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    border-bottom: 1px solid var(--tienda-gray-100);
+}
+.sugerencia-item:last-child { border-bottom: none; }
+.sugerencia-item:hover, .sugerencia-item.activa { background: var(--tienda-gray-50); }
+
+.sugerencia-imagen {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--tienda-gray-50);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--tienda-ink-soft);
+}
+.sugerencia-imagen img { width: 100%; height: 100%; object-fit: cover; }
+
+.sugerencia-texto { flex-grow: 1; min-width: 0; }
+.sugerencia-nombre,
+.sugerencia-categoria {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sugerencia-nombre { font-weight: 600; font-size: 0.85rem; }
+.sugerencia-categoria { font-size: 0.72rem; color: var(--tienda-ink-soft); }
+.sugerencia-precio { flex-shrink: 0; font-weight: 700; font-size: 0.85rem; white-space: nowrap; }
+
+@media (max-width: 575.98px) {
+    .sugerencia-item { gap: 0.5rem; padding: 0.55rem 0.7rem; }
+    .sugerencia-precio { font-size: 0.78rem; }
+
+    /* En mobile el buscador mismo mide ~120px (comparte la barra con logo y
+       los íconos de tema/favoritos/carrito) — un dropdown atado a ese ancho
+       no alcanza ni para el nombre del producto. Se despega del input y se
+       fija casi al ancho completo del viewport; el `top` real (que depende
+       de la altura del header) lo calcula JS al abrirlo, ver tienda.js. */
+    .buscador-sugerencias {
+        position: fixed;
+        left: 0.75rem;
+        right: 0.75rem;
+        top: auto;
+    }
+}
+
+.sugerencia-vermas {
+    display: block;
+    padding: 0.65rem 0.9rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-align: center;
+    color: var(--tienda-azul);
+    cursor: pointer;
+}
+
+.sugerencia-sin-resultados {
+    padding: 0.9rem;
+    font-size: 0.85rem;
+    color: var(--tienda-ink-soft);
+    text-align: center;
+}
+
 .btn-carrito {
     position: relative;
     width: 46px;

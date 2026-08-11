@@ -13,7 +13,7 @@ const ESTADOS_VALIDOS = ['pendiente', 'atendido', 'cancelado'];
  * valida y descuenta stock); este registro solo existe para que la
  * solicitud no se pierda en el chat de WhatsApp.
  */
-async function registrarPedidoWeb({ items, cliente, telefono, cuponCodigo }) {
+async function registrarPedidoWeb({ items, cliente, telefono, direccion, cuponCodigo }) {
     if (!Array.isArray(items) || items.length === 0) {
         throw new Error('El pedido debe incluir al menos un producto');
     }
@@ -79,8 +79,8 @@ async function registrarPedidoWeb({ items, cliente, telefono, cuponCodigo }) {
         }
 
         const { rows: pedidoRows } = await client.query(
-            `INSERT INTO pedidos_web (cliente, telefono, total, cupon_codigo, descuento) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-            [cliente || null, telefono || null, total, codigoAplicado, descuento]
+            `INSERT INTO pedidos_web (cliente, telefono, direccion, total, cupon_codigo, descuento) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+            [cliente || null, telefono || null, direccion || null, total, codigoAplicado, descuento]
         );
         const pedido = pedidoRows[0];
 

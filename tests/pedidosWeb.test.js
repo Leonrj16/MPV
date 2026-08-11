@@ -56,6 +56,29 @@ describe('registrarPedidoWeb', () => {
         expect(client.release).toHaveBeenCalled();
     });
 
+    test('guarda teléfono y dirección cuando se envían', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [configRow] });
+        const client = mockClient();
+        client.query
+            .mockResolvedValueOnce({})
+            .mockResolvedValueOnce({ rows: [{ id: 1, nombre: 'Resina Compuesta' }] })
+            .mockResolvedValueOnce({ rows: [{ precio_compra_unitario: '8.50' }] })
+            .mockResolvedValueOnce({ rows: [{ id: 5, cliente: 'Ana', total: '20.88', estado: 'pendiente' }] })
+            .mockResolvedValueOnce({})
+            .mockResolvedValueOnce({});
+        pool.connect.mockResolvedValueOnce(client);
+
+        await registrarPedidoWeb({
+            items: [{ productoId: 1, cantidad: 1 }],
+            cliente: 'Ana',
+            telefono: '987654321',
+            direccion: 'Av. Siempre Viva 123',
+        });
+
+        const insertCall = client.query.mock.calls.find(([sql]) => typeof sql === 'string' && sql.includes('INSERT INTO pedidos_web'));
+        expect(insertCall[1]).toEqual(['Ana', '987654321', 'Av. Siempre Viva 123', 17.69, null, 0]);
+    });
+
     test('con cupón: consume el uso dentro de la misma transacción, después de insertar el pedido', async () => {
         pool.query
             .mockResolvedValueOnce({ rows: [configRow] }) // obtenerConfigActiva

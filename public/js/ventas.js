@@ -165,7 +165,7 @@
         return `
             <tr>
                 <td data-label="Fecha">${formatearFecha(p.created_at)}</td>
-                <td data-label="Cliente">${p.cliente || 'Cliente web'}${p.telefono ? `<div class="pvp-sub">${p.telefono}</div>` : ''}</td>
+                <td data-label="Cliente">${p.cliente || 'Cliente web'}${p.telefono ? `<div class="pvp-sub">${p.telefono}</div>` : ''}${p.direccion ? `<div class="pvp-sub">${p.direccion}</div>` : ''}</td>
                 <td data-label="Productos"><span class="pvp-sub">${resumenProductos(p.items)}</span></td>
                 <td data-label="Estado"><span class="badge-margin ${ESTADO_BADGE_CLASE[p.estado]}">${ESTADO_LABEL[p.estado]}</span></td>
                 <td class="text-end pvp-value" data-label="Total">${MPV.formatCurrency(p.total)}</td>

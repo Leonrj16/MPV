@@ -64,9 +64,24 @@
         </div>
     </div>
 
+    <div id="carritoPaginaExito" class="mpv-empty d-none">
+        <i class="bi bi-check-circle-fill" style="color:#28a745;"></i>
+        <h2 class="fs-5 fw-bold d-block mb-2">¡Pedido enviado!</h2>
+        <p class="text-muted mb-3">Te escribimos por WhatsApp para confirmar el pago y la entrega. Si no se abrió solo, usá el botón de abajo.</p>
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
+            <a href="#" class="btn-hero-primary" id="linkWhatsappExito" target="_blank" rel="noopener"><i class="bi bi-whatsapp me-1"></i>Abrir WhatsApp</a>
+            <a href="tienda.html#catalogo" class="btn btn-outline-secondary">Seguir comprando</a>
+        </div>
+    </div>
+
     <div class="row g-4" id="carritoPaginaContenido">
         <div class="col-12 col-lg-8">
             <div id="listaCarritoPagina"></div>
+
+            <div class="mt-4 d-none" id="recomendacionesWrap">
+                <h2 class="fw-bold fs-6 mb-3">También te puede interesar</h2>
+                <div class="row g-3" id="recomendacionesGrid"></div>
+            </div>
         </div>
         <div class="col-12 col-lg-4">
             <div class="resumen-pedido">
@@ -97,6 +112,16 @@
                 <div class="mb-3">
                     <label class="form-label small fw-semibold mb-1" for="carritoPaginaNombre">Tu nombre (opcional)</label>
                     <input type="text" class="form-control form-control-sm" id="carritoPaginaNombre" placeholder="Para identificar tu pedido">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold mb-1" for="carritoPaginaTelefono">Tu teléfono (opcional)</label>
+                    <input type="tel" class="form-control form-control-sm" id="carritoPaginaTelefono" placeholder="Para coordinar por si no usás este WhatsApp">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold mb-1" for="carritoPaginaDireccion">Dirección de entrega (opcional)</label>
+                    <input type="text" class="form-control form-control-sm" id="carritoPaginaDireccion" placeholder="Calle, número, distrito">
                 </div>
 
                 <div class="form-check mb-3 d-none" id="carritoAvisarmeWrap">

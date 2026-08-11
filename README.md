@@ -1678,6 +1678,101 @@ testing consistente. Se agregaron `authController.test.js`,
 `serverStartup.test.js` y `serverErrorHandling.test.js` para los dos
 puntos anteriores. 198 tests en total, todos verdes.
 
+## Tienda cliente — checkout, búsqueda y recomendaciones
+
+Mejoras a la experiencia de compra de `public/tienda.html` y
+`public/carrito.html`, sin tocar nada de pagos/cuentas de cliente reales
+(eso sigue bloqueado hasta que el negocio tenga RUC).
+
+### Checkout: teléfono, dirección y confirmación real
+
+El checkout seguía siendo "WhatsApp con un mensaje armado" — eso no
+cambió, sigue siendo la forma de coordinar pago y entrega mientras el
+negocio no tiene pasarela de pago propia. Lo que faltaba:
+
+- **Teléfono y dirección de entrega** en el formulario del carrito
+  completo (`carrito.html`) — el backend ya aceptaba `telefono` desde
+  antes, pero el frontend nunca lo mandaba; `direccion` es campo nuevo
+  (migración `017_pedidos_web_direccion.sql`). Ambos opcionales, viajan
+  también dentro del mensaje de WhatsApp y quedan visibles en el panel
+  interno (Ventas > Pedidos Web) para que el staff no dependa de releer
+  el chat para saber a dónde entregar.
+- **Señal de éxito real tras enviar el pedido**: antes, al confirmar, el
+  carrito se quedaba lleno en pantalla sin ningún indicio de que el
+  pedido se había registrado — solo se abría WhatsApp y ahí quedaba. Ahora
+  el carrito se vacía y la página cambia a una vista de "¡Pedido
+  enviado!" con un botón de respaldo para reabrir WhatsApp si el navegador
+  bloqueó la pestaña emergente.
+- **Bug real encontrado al verificar esto con Playwright**: la suscripción
+  a notificaciones push (checkbox "Avisarme cuando confirmen mi pedido")
+  pedía permiso del navegador con `await`, en la misma cadena que
+  vaciaba el carrito y mostraba el éxito — si esa promesa quedaba
+  esperando al usuario (o al navegador) indefinidamente, el checkout
+  entero se trababa: WhatsApp ya se había abierto, pero el cliente nunca
+  veía la confirmación ni el carrito se vaciaba. Se movió la suscripción
+  push a que corra en paralelo, sin bloquear la vista de éxito.
+
+### Búsqueda: acentos, categoría/SKU
+
+La búsqueda del catálogo (100% en cliente, sobre el catálogo ya cargado
+en memoria) comparaba texto literal: un typo de tilde de más o de menos
+("resína" buscando "Resina") no encontraba nada, y solo miraba nombre y
+descripción. Se agregó `normalizarTexto()` (NFD + descarte de marcas
+diacríticas + minúsculas) y se sumaron categoría y SKU como campos de
+búsqueda — un cliente que ya tiene el código de un producto ahora sí lo
+encuentra.
+
+### Autocompletado con sugerencias en vivo
+
+Dropdown bajo el buscador con hasta 6 resultados (miniatura, nombre,
+categoría, precio) mientras se escribe, ordenados por relevancia simple
+(nombre que *empieza con* el texto antes que uno que solo lo *contiene*
+en cualquier parte). Clic en una sugerencia abre el modal de detalle del
+producto directamente. Reutiliza el mismo catálogo ya cargado en memoria
+para el filtro de la grilla — no pega al servidor por cada tecla.
+
+**Bug de responsive encontrado verificando en mobile**: en pantallas
+angostas la barra de búsqueda mide apenas ~120px (comparte la fila con
+logo e íconos de tema/favoritos/carrito) — un dropdown atado a ese ancho
+no alcanzaba ni para el nombre del producto, con texto cortado y
+superpuesto. Se resolvió con un media query que despega el dropdown del
+input en mobile (`position: fixed`, casi el ancho completo del
+viewport), con el `top` real calculado en JS a partir de dónde termina
+la barra de búsqueda — position:fixed no tiene un padre relativo del que
+heredar la posición como sí lo tiene position:absolute.
+
+### Recomendaciones cross-sell en el carrito
+
+Antes, "también te puede interesar" solo existía dentro del modal de
+detalle de producto (4 productos de la misma categoría) — nunca en el
+carrito, que es donde más impacta en el monto final de la compra. Se
+agregó una sección en `carrito.html` que:
+
+- Carga el catálogo completo (mismo endpoint público que usa la portada)
+  al entrar al carrito.
+- Prioriza productos de las **mismas categorías** que ya están en el
+  carrito, y usa `vendidosTotal` (popularidad real, no aleatoria) como
+  desempate y como respaldo si no hay señal de categoría.
+- Excluye explícitamente lo que ya está en el carrito (verificado con
+  Playwright: el producto ya agregado nunca aparece duplicado en las
+  recomendaciones).
+- Cada tarjeta tiene su propio botón "Agregar" que suma directo al
+  carrito sin salir de la página, y la sección se recalcula sola cuando
+  el carrito cambia (misma suscripción que ya actualiza el resumen y el
+  total).
+
+### Verificación
+
+Todo probado con Playwright contra el servidor real: checkout completo
+(offcanvas y página dedicada) con teléfono/dirección persistidos
+correctamente en la base de datos, carrito vaciándose y vista de éxito
+tras confirmar, búsqueda con typo de acento/SKU/categoría, autocompletado
+abriendo el modal de detalle correcto, cross-sell agregando productos sin
+duplicar lo ya presente, y una pasada en viewport de 390px (mobile) que
+fue la que encontró el bug de posicionamiento del dropdown. 199 tests de
+Jest, todos verdes (sin cambios de backend salvo `direccion`, que sí
+tiene su propio test de regresión).
+
 ## Estado de verificación
 
 El esquema y la API fueron probados de extremo a extremo contra una

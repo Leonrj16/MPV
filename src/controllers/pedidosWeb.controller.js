@@ -10,8 +10,8 @@ const resumenProductos = (items) => (items || []).map((i) => `${i.producto} x${i
 /** POST /api/tienda/pedidos — pública, la llama la tienda antes de abrir WhatsApp. */
 async function crearPedido(req, res) {
     try {
-        const { items, cliente, telefono, cuponCodigo } = req.body;
-        const pedido = await registrarPedidoWeb({ items, cliente, telefono, cuponCodigo });
+        const { items, cliente, telefono, direccion, cuponCodigo } = req.body;
+        const pedido = await registrarPedidoWeb({ items, cliente, telefono, direccion, cuponCodigo });
         res.status(201).json({ ok: true, data: pedido });
     } catch (err) {
         res.status(400).json({ ok: false, error: err.message });

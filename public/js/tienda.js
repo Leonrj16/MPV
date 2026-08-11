@@ -110,13 +110,27 @@
         }
     }
 
+    // Sin esto, "resina" no encontraba "Resína" (typo con tilde de más) ni al
+    // revés "jeringa" no encontraba "jeríngas" — cualquier acento de más o de
+    // menos rompía el match literal de .includes(). NFD separa cada letra
+    // acentuada en (letra base + marca diacrítica) y el regex se queda solo
+    // con la letra base, así "á"/"a" quedan indistinguibles para la búsqueda.
+    function normalizarTexto(texto) {
+        return (texto || '')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .toLowerCase();
+    }
+
     function aplicarFiltros() {
-        const texto = buscador.value.trim().toLowerCase();
+        const texto = normalizarTexto(buscador.value.trim());
         const idsFavoritos = new Set(Favoritos.obtener());
         const filtrados = catalogoCompleto.filter((p) => {
             const matchTexto = !texto ||
-                p.nombre.toLowerCase().includes(texto) ||
-                (p.descripcion || '').toLowerCase().includes(texto);
+                normalizarTexto(p.nombre).includes(texto) ||
+                normalizarTexto(p.descripcion).includes(texto) ||
+                normalizarTexto(p.categoria).includes(texto) ||
+                normalizarTexto(p.sku).includes(texto);
             const matchCat = !categoriaActiva || p.categoria === categoriaActiva;
             const matchFavorito = !soloFavoritosActivo || idsFavoritos.has(p.id);
             return matchTexto && matchCat && matchFavorito;
@@ -139,7 +153,119 @@
         aplicarFiltros();
     });
 
-    buscador.addEventListener('input', aplicarFiltros);
+    // -------- Autocompletado del buscador --------
+    const MAX_SUGERENCIAS = 6;
+    const sugerenciasEl = document.getElementById('buscadorSugerencias');
+
+    function sugerenciaItemHtml(p) {
+        const imagenHtml = p.imagenUrl
+            ? `<img src="${escaparHtml(p.imagenUrl)}" alt="" onerror="manejarErrorImagen(this)">`
+            : `<i class="bi bi-capsule"></i>`;
+        return `
+            <div class="sugerencia-item" data-id="${p.id}" role="option">
+                <div class="sugerencia-imagen">${imagenHtml}</div>
+                <div class="sugerencia-texto">
+                    <div class="sugerencia-nombre">${escaparHtml(p.nombre)}</div>
+                    <div class="sugerencia-categoria">${escaparHtml(p.categoria || 'Sin categoría')}</div>
+                </div>
+                <div class="sugerencia-precio">${formatCurrency(p.precio)}</div>
+            </div>
+        `;
+    }
+
+    function ocultarSugerencias() {
+        sugerenciasEl.classList.add('d-none');
+        sugerenciasEl.innerHTML = '';
+        sugerenciasEl.style.top = '';
+        buscador.setAttribute('aria-expanded', 'false');
+    }
+
+    // En mobile el dropdown se despega del input angosto (ver el media query
+    // en tienda.css) y pasa a position:fixed — necesita un `top` real en
+    // píxeles, calculado desde dónde termina la barra de búsqueda, porque
+    // "fixed" no tiene un padre relativo del que heredar la posición.
+    function posicionarSugerencias() {
+        if (window.innerWidth > 575.98) {
+            sugerenciasEl.style.top = '';
+            return;
+        }
+        const rect = buscador.getBoundingClientRect();
+        sugerenciasEl.style.top = `${Math.round(rect.bottom + 8)}px`;
+    }
+
+    function renderSugerencias(textoOriginal) {
+        const texto = normalizarTexto(textoOriginal.trim());
+        if (!texto) {
+            ocultarSugerencias();
+            return;
+        }
+
+        // Relevancia simple: el nombre empieza con el texto > el nombre lo
+        // contiene > matchea por otro campo (categoría, SKU, descripción) —
+        // así "res" muestra primero "Resina..." antes que un producto cuya
+        // descripción menciona "resistente" de pura casualidad.
+        const puntuar = (p) => {
+            const nombre = normalizarTexto(p.nombre);
+            if (nombre.startsWith(texto)) return 0;
+            if (nombre.includes(texto)) return 1;
+            return 2;
+        };
+
+        const coincidencias = catalogoCompleto
+            .filter((p) =>
+                normalizarTexto(p.nombre).includes(texto) ||
+                normalizarTexto(p.descripcion).includes(texto) ||
+                normalizarTexto(p.categoria).includes(texto) ||
+                normalizarTexto(p.sku).includes(texto)
+            )
+            .sort((a, b) => puntuar(a) - puntuar(b));
+
+        if (coincidencias.length === 0) {
+            sugerenciasEl.innerHTML = `<div class="sugerencia-sin-resultados">No encontramos productos con "${escaparHtml(textoOriginal.trim())}"</div>`;
+            posicionarSugerencias();
+            sugerenciasEl.classList.remove('d-none');
+            buscador.setAttribute('aria-expanded', 'true');
+            return;
+        }
+
+        const visibles = coincidencias.slice(0, MAX_SUGERENCIAS);
+        const restantes = coincidencias.length - visibles.length;
+        sugerenciasEl.innerHTML = visibles.map(sugerenciaItemHtml).join('') +
+            (restantes > 0 ? `<div class="sugerencia-vermas" id="btnVerTodosSugerencias">Ver los ${coincidencias.length} resultados</div>` : '');
+        posicionarSugerencias();
+        sugerenciasEl.classList.remove('d-none');
+        buscador.setAttribute('aria-expanded', 'true');
+    }
+
+    sugerenciasEl.addEventListener('click', (e) => {
+        const verMas = e.target.closest('#btnVerTodosSugerencias');
+        if (verMas) {
+            ocultarSugerencias();
+            aplicarFiltros();
+            document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth' });
+            return;
+        }
+        const item = e.target.closest('.sugerencia-item');
+        if (item) {
+            ocultarSugerencias();
+            abrirDetalle(Number(item.dataset.id));
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.tienda-search')) ocultarSugerencias();
+    });
+
+    buscador.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') ocultarSugerencias();
+    });
+
+    buscador.addEventListener('focus', () => renderSugerencias(buscador.value));
+
+    buscador.addEventListener('input', () => {
+        aplicarFiltros();
+        renderSugerencias(buscador.value);
+    });
     ordenSelect?.addEventListener('change', aplicarFiltros);
 
     // -------- Toast de confirmación --------
@@ -305,14 +431,24 @@
         // para que el pedido no exista solo dentro del chat de WhatsApp. Si
         // esto falla, no debe afectar el pedido real: ya se abrió WhatsApp.
         const nombreCliente = document.getElementById('carritoNombreCliente')?.value.trim();
+        const telefonoCliente = document.getElementById('carritoTelefonoCliente')?.value.trim();
         fetch('/api/tienda/pedidos', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 items: items.map((i) => ({ productoId: i.id, cantidad: i.cantidad })),
                 cliente: nombreCliente || undefined,
+                telefono: telefonoCliente || undefined,
             }),
         }).catch(() => {});
+
+        // De cara al cliente el pedido ya se hizo (WhatsApp se abrió con el
+        // detalle) independientemente de si el registro interno funcionó —
+        // se vacía el carrito y se cierra el panel para que quede claro que
+        // terminó, en vez de dejarlo con el mismo carrito lleno a la vista.
+        Carrito.vaciar();
+        bootstrap.Offcanvas.getOrCreateInstance(document.getElementById('offcanvasCarrito')).hide();
+        mostrarToast('¡Pedido enviado! Revisa WhatsApp para coordinar.');
     });
 
     Carrito.suscribir(renderCarrito);

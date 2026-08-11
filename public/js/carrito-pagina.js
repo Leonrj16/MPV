@@ -24,6 +24,7 @@
     const contenidoEl = document.getElementById('carritoPaginaContenido');
 
     let cuponAplicado = null; // { codigo, tipo, valor, descuento }
+    let catalogoCompleto = [];
 
     function itemHtml(item) {
         const imagenHtml = item.imagenUrl
@@ -67,6 +68,87 @@
         document.getElementById('resumenCantidadItems').textContent = `${cantidadTotal} producto${cantidadTotal === 1 ? '' : 's'}`;
         document.getElementById('resumenSubtotal').textContent = formatCurrency(subtotal);
         renderDescuento(subtotal);
+        renderRecomendaciones(items);
+    }
+
+    // -------- "También te puede interesar" --------
+    const MAX_RECOMENDACIONES = 4;
+    const recomendacionesWrap = document.getElementById('recomendacionesWrap');
+    const recomendacionesGrid = document.getElementById('recomendacionesGrid');
+
+    function recomendacionCardHtml(p) {
+        const nombre = escaparHtml(p.nombre);
+        const imagenHtml = p.imagenUrl
+            ? `<img src="${escaparHtml(p.imagenUrl)}" alt="${nombre}" loading="lazy" onerror="manejarErrorImagen(this)">`
+            : `<i class="bi bi-capsule placeholder-icono"></i>`;
+        return `
+            <div class="col-6 col-md-3">
+                <div class="card-producto">
+                    <div class="card-producto-imagen">
+                        ${p.categoria ? `<span class="card-producto-categoria">${escaparHtml(p.categoria)}</span>` : ''}
+                        ${imagenHtml}
+                    </div>
+                    <div class="card-producto-body">
+                        <button type="button" class="card-producto-nombre" data-ver="${p.id}">${nombre}</button>
+                        <div class="d-flex align-items-end justify-content-between mt-auto">
+                            <div class="card-producto-precio">${formatCurrency(p.precio)}</div>
+                        </div>
+                        <button class="btn-agregar" data-agregar="${p.id}"><i class="bi bi-bag-plus-fill me-1"></i>Agregar</button>
+                    </div>
+                </div>
+            </div>
+        `;
+    }
+
+    // Prioriza productos de las mismas categorías que ya están en el
+    // carrito (cross-sell relevante) y usa vendidosTotal como desempate/
+    // fallback — así un carrito vacío de categoría (o el catálogo cargando
+    // todavía) igual muestra algo en vez de una sección vacía.
+    function calcularRecomendaciones(items) {
+        if (catalogoCompleto.length === 0) return [];
+        const idsEnCarrito = new Set(items.map((i) => i.id));
+        const categoriasEnCarrito = new Set(
+            catalogoCompleto.filter((p) => idsEnCarrito.has(p.id)).map((p) => p.categoria)
+        );
+
+        const candidatos = catalogoCompleto.filter((p) => !idsEnCarrito.has(p.id));
+        const puntuar = (p) => (categoriasEnCarrito.has(p.categoria) ? 0 : 1);
+        return candidatos
+            .sort((a, b) => puntuar(a) - puntuar(b) || (b.vendidosTotal || 0) - (a.vendidosTotal || 0))
+            .slice(0, MAX_RECOMENDACIONES);
+    }
+
+    function renderRecomendaciones(items) {
+        const recomendaciones = calcularRecomendaciones(items);
+        if (recomendaciones.length === 0) {
+            recomendacionesWrap.classList.add('d-none');
+            return;
+        }
+        recomendacionesGrid.innerHTML = recomendaciones.map(recomendacionCardHtml).join('');
+        recomendacionesWrap.classList.remove('d-none');
+    }
+
+    recomendacionesGrid.addEventListener('click', (e) => {
+        const btnAgregar = e.target.closest('[data-agregar]');
+        if (btnAgregar) {
+            const producto = catalogoCompleto.find((p) => p.id === Number(btnAgregar.dataset.agregar));
+            if (producto) Carrito.agregar(producto, 1);
+            return;
+        }
+        const btnVer = e.target.closest('[data-ver]');
+        if (btnVer) {
+            window.location.href = `tienda.html?producto=${btnVer.dataset.ver}`;
+        }
+    });
+
+    async function cargarCatalogoParaRecomendaciones() {
+        try {
+            const { data } = await fetch('/api/tienda/productos').then((r) => r.json());
+            catalogoCompleto = data || [];
+            renderRecomendaciones(Carrito.obtener());
+        } catch {
+            // Sin catálogo no hay recomendaciones — el carrito en sí sigue funcionando.
+        }
     }
 
     function totalConDescuento(subtotal) {
@@ -127,12 +209,23 @@
         if (confirm('¿Vaciar todo el carrito?')) Carrito.vaciar();
     });
 
+    function mostrarExitoPedido(urlWhatsapp) {
+        document.getElementById('carritoPaginaVacio').classList.add('d-none');
+        document.getElementById('carritoPaginaContenido').classList.add('d-none');
+        const exitoEl = document.getElementById('carritoPaginaExito');
+        document.getElementById('linkWhatsappExito').href = urlWhatsapp;
+        exitoEl.classList.remove('d-none');
+    }
+
     document.getElementById('btnFinalizarPedidoPagina').addEventListener('click', async () => {
         const items = Carrito.obtener();
         if (items.length === 0) return;
 
         const subtotal = Carrito.calcularTotal();
         const lineas = items.map((i) => `• ${i.cantidad} x ${i.nombre} — ${formatCurrency(i.precio * i.cantidad)}`);
+        const nombreCliente = document.getElementById('carritoPaginaNombre')?.value.trim();
+        const telefonoCliente = document.getElementById('carritoPaginaTelefono')?.value.trim();
+        const direccionCliente = document.getElementById('carritoPaginaDireccion')?.value.trim();
         const mensaje = [
             'Hola, quisiera hacer el siguiente pedido:',
             '',
@@ -141,14 +234,16 @@
             `Subtotal: ${formatCurrency(subtotal)}`,
             ...(cuponAplicado ? [`Cupón ${cuponAplicado.codigo}: -${formatCurrency(cuponAplicado.descuento)}`] : []),
             `Total: ${formatCurrency(totalConDescuento(subtotal))}`,
+            ...(direccionCliente ? ['', `Dirección de entrega: ${direccionCliente}`] : []),
         ].join('\n');
+        const urlWhatsapp = `https://wa.me/${CONFIG.WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`;
 
         // window.open() va primero y sin await para que el navegador lo
         // reconozca como iniciado por el usuario (mismo patrón que tienda.js).
-        window.open(`https://wa.me/${CONFIG.WHATSAPP_NUMERO}?text=${encodeURIComponent(mensaje)}`, '_blank', 'noopener');
+        window.open(urlWhatsapp, '_blank', 'noopener');
 
-        const nombreCliente = document.getElementById('carritoPaginaNombre')?.value.trim();
         const avisarme = document.getElementById('carritoAvisarme')?.checked;
+        let pedidoId = null;
         try {
             const res = await fetch('/api/tienda/pedidos', {
                 method: 'POST',
@@ -156,17 +251,29 @@
                 body: JSON.stringify({
                     items: items.map((i) => ({ productoId: i.id, cantidad: i.cantidad })),
                     cliente: nombreCliente || undefined,
+                    telefono: telefonoCliente || undefined,
+                    direccion: direccionCliente || undefined,
                     cuponCodigo: cuponAplicado?.codigo || undefined,
                 }),
             }).then((r) => r.json());
-
-            if (res.ok && avisarme) {
-                await suscribirPushPedido(res.data.id);
-            }
+            if (res.ok) pedidoId = res.data.id;
         } catch {
-            // El pedido por WhatsApp ya se envió; si el registro interno o la
-            // suscripción push fallan, no debe bloquear al cliente.
+            // El pedido por WhatsApp ya se envió; si el registro interno
+            // falla, no debe bloquear al cliente — igual se vacía el
+            // carrito y se muestra éxito, porque de cara al cliente el
+            // pedido sí se hizo.
         }
+
+        // De cara al cliente el pedido ya terminó acá — la suscripción push
+        // pide permiso del navegador (puede quedar esperando al usuario
+        // indefinidamente) y NO debe bloquear la vista de éxito ni el
+        // vaciado del carrito. Corre en paralelo, sin await.
+        if (pedidoId && avisarme) {
+            suscribirPushPedido(pedidoId).catch(() => {});
+        }
+
+        Carrito.vaciar();
+        mostrarExitoPedido(urlWhatsapp);
     });
 
     // -------- Notificaciones push (Fase G3) --------
@@ -265,6 +372,7 @@
 
     document.getElementById('anioActual').textContent = new Date().getFullYear();
     cargarConfiguracionTienda();
+    cargarCatalogoParaRecomendaciones();
 
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {

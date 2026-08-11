@@ -80,7 +80,8 @@
 
         <div class="tienda-search ms-auto ms-md-0">
             <i class="bi bi-search"></i>
-            <input type="text" id="buscador" placeholder="Buscar resinas, guantes, instrumental…">
+            <input type="text" id="buscador" placeholder="Buscar resinas, guantes, instrumental…" autocomplete="off" role="combobox" aria-expanded="false" aria-controls="buscadorSugerencias" aria-autocomplete="list">
+            <div class="buscador-sugerencias d-none" id="buscadorSugerencias" role="listbox"></div>
         </div>
 
         <button type="button" class="btn-carrito ms-auto" id="btnTema" data-tema-boton title="Cambiar a modo oscuro" aria-label="Cambiar a modo oscuro">
@@ -243,6 +244,10 @@
             <div class="mb-3">
                 <label class="form-label small fw-semibold mb-1" for="carritoNombreCliente">Tu nombre (opcional)</label>
                 <input type="text" class="form-control form-control-sm" id="carritoNombreCliente" placeholder="Para identificar tu pedido">
+            </div>
+            <div class="mb-3">
+                <label class="form-label small fw-semibold mb-1" for="carritoTelefonoCliente">Tu teléfono (opcional)</label>
+                <input type="tel" class="form-control form-control-sm" id="carritoTelefonoCliente" placeholder="Para coordinar por si no usás este WhatsApp">
             </div>
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <span class="fw-semibold">Total</span>
