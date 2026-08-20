@@ -1,6 +1,13 @@
 const ExcelJS = require('exceljs');
 const PDFDocument = require('pdfkit');
-const { obtenerInventarioValorizado, obtenerClientesFrecuentes } = require('../services/reportes');
+const {
+    obtenerInventarioValorizado,
+    obtenerClientesFrecuentes,
+    generarCuponFidelidad,
+    obtenerRentabilidadMensual,
+    obtenerProductosBajaRotacion,
+} = require('../services/reportes');
+const { registrarEvento } = require('../services/bitacora');
 
 const formatoMoneda = (n) => `S/ ${Number(n).toFixed(2)}`;
 const timestampArchivo = () => new Date().toISOString().slice(0, 10);
@@ -289,10 +296,60 @@ async function exportarClientesFrecuentesExcel(req, res) {
     }
 }
 
+/** POST /api/reportes/clientes-frecuentes/cupon-fidelidad */
+async function generarCuponFidelidadCtrl(req, res) {
+    try {
+        const { clave } = req.body;
+        if (!clave) {
+            return res.status(400).json({ ok: false, error: 'clave es obligatoria' });
+        }
+        const { cupon, cliente } = await generarCuponFidelidad(clave);
+        await registrarEvento({
+            usuarioId: req.user?.sub,
+            usuarioNombre: req.user?.nombre,
+            accion: 'crear',
+            entidad: 'cupon_fidelidad',
+            entidadId: cupon.id,
+            detalle: `Generó el cupón de fidelidad "${cupon.codigo}" para ${cliente.nombre} (nivel ${cliente.nivelFidelizacion})`,
+        });
+        res.status(201).json({ ok: true, data: cupon });
+    } catch (err) {
+        console.error(err);
+        res.status(400).json({ ok: false, error: err.message });
+    }
+}
+
+/** GET /api/reportes/rentabilidad */
+async function rentabilidad(req, res) {
+    try {
+        const meses = req.query.meses ? Number(req.query.meses) : 6;
+        const data = await obtenerRentabilidadMensual({ meses });
+        res.json({ ok: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
+/** GET /api/reportes/baja-rotacion */
+async function bajaRotacion(req, res) {
+    try {
+        const dias = req.query.dias ? Number(req.query.dias) : 90;
+        const data = await obtenerProductosBajaRotacion({ dias });
+        res.json({ ok: true, data });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ ok: false, error: err.message });
+    }
+}
+
 module.exports = {
     obtenerInventario,
     exportarInventarioExcel,
     exportarInventarioPDF,
     obtenerClientesFrecuentesCtrl,
     exportarClientesFrecuentesExcel,
+    generarCuponFidelidadCtrl,
+    rentabilidad,
+    bajaRotacion,
 };

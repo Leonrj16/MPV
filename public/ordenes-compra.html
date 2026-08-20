@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MPV Dental | Usuarios</title>
+    <title>MPV Dental | Órdenes de Compra</title>
     <link href="vendor/bootstrap/css/bootstrap.min.css" rel="stylesheet">
     <link href="vendor/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
     <link href="css/base.css" rel="stylesheet">
@@ -29,10 +29,10 @@
         <a href="ventas.html" class="nav-link" title="Ventas"><i class="bi bi-receipt-cutoff"></i> <span class="nav-label">Ventas</span></a>
         <a href="productos.html" class="nav-link" title="Productos"><i class="bi bi-box-seam-fill"></i> <span class="nav-label">Productos</span></a>
         <a href="proveedores.html" class="nav-link" title="Proveedores"><i class="bi bi-truck"></i> <span class="nav-label">Proveedores</span></a>
-        <a href="ordenes-compra.html" class="nav-link" title="Órdenes de Compra"><i class="bi bi-bag-check-fill"></i> <span class="nav-label">Órdenes de Compra</span></a>
+        <a href="ordenes-compra.html" class="nav-link active" title="Órdenes de Compra"><i class="bi bi-bag-check-fill"></i> <span class="nav-label">Órdenes de Compra</span></a>
         <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
         <a href="configuracion.html" class="nav-link" data-rol="admin" title="Márgenes e Impuestos"><i class="bi bi-sliders"></i> <span class="nav-label">Márgenes e Impuestos</span></a>
-        <a href="usuarios.html" class="nav-link active" data-rol="admin" title="Usuarios"><i class="bi bi-people-fill"></i> <span class="nav-label">Usuarios</span></a>
+        <a href="usuarios.html" class="nav-link" data-rol="admin" title="Usuarios"><i class="bi bi-people-fill"></i> <span class="nav-label">Usuarios</span></a>
         <a href="auditoria.html" class="nav-link" data-rol="admin" title="Auditoría"><i class="bi bi-shield-lock-fill"></i> <span class="nav-label">Auditoría</span></a>
         <a href="herramientas.html" class="nav-link" data-rol="admin" title="Herramientas"><i class="bi bi-tools"></i> <span class="nav-label">Herramientas</span></a>
         <button type="button" class="nav-link nav-collapse-btn" id="btnSidebarCollapse" title="Colapsar menú">
@@ -57,8 +57,8 @@
         <div class="d-flex align-items-center gap-2 mpv-topbar-title">
             <button class="btn btn-icon-sm d-lg-none" id="btnToggleSidebar"><i class="bi bi-list"></i></button>
             <div>
-                <h1>Usuarios</h1>
-                <div class="subtitle">Administra quién puede acceder al sistema y con qué rol</div>
+                <h1>Órdenes de Compra</h1>
+                <div class="subtitle">Reabastecimiento de stock a partir de tus proveedores</div>
             </div>
         </div>
         <div class="d-flex align-items-center gap-2 mpv-topbar-actions">
@@ -71,8 +71,8 @@
                     <div class="p-3 text-center text-muted small" id="alertasContenido">Cargando…</div>
                 </div>
             </div>
-            <button class="btn btn-mpv-primary" data-bs-toggle="modal" data-bs-target="#modalNuevoUsuario">
-                <i class="bi bi-person-plus-fill me-1"></i> Nuevo Usuario
+            <button class="btn btn-mpv-primary" id="btnVerSugerencias">
+                <i class="bi bi-magic me-1"></i> Sugerencias de reabastecimiento
             </button>
         </div>
     </header>
@@ -81,24 +81,32 @@
         <div class="mpv-panel">
             <div class="mpv-panel-header">
                 <div>
-                    <h2>Cuentas del Sistema</h2>
-                    <div class="panel-sub" id="resultCount">Cargando…</div>
+                    <h2>Órdenes</h2>
+                    <div class="panel-sub" id="ordenesResultCount">Cargando…</div>
                 </div>
+                <select id="filtroEstadoOrden" class="form-select mpv-filter-select" aria-label="Filtrar por estado de la orden">
+                    <option value="">Todos los estados</option>
+                    <option value="borrador">Borrador</option>
+                    <option value="enviada">Enviada</option>
+                    <option value="recibida">Recibida</option>
+                    <option value="cancelada">Cancelada</option>
+                </select>
             </div>
             <div class="mpv-table-wrap" tabindex="0" role="region" aria-label="Tabla con desplazamiento horizontal">
                 <table class="mpv-table">
                     <thead>
                         <tr>
-                            <th>Usuario</th>
-                            <th>Email</th>
-                            <th>Rol</th>
+                            <th>#</th>
+                            <th>Proveedor</th>
+                            <th>Items</th>
+                            <th class="text-end">Total</th>
                             <th>Estado</th>
-                            <th>Último acceso</th>
+                            <th>Fecha</th>
                             <th class="text-end">Acciones</th>
                         </tr>
                     </thead>
-                    <tbody id="usuariosTableBody">
-                        <tr class="skeleton-row"><td colspan="6"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                    <tbody id="ordenesTableBody">
+                        <tr class="skeleton-row"><td colspan="7"><div class="skeleton-bar" style="width:100%"></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -106,80 +114,38 @@
     </main>
 </div>
 
-<!-- Modal: Nuevo Usuario -->
-<div class="modal fade" id="modalNuevoUsuario" tabindex="-1" aria-labelledby="modalNuevoUsuarioTitulo">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- Modal: Sugerencias de reabastecimiento -->
+<div class="modal fade" id="modalSugerencias" tabindex="-1" aria-labelledby="modalSugerenciasTitulo">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: var(--mpv-radius); border:none;">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="modalNuevoUsuarioTitulo">Nuevo Usuario</h5>
+                <h5 class="modal-title fw-bold" id="modalSugerenciasTitulo">Sugerencias de reabastecimiento</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <form id="formNuevoUsuario">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold" for="nuevoNombre">Nombre completo</label>
-                        <input type="text" class="form-control" id="nuevoNombre" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold" for="nuevoEmail">Correo electrónico</label>
-                        <input type="email" class="form-control" id="nuevoEmail" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold" for="nuevoPassword">Contraseña</label>
-                        <input type="password" class="form-control" id="nuevoPassword" minlength="8" required>
-                        <div class="form-text">Mínimo 8 caracteres.</div>
-                    </div>
-                    <div class="mb-2">
-                        <label class="form-label small fw-semibold" for="nuevoRol">Rol</label>
-                        <select class="form-select" id="nuevoRol">
-                            <option value="operador">Operador de Compras</option>
-                            <option value="admin">Administrador</option>
-                        </select>
-                    </div>
-                    <div class="alert alert-danger py-2 small d-none" id="nuevoUsuarioError"></div>
+            <div class="modal-body">
+                <p class="pvp-sub mb-3">
+                    Productos activos con stock igual o por debajo de su mínimo configurado, agrupados por el
+                    proveedor óptimo vigente. La cantidad sugerida repone hasta el doble del stock mínimo — se
+                    puede ajustar antes de crear la orden.
+                </p>
+                <div id="sugerenciasContenido">
+                    <div class="mpv-empty"><i class="bi bi-hourglass-split"></i>Cargando…</div>
                 </div>
-                <div class="modal-footer border-0">
-                    <button type="button" class="btn btn-mpv-outline" data-bs-dismiss="modal">Cancelar</button>
-                    <button type="submit" class="btn btn-mpv-primary" id="btnCrearUsuario">Crear Usuario</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Modal: Editar Usuario -->
-<div class="modal fade" id="modalEditarUsuario" tabindex="-1" aria-labelledby="modalEditarUsuarioTitulo">
-    <div class="modal-dialog modal-dialog-centered">
+<!-- Modal: Detalle de orden -->
+<div class="modal fade" id="modalDetalleOrden" tabindex="-1" aria-labelledby="modalDetalleOrdenTitulo">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
         <div class="modal-content" style="border-radius: var(--mpv-radius); border:none;">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title fw-bold" id="modalEditarUsuarioTitulo">Editar Usuario</h5>
+                <h5 class="modal-title fw-bold" id="modalDetalleOrdenTitulo">Orden de Compra</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
-            <div class="modal-body">
-                <input type="hidden" id="editarId">
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold" for="editarNombre">Nombre completo</label>
-                    <input type="text" class="form-control" id="editarNombre" required>
-                </div>
-                <div class="mb-3">
-                    <label class="form-label small fw-semibold" for="editarRol">Rol</label>
-                    <select class="form-select" id="editarRol">
-                        <option value="operador">Operador de Compras</option>
-                        <option value="admin">Administrador</option>
-                    </select>
-                </div>
-                <div class="form-check form-switch mb-3">
-                    <input class="form-check-input" type="checkbox" id="editarActivo">
-                    <label class="form-check-label small fw-semibold" for="editarActivo">Cuenta activa</label>
-                </div>
-                <hr>
-                <label class="form-label small fw-semibold" for="editarPassword">Restablecer contraseña (opcional)</label>
-                <input type="password" class="form-control" id="editarPassword" minlength="8" placeholder="Dejar en blanco para no cambiarla">
-                <div class="alert alert-danger py-2 small d-none mt-3" id="editarUsuarioError"></div>
-            </div>
-            <div class="modal-footer border-0">
-                <button type="button" class="btn btn-mpv-outline" data-bs-dismiss="modal">Cancelar</button>
-                <button type="button" class="btn btn-mpv-primary" id="btnGuardarUsuario">Guardar Cambios</button>
+            <div class="modal-body" id="detalleOrdenContenido">
+                <div class="mpv-empty"><i class="bi bi-hourglass-split"></i>Cargando…</div>
             </div>
         </div>
     </div>
@@ -190,6 +156,6 @@
 <script src="js/theme.js"></script>
 <script src="js/api.js"></script>
 <script src="js/alertas-bell.js"></script>
-<script src="js/usuarios.js"></script>
+<script src="js/ordenes-compra.js"></script>
 </body>
 </html>

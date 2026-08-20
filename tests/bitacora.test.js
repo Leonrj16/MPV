@@ -44,14 +44,14 @@ describe('registrarEvento', () => {
 
 describe('listarBitacora', () => {
     test('sin filtros arma un WHERE vacío y usa el límite por defecto', async () => {
-        pool.query.mockResolvedValueOnce({ rows: [{ id: 1 }] });
+        pool.query.mockResolvedValueOnce({ rows: [{ id: 1, total_count: '1' }] });
 
         const resultado = await listarBitacora();
 
         const [sql, params] = pool.query.mock.calls[0];
         expect(sql).not.toContain('WHERE');
-        expect(params).toEqual([100]);
-        expect(resultado).toEqual([{ id: 1 }]);
+        expect(params).toEqual([100, 0]);
+        expect(resultado).toEqual({ eventos: [{ id: 1 }], total: 1 });
     });
 
     test('agrega condiciones por entidad, acción y rango de fechas', async () => {
@@ -64,7 +64,8 @@ describe('listarBitacora', () => {
         expect(sql).toContain('accion = $2');
         expect(sql).toContain('created_at >= $3::date');
         expect(sql).toContain("created_at < ($4::date + interval '1 day')");
-        expect(params).toEqual(['producto', 'crear', '2026-01-01', '2026-01-31', 100]);
+        expect(sql).toContain('OFFSET $6');
+        expect(params).toEqual(['producto', 'crear', '2026-01-01', '2026-01-31', 100, 0]);
     });
 
     test('topa el límite a 500 aunque se pida más', async () => {
@@ -73,6 +74,22 @@ describe('listarBitacora', () => {
         await listarBitacora({ limite: 10000 });
 
         const [, params] = pool.query.mock.calls[0];
-        expect(params[params.length - 1]).toBe(500);
+        expect(params[0]).toBe(500);
+    });
+
+    test('calcula el offset a partir de la página pedida', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+
+        await listarBitacora({ limite: 20, pagina: 4 });
+
+        const [, params] = pool.query.mock.calls[0];
+        expect(params).toEqual([20, 60]); // (4-1) * 20
+    });
+
+    test('sin resultados, el total es 0', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+
+        const resultado = await listarBitacora();
+        expect(resultado).toEqual({ eventos: [], total: 0 });
     });
 });

@@ -18,7 +18,7 @@ async function registrarEvento({ usuarioId, usuarioNombre, accion, entidad, enti
     }
 }
 
-async function listarBitacora({ limite = 100, entidad, accion, desde, hasta } = {}) {
+async function listarBitacora({ limite = 100, pagina = 1, entidad, accion, desde, hasta } = {}) {
     const condiciones = [];
     const valores = [];
 
@@ -40,13 +40,22 @@ async function listarBitacora({ limite = 100, entidad, accion, desde, hasta } = 
     }
 
     const whereSql = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
-    valores.push(Math.min(Number(limite) || 100, 500));
+    const limiteAplicado = Math.min(Number(limite) || 100, 500);
+    const offset = (Math.max(1, Number(pagina) || 1) - 1) * limiteAplicado;
+    valores.push(limiteAplicado, offset);
 
     const { rows } = await pool.query(
-        `SELECT * FROM bitacora ${whereSql} ORDER BY created_at DESC LIMIT $${valores.length}`,
+        `SELECT *, COUNT(*) OVER() AS total_count
+         FROM bitacora ${whereSql}
+         ORDER BY created_at DESC
+         LIMIT $${valores.length - 1}
+         OFFSET $${valores.length}`,
         valores
     );
-    return rows;
+
+    const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+    const eventos = rows.map(({ total_count, ...evento }) => evento);
+    return { eventos, total };
 }
 
 module.exports = { registrarEvento, listarBitacora };

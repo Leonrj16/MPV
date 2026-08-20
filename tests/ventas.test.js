@@ -230,12 +230,13 @@ describe('listarProductosDisponibles', () => {
 });
 
 describe('listarVentas', () => {
-    test('pasa el límite como parámetro parametrizado', async () => {
+    test('pasa el límite y el offset de la página como parámetros parametrizados', async () => {
         pool.query.mockResolvedValueOnce({ rows: [] });
-        await listarVentas({ limite: 5 });
+        await listarVentas({ limite: 5, pagina: 3 });
         const [sql, params] = pool.query.mock.calls[0];
         expect(sql).toContain('LIMIT $1');
-        expect(params).toEqual([5]);
+        expect(sql).toContain('OFFSET $2');
+        expect(params).toEqual([5, 10]); // offset = (pagina-1) * limite = (3-1)*5
     });
 
     test('sin filtros no agrega cláusula WHERE de filtro', async () => {
@@ -256,8 +257,28 @@ describe('listarVentas', () => {
         expect(sql).toContain('v.cliente ILIKE $3');
         expect(sql).toContain('v.metodo_pago = $4');
         expect(sql).toContain('LIMIT $5');
+        expect(sql).toContain('OFFSET $6');
         expect(sql).not.toContain('DROP TABLE'); // el valor peligroso va como parámetro, no en el texto del SQL
-        expect(params).toEqual(['2026-08-01', '2026-08-09', "%'; DROP TABLE ventas; --%", 'efectivo', 20]);
+        expect(params).toEqual(['2026-08-01', '2026-08-09', "%'; DROP TABLE ventas; --%", 'efectivo', 20, 0]);
+    });
+
+    test('devuelve el total real de filas (no el tamaño de la página) usando COUNT(*) OVER()', async () => {
+        pool.query.mockResolvedValueOnce({
+            rows: [
+                { id: 2, total_count: '7' },
+                { id: 1, total_count: '7' },
+            ],
+        });
+        const { ventas, total } = await listarVentas({ limite: 2 });
+        expect(total).toBe(7);
+        expect(ventas).toEqual([{ id: 2 }, { id: 1 }]); // total_count no viaja en cada fila
+    });
+
+    test('sin resultados, el total es 0', async () => {
+        pool.query.mockResolvedValueOnce({ rows: [] });
+        const { ventas, total } = await listarVentas({});
+        expect(ventas).toEqual([]);
+        expect(total).toBe(0);
     });
 });
 

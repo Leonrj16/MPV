@@ -1865,6 +1865,168 @@ formato de teléfono) para confirmar que el agrupamiento y los totales dan
 el resultado esperado, capturado con Playwright y luego eliminado de la
 base para no dejar datos de prueba.
 
+## Ronda extra — órdenes de compra, fidelización, rentabilidad, tests E2E y paginación
+
+Después de cerrar el roadmap "supermega pro" de 5 fases, se pidió explícitamente
+seguir mejorando el sistema (sin tocar nada bloqueado por RUC). Se identificaron
+cinco mejoras concretas y se construyeron las cinco: cerrar el círculo de
+reabastecimiento con órdenes de compra reales, un programa de fidelización
+simple sobre los clientes frecuentes ya existentes, visibilidad de rentabilidad
+en el tiempo, una suite de tests end-to-end versionada en el repo (en vez de
+scripts sueltos), y paginación real del lado del servidor en las tres tablas
+que hoy cargaban todo en memoria del cliente.
+
+### Órdenes de compra a proveedores (`ordenes-compra.html`)
+
+Las alertas de reabastecimiento (Fase F3) y la comparación de proveedores
+(Fase 1) ya existían por separado, pero no había nada que generara el
+documento real para mandarle al proveedor ni que registrara la recepción de
+la mercadería. Nuevas tablas `ordenes_compra` / `orden_compra_detalle`
+(migración `018_ordenes_compra.sql`) y un ciclo de vida simple: `borrador` →
+`enviada` → `recibida` (o `cancelada` desde cualquiera de las dos primeras).
+
+- **Sugerencias automáticas**: productos activos con stock ≤ stock mínimo,
+  agrupados por el proveedor óptimo vigente, con una cantidad sugerida
+  (repone hasta el doble del mínimo) editable antes de crear la orden.
+- **Recepción = movimiento de stock real**: al marcar una orden como
+  "recibida", cada línea suma su cantidad al stock del producto y queda
+  registrada en `movimientos_stock` con un tipo nuevo (`recepcion_compra`)
+  y referencia a la orden — la misma tabla que ya usan ventas y ajustes
+  manuales, así el historial de un producto muestra de dónde salió cada
+  cambio.
+- **PDF de la orden** con los datos del proveedor, listo para enviar.
+- **Bug real encontrado al verificar con Playwright**: la tabla de productos
+  dentro del modal de sugerencias usaba la clase `.mpv-table` normal, que
+  tiene `min-width: 1080px` pensado para las tablas principales de pantalla
+  completa — dentro de un modal esa tabla se desbordaba y la columna de
+  cantidad (la que hay que poder editar antes de crear la orden) quedaba
+  fuera de la vista sin scroll visible. Se resolvió sacando esa lista del
+  patrón de tabla y usando un layout de filas simple, sin el ancho mínimo.
+
+### Fidelización de clientes
+
+Se apoya en "Clientes frecuentes" (fase anterior): cada 5 compras (5, 10,
+15…) el cliente puede recibir un cupón de fidelidad de S/10, válido 90 días,
+de un solo uso. El código del cupón es determinístico
+(`FIEL-{clave}-{nivel}`), lo que evita tener que armar una tabla de
+fidelización aparte — el `UNIQUE` que ya tiene `cupones.codigo` es el que
+impide que el mismo nivel se reclame dos veces, incluso si dos clics llegan
+casi juntos (la violación de unicidad se traduce en un mensaje claro en vez
+de reventar).
+
+**Bug de seguridad real encontrado al construir esto**: al armar el botón
+"Generar cupón" con la clave del cliente en un atributo `data-*`, encontré
+que `escaparHtml()` (usado en toda la sesión) no escapa comillas — no hace
+falta para texto entre etiquetas, pero puesto dentro de un atributo
+permitiría cortarlo con un `"` y agregar HTML/atributos propios. Como la
+clave de un cliente de mostrador es literalmente su nombre tal como lo
+tipeó alguien, esto era explotable. Se agregó `escaparAtributo()` (la misma
+salida más comillas codificadas) y se aplicó tanto acá como en el mismo
+patrón que ya existía en `ordenes-compra.js`.
+
+### Reportes de rentabilidad y rotación (`Herramientas`)
+
+Complementa al inventario valorizado con la dimensión que faltaba: no solo
+"cuánto vale el stock hoy", sino "qué tan bien se está vendiendo".
+
+- **Margen mensual** (últimos 6 meses, gráfico de líneas con Chart.js):
+  ingresos reales de cada venta contra un costo estimado (unidades vendidas
+  × costo de compra del proveedor óptimo **vigente**, no el costo real al
+  momento de esa venta — el sistema no guarda ese snapshot histórico por
+  línea de venta). Aproximación deliberada, igual criterio que inventario
+  valorizado: sirve para ver la tendencia, no para contabilidad exacta.
+- **Margen por categoría** en el mismo período, ordenado de mayor a menor.
+- **Productos de baja rotación**: stock activo con casi ninguna venta en 90
+  días — plata parada en el estante, con el mismo criterio de valorización
+  que el resto del sistema.
+- **Bug de layout real encontrado con Playwright**: la tabla de margen por
+  categoría, metida en una columna angosta (`col-lg-5`) al lado del
+  gráfico, heredaba el mismo `min-width: 1080px` de `.mpv-table` — se veía
+  solo la primera columna, el resto scrolleado fuera de vista sin
+  indicación visual. Se corrigió con un `min-width: 0` puntual en esa
+  tabla (a diferencia del caso de arriba, acá sí tenía sentido seguir
+  siendo una tabla, solo que sin el ancho mínimo pensado para pantalla
+  completa).
+
+### Suite de tests E2E versionada (`tests/e2e/`)
+
+Hasta ahora toda la verificación end-to-end de esta sesión se hacía con
+scripts sueltos de Playwright en un scratchpad — útiles en el momento, pero
+que no quedaban como red de seguridad para el futuro. Se agregó
+`@playwright/test` como devDependency (versión fijada a la misma del
+Chromium ya instalado en este entorno, reutilizado vía `executablePath` en
+vez de descargar uno nuevo) y una suite real en `tests/e2e/`, corrible con
+`npm run test:e2e` contra un servidor + base de datos ya levantados:
+
+- Login (credenciales correctas/incorrectas, ruta protegida sin sesión,
+  cierre de sesión, ocultamiento de enlaces admin-only para un operador).
+- Punto de Venta: apertura de caja, venta completa, cierre de caja.
+- Checkout de la tienda pública: agregar al carrito, completar pedido con
+  teléfono/dirección, y el estado vacío del carrito.
+- Los tres reportes de negocio nuevos y el flujo de sugerencias de órdenes
+  de compra, verificando que carguen datos reales.
+
+**Dos problemas reales encontrados armando la suite, ambos arreglados en la
+suite misma, no en la app**:
+1. Un archivo `*.spec.js` de Playwright Test coincide con el patrón de
+   descubrimiento de tests por defecto de Jest (`**/*.spec.js`) — `npm test`
+   intentaba correr los specs de Playwright con el runner de Jest y fallaba
+   la suite entera. Se agregó `testPathIgnorePatterns` para `tests/e2e/` en
+   la config de Jest.
+2. Correr toda la suite con un login real por test chocó con el rate limit
+   de `/api/auth/login` (10 intentos cada 15 minutos — Fase de Robustez),
+   justo el que se había probado manualmente semanas atrás en esta misma
+   sesión. Se resolvió con el patrón estándar de Playwright: un
+   `globalSetup` que loguea una vez por corrida (admin y operador) y guarda
+   el `localStorage` resultante (`storageState`) para que el resto de los
+   tests arranquen ya autenticados sin pegarle de nuevo a `/login`.
+
+**Nota para quien corra esta suite**: a diferencia de los tests de Jest
+(que mockean `pool.query` y no tocan una base real), la suite E2E ejecuta
+flujos reales de escritura — una venta de verdad, un pedido web de verdad,
+una sesión de caja de verdad. Correrla contra la base de desarrollo deja
+esas filas ahí (la sesión de caja se cierra sola al final del test, pero la
+venta y el pedido quedan). Para CI o para no ensuciar una base compartida,
+apuntar `E2E_BASE_URL` a un entorno descartable.
+
+### Paginación en tablas grandes (productos, ventas, bitácora)
+
+Estas tres tablas cargaban toda su tabla en memoria del navegador y
+filtraban/buscaban ahí mismo — funciona bien con el volumen actual, pero no
+escala. Se migraron a paginación real del lado del servidor: `LIMIT`/`OFFSET`
+más `COUNT(*) OVER()` en la misma consulta (evita una segunda query solo
+para el total), con un pager simple (Anterior/Siguiente + "Página X de Y")
+al pie de cada tabla.
+
+- **Bitácora**: ya tenía un `limite` fijo (100, tope 500) sin forma de ver
+  el resto — ahora con página real. Es la que más se nota: ya lleva más de
+  cien eventos solo durante esta sesión de desarrollo.
+- **Ventas de Mostrador**: los filtros de fecha/cliente/método de pago ya
+  viajaban al servidor; solo faltaba no traer todo de una.
+- **Productos**: acá sí cambió la experiencia — la búsqueda pasó de
+  filtrar instantáneo sobre la lista ya cargada a pegarle al servidor
+  (con debounce de 400ms, mismo patrón que ya usaban Ventas y Auditoría).
+  Es el trade-off correcto de la paginación real: no se puede filtrar
+  client-side sobre datos que todavía no llegaron.
+- Los flujos de editar/ajustar stock siguen funcionando sin cambios porque
+  solo se disparan sobre filas ya visibles en la página actual — nunca
+  necesitaron buscar por id en una lista completa que ya no existe.
+
+### Verificación
+
+245 tests de Jest (33 nuevos sobre los 212 de la fase anterior), todos
+verdes. Suite E2E completa (12 tests) corrida contra el servidor real,
+también verde — incluyendo una segunda pasada después de la paginación para
+confirmar que no rompió los flujos de POS/checkout que la suite ya cubría.
+Cada feature nueva se verificó además con capturas de Playwright: el ciclo
+completo de una orden de compra (sugerencia → creación → envío → recepción
+→ stock actualizado → PDF), la generación de un cupón de fidelidad de
+punta a punta, el gráfico de rentabilidad y la tabla de baja rotación con
+datos sembrados a propósito, y el pager de bitácora navegando sus 3 páginas
+reales. Los dos bugs de layout (tablas con `min-width` heredado de mal
+lugar) y el bug de seguridad de `escaparAtributo()` se encontraron
+exactamente así — mirando la captura, no leyendo el código.
+
 ## Estado de verificación
 
 El esquema y la API fueron probados de extremo a extremo contra una

@@ -136,7 +136,10 @@ const MPV = (() => {
             const qs = new URLSearchParams(params).toString();
             return request(`/precios${qs ? `?${qs}` : ''}`);
         },
-        getProductos: () => request('/productos'),
+        getProductos: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request(`/productos${qs ? `?${qs}` : ''}`);
+        },
         crearProducto: (payload) => request('/productos', { method: 'POST', body: JSON.stringify(payload) }),
         actualizarProducto: (id, payload) => request(`/productos/${id}`, { method: 'PUT', body: JSON.stringify(payload) }),
         getProveedores: () => request('/proveedores'),
@@ -215,6 +218,19 @@ const MPV = (() => {
         exportarInventarioPDF: () => descargarArchivo('/reportes/inventario/exportar/pdf'),
         getClientesFrecuentes: () => request('/reportes/clientes-frecuentes'),
         exportarClientesFrecuentesExcel: () => descargarArchivo('/reportes/clientes-frecuentes/exportar/excel'),
+        generarCuponFidelidad: (clave) => request('/reportes/clientes-frecuentes/cupon-fidelidad', { method: 'POST', body: JSON.stringify({ clave }) }),
+        getRentabilidad: (meses = 6) => request(`/reportes/rentabilidad?meses=${meses}`),
+        getBajaRotacion: (dias = 90) => request(`/reportes/baja-rotacion?dias=${dias}`),
+        getSugerenciasOrdenesCompra: () => request('/ordenes-compra/sugerencias'),
+        getOrdenesCompra: (params = {}) => {
+            const qs = new URLSearchParams(params).toString();
+            return request(`/ordenes-compra${qs ? `?${qs}` : ''}`);
+        },
+        getOrdenCompra: (id) => request(`/ordenes-compra/${id}`),
+        crearOrdenCompra: (payload) => request('/ordenes-compra', { method: 'POST', body: JSON.stringify(payload) }),
+        cambiarEstadoOrdenCompra: (id, estado) =>
+            request(`/ordenes-compra/${id}/estado`, { method: 'PUT', body: JSON.stringify({ estado }) }),
+        descargarOrdenCompraPdf: (id) => descargarArchivo(`/ordenes-compra/${id}/pdf`),
         descargarCatalogoPdf: () => descargarArchivo('/catalogo/pdf'),
         formatCurrency,
     };

@@ -16,3 +16,9 @@ backups/
 # Estado local del harness de Claude Code (worktrees temporales de
 # subagentes, etc.) — no es contenido del proyecto.
 .claude/
+
+# Artefactos de la suite E2E (tests/e2e/, ver playwright.config.js) —
+# capturas y trazas de una corrida local, no contenido versionable.
+test-results/
+playwright-report/
+tests/e2e/.auth/

@@ -29,6 +29,7 @@
         <a href="ventas.html" class="nav-link" title="Ventas"><i class="bi bi-receipt-cutoff"></i> <span class="nav-label">Ventas</span></a>
         <a href="productos.html" class="nav-link" title="Productos"><i class="bi bi-box-seam-fill"></i> <span class="nav-label">Productos</span></a>
         <a href="proveedores.html" class="nav-link" title="Proveedores"><i class="bi bi-truck"></i> <span class="nav-label">Proveedores</span></a>
+        <a href="ordenes-compra.html" class="nav-link" title="Órdenes de Compra"><i class="bi bi-bag-check-fill"></i> <span class="nav-label">Órdenes de Compra</span></a>
         <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
         <a href="configuracion.html" class="nav-link" data-rol="admin" title="Márgenes e Impuestos"><i class="bi bi-sliders"></i> <span class="nav-label">Márgenes e Impuestos</span></a>
         <a href="usuarios.html" class="nav-link" data-rol="admin" title="Usuarios"><i class="bi bi-people-fill"></i> <span class="nav-label">Usuarios</span></a>
@@ -139,6 +140,62 @@
                         </tr>
                     </thead>
                     <tbody id="inventarioTableBody">
+                        <tr class="skeleton-row"><td colspan="6"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Rentabilidad y rotación -->
+        <div class="mpv-panel mb-4">
+            <div class="mpv-panel-header">
+                <div>
+                    <h2>Rentabilidad y rotación</h2>
+                    <div class="panel-sub">Margen estimado de los últimos 6 meses (a costo de compra vigente) y stock que casi no se mueve</div>
+                </div>
+            </div>
+            <div class="p-3">
+                <div class="row g-3 mb-3">
+                    <div class="col-12 col-lg-7">
+                        <div style="height:260px;">
+                            <canvas id="chartRentabilidadMensual"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-12 col-lg-5">
+                        <div class="mpv-table-wrap" tabindex="0" role="region" aria-label="Tabla de margen por categoría con desplazamiento horizontal">
+                            <table class="mpv-table sin-acciones" style="min-width:0;">
+                                <thead>
+                                    <tr>
+                                        <th>Categoría</th>
+                                        <th class="text-end">Ingresos</th>
+                                        <th class="text-end">Margen</th>
+                                        <th class="text-end">%</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="rentabilidadCategoriaTableBody">
+                                    <tr class="skeleton-row"><td colspan="4"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <h3 style="font-size:0.92rem; font-weight:700; margin-bottom:0.5rem;">Productos de baja rotación (90 días)</h3>
+                <div class="alert alert-warning py-2 small d-none" id="bajaRotacionAviso"></div>
+            </div>
+            <div class="mpv-table-wrap" tabindex="0" role="region" aria-label="Tabla de productos de baja rotación con desplazamiento horizontal">
+                <table class="mpv-table sin-acciones">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Stock</th>
+                            <th>Vendidos (90 días)</th>
+                            <th>Última venta</th>
+                            <th class="text-end">Valor inmovilizado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bajaRotacionTableBody">
                         <tr class="skeleton-row"><td colspan="6"><div class="skeleton-bar" style="width:100%"></div></td></tr>
                     </tbody>
                 </table>
@@ -283,6 +340,7 @@
 </div>
 
 <script src="vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+<script src="vendor/chartjs/chart.umd.min.js"></script>
 <script src="js/auth.js"></script>
 <script src="js/theme.js"></script>
 <script src="js/api.js"></script>

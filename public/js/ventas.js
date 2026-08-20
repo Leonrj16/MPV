@@ -12,6 +12,14 @@
         return div.innerHTML;
     }
 
+    // escaparHtml() sirve para texto entre etiquetas, pero deja las comillas
+    // tal cual — un textContent con comillas no las codifica porque no hacen
+    // falta ahí. Puesto dentro de un atributo (data-*, aria-label) eso sí
+    // permite escapar el atributo, así que acá se codifican comillas también.
+    function escaparAtributo(texto) {
+        return escaparHtml(texto).replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+    }
+
     function debounce(fn, ms) {
         let timeout;
         return (...args) => {
@@ -68,6 +76,14 @@
     // -------- Clientes Frecuentes --------
     const clientesFrecuentesTableBody = document.getElementById('clientesFrecuentesTableBody');
 
+    function celdaFidelizacionHtml(c) {
+        if (c.nivelFidelizacion === 0) return '<span class="pvp-sub">—</span>';
+        if (c.cuponFidelidadDisponible) {
+            return `<button class="btn btn-mpv-primary btn-sm" data-generar-cupon-fidelidad="${escaparAtributo(c.clave)}"><i class="bi bi-gift-fill me-1"></i> Generar cupón (nivel ${c.nivelFidelizacion})</button>`;
+        }
+        return `<span class="supplier-badge optimo"><span class="dot"></span> Cupón nivel ${c.nivelFidelizacion} ya generado</span>`;
+    }
+
     function filaClienteFrecuenteHtml(c) {
         return `
             <tr>
@@ -79,6 +95,7 @@
                 <td data-label="Total Gastado" class="text-end">${MPV.formatCurrency(c.totalGastado)}</td>
                 <td data-label="Ticket Promedio" class="text-end">${MPV.formatCurrency(c.ticketPromedio)}</td>
                 <td data-label="Última Compra">${formatearFecha(c.ultimaCompra)}</td>
+                <td data-label="Fidelización">${celdaFidelizacionHtml(c)}</td>
             </tr>
         `;
     }
@@ -92,12 +109,26 @@
                 `${data.clientes.length} cliente${data.clientes.length === 1 ? '' : 's'} con más de una compra`;
             clientesFrecuentesTableBody.innerHTML = data.clientes.length
                 ? data.clientes.map(filaClienteFrecuenteHtml).join('')
-                : `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-people"></i>Todavía no hay clientes con más de una compra.</td></tr>`;
+                : `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-people"></i>Todavía no hay clientes con más de una compra.</td></tr>`;
         } catch (err) {
-            clientesFrecuentesTableBody.innerHTML = `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
+            clientesFrecuentesTableBody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
             document.getElementById('clientesResultCount').textContent = 'Sin conexión';
         }
     }
+
+    clientesFrecuentesTableBody.addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-generar-cupon-fidelidad]');
+        if (!btn) return;
+        btn.disabled = true;
+        try {
+            const { data: cupon } = await MPV.generarCuponFidelidad(btn.dataset.generarCuponFidelidad);
+            alert(`Cupón "${cupon.codigo}" generado: S/ ${Number(cupon.valor).toFixed(2)} de descuento, válido hasta ${new Date(cupon.fecha_expiracion).toLocaleDateString('es-PE')}.`);
+            await cargarClientesFrecuentes();
+        } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+        }
+    });
 
     document.getElementById('exportarClientesExcel').addEventListener('click', async (e) => {
         const btn = e.currentTarget;
@@ -134,8 +165,8 @@
         `;
     }
 
-    function renderVentas(ventas) {
-        mostradorResultCount.textContent = `${ventas.length} venta${ventas.length === 1 ? '' : 's'}`;
+    function renderVentas(ventas, total) {
+        mostradorResultCount.textContent = `${total} venta${total === 1 ? '' : 's'}`;
         if (ventas.length === 0) {
             ventasTableBody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-receipt"></i>No hay ventas registradas con estos filtros.</td></tr>`;
             return;
@@ -143,9 +174,22 @@
         ventasTableBody.innerHTML = ventas.map(filaVentaHtml).join('');
     }
 
-    async function cargarVentas() {
+    let paginaActualVentas = 1;
+
+    function renderPagerVentas(paginacion) {
+        document.getElementById('ventasPagerInfo').textContent =
+            `Página ${paginacion.pagina} de ${paginacion.totalPaginas} (${paginacion.total} venta${paginacion.total === 1 ? '' : 's'} en total)`;
+        document.getElementById('ventasPagerAnterior').disabled = paginacion.pagina <= 1;
+        document.getElementById('ventasPagerSiguiente').disabled = paginacion.pagina >= paginacion.totalPaginas;
+    }
+
+    // reinicia a la página 1 cada vez que cambia un filtro — quedarse en la
+    // página 5 de un resultado filtrado que ahora tiene 2 páginas mostraría
+    // la tabla vacía sin explicación.
+    async function cargarVentas({ reiniciarPagina = true } = {}) {
+        if (reiniciarPagina) paginaActualVentas = 1;
         try {
-            const params = {};
+            const params = { pagina: paginaActualVentas };
             const cliente = document.getElementById('filtroCliente').value.trim();
             const desde = document.getElementById('filtroDesde').value;
             const hasta = document.getElementById('filtroHasta').value;
@@ -155,9 +199,10 @@
             if (hasta) params.hasta = hasta;
             if (metodoPago) params.metodoPago = metodoPago;
 
-            const { data } = await MPV.getVentas(params);
+            const { data, paginacion } = await MPV.getVentas(params);
             ventasCompletas = data;
-            renderVentas(ventasCompletas);
+            renderVentas(ventasCompletas, paginacion.total);
+            renderPagerVentas(paginacion);
         } catch (err) {
             ventasTableBody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
             mostradorResultCount.textContent = 'Sin conexión';
@@ -174,6 +219,14 @@
         document.getElementById('filtroHasta').value = '';
         document.getElementById('filtroMetodoPago').value = '';
         cargarVentas();
+    });
+    document.getElementById('ventasPagerAnterior').addEventListener('click', () => {
+        paginaActualVentas -= 1;
+        cargarVentas({ reiniciarPagina: false });
+    });
+    document.getElementById('ventasPagerSiguiente').addEventListener('click', () => {
+        paginaActualVentas += 1;
+        cargarVentas({ reiniciarPagina: false });
     });
 
     // -------- Exportar (respeta los filtros activos de cada panel) --------

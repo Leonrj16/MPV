@@ -6,13 +6,22 @@ afterEach(() => jest.clearAllMocks());
 
 describe('obtenerAlertas', () => {
     test('agrega stock bajo, agotado, subidas de precio y pedidos pendientes', async () => {
+        // Fecha relativa a "hoy" en vez de un valor fijo: un valor fijo queda
+        // en el pasado apenas corre el reloj real más allá de esa fecha,
+        // volviendo el test flaky por el simple paso del tiempo (pasó
+        // exactamente eso: un 2026-08-15 fijo quedó "vencido" cuando el
+        // entorno avanzó al 20 de agosto).
+        const fechaVencimiento = new Date();
+        fechaVencimiento.setDate(fechaVencimiento.getDate() + 10);
+        const fechaVencimientoStr = fechaVencimiento.toLocaleDateString('sv-SE');
+
         pool.query
             .mockResolvedValueOnce({ rows: [{ id: 1, nombre: 'Guantes', sku: 'GUA-100', stock_actual: 2, stock_minimo: 5 }] }) // stock bajo
             .mockResolvedValueOnce({ rows: [{ id: 2, nombre: 'Hilo de Sutura', sku: 'HIL-500' }] }) // agotado
             .mockResolvedValueOnce({ rows: [{ producto_id: 3, producto_nombre: 'Resina', sku: 'RES-001', proveedor_nombre: 'BioDent', precio_compra_unitario: '8.10', precio_compra_anterior: '7.80' }] }) // subida precio
             .mockResolvedValueOnce({ rows: [{ total: 4 }] }) // pedidos pendientes
             .mockResolvedValueOnce({ rows: [{ id: 5, nombre: 'Anestesia', sku: 'ANE-050', stock_actual: 10, velocidad_diaria: '2' }] }) // reabastecimiento
-            .mockResolvedValueOnce({ rows: [{ id: 6, nombre: 'Alginato', sku: 'ALG-020', fecha_vencimiento: new Date('2026-08-15T00:00:00') }] }); // vencimiento
+            .mockResolvedValueOnce({ rows: [{ id: 6, nombre: 'Alginato', sku: 'ALG-020', fecha_vencimiento: fechaVencimiento }] }); // vencimiento
 
         const data = await obtenerAlertas();
 
@@ -23,7 +32,7 @@ describe('obtenerAlertas', () => {
         ]);
         expect(data.pedidosPendientes).toBe(4);
         expect(data.reabastecimiento).toEqual([{ id: 5, nombre: 'Anestesia', sku: 'ANE-050', stockActual: 10, diasRestantes: 5 }]);
-        expect(data.vencimiento).toEqual([{ id: 6, nombre: 'Alginato', sku: 'ALG-020', fechaVencimiento: '2026-08-15', vencido: false }]);
+        expect(data.vencimiento).toEqual([{ id: 6, nombre: 'Alginato', sku: 'ALG-020', fechaVencimiento: fechaVencimientoStr, vencido: false }]);
         expect(data.total).toBe(1 + 1 + 1 + 4 + 1 + 1);
     });
 

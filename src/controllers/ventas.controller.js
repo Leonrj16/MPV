@@ -28,8 +28,9 @@ async function listar(req, res) {
     try {
         const { desde, hasta, cliente, metodoPago } = req.query;
         const limite = req.query.limite ? Number(req.query.limite) : 50;
-        const ventas = await listarVentas({ limite, desde, hasta, cliente, metodoPago });
-        res.json({ ok: true, data: ventas });
+        const pagina = req.query.pagina ? Number(req.query.pagina) : 1;
+        const { ventas, total } = await listarVentas({ limite, pagina, desde, hasta, cliente, metodoPago });
+        res.json({ ok: true, data: ventas, paginacion: { pagina, limite, total, totalPaginas: Math.max(1, Math.ceil(total / limite)) } });
     } catch (err) {
         console.error(err);
         res.status(500).json({ ok: false, error: err.message });
@@ -88,7 +89,7 @@ const resumenProductos = (items) =>
 async function exportarVentasExcel(req, res) {
     try {
         const { desde, hasta, cliente, metodoPago } = req.query;
-        const ventas = await listarVentas({ limite: 1000, desde, hasta, cliente, metodoPago });
+        const { ventas } = await listarVentas({ limite: 1000, desde, hasta, cliente, metodoPago });
 
         const workbook = new ExcelJS.Workbook();
         workbook.creator = 'MPV Dental';
@@ -156,7 +157,7 @@ async function exportarVentasExcel(req, res) {
 async function exportarVentasPDF(req, res) {
     try {
         const { desde, hasta, cliente, metodoPago } = req.query;
-        const ventas = await listarVentas({ limite: 1000, desde, hasta, cliente, metodoPago });
+        const { ventas } = await listarVentas({ limite: 1000, desde, hasta, cliente, metodoPago });
 
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename="mpv-dental-ventas-${timestampArchivo()}.pdf"`);

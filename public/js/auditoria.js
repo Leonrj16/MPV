@@ -61,8 +61,8 @@ MPVAuth.exigirRol('admin');
         `;
     }
 
-    function renderTabla(eventos) {
-        resultCount.textContent = `${eventos.length} evento${eventos.length === 1 ? '' : 's'}`;
+    function renderTabla(eventos, total) {
+        resultCount.textContent = `${total} evento${total === 1 ? '' : 's'}`;
         if (eventos.length === 0) {
             tbody.innerHTML = `<tr><td colspan="5" class="mpv-empty"><i class="bi bi-shield-lock"></i>No hay eventos registrados con estos filtros.</td></tr>`;
             return;
@@ -70,9 +70,21 @@ MPVAuth.exigirRol('admin');
         tbody.innerHTML = eventos.map(filaHtml).join('');
     }
 
-    async function cargar() {
+    let paginaActual = 1;
+
+    function renderPager(paginacion) {
+        document.getElementById('bitacoraPagerInfo').textContent =
+            `Página ${paginacion.pagina} de ${paginacion.totalPaginas} (${paginacion.total} evento${paginacion.total === 1 ? '' : 's'} en total)`;
+        document.getElementById('bitacoraPagerAnterior').disabled = paginacion.pagina <= 1;
+        document.getElementById('bitacoraPagerSiguiente').disabled = paginacion.pagina >= paginacion.totalPaginas;
+    }
+
+    // igual que en ventas.js: un filtro nuevo siempre vuelve a la página 1,
+    // para no dejar la tabla "vacía" mostrando una página que ya no existe.
+    async function cargar({ reiniciarPagina = true } = {}) {
+        if (reiniciarPagina) paginaActual = 1;
         try {
-            const params = {};
+            const params = { pagina: paginaActual };
             const entidad = document.getElementById('filtroEntidad').value;
             const accion = document.getElementById('filtroAccion').value;
             const desde = document.getElementById('filtroDesde').value;
@@ -82,8 +94,9 @@ MPVAuth.exigirRol('admin');
             if (desde) params.desde = desde;
             if (hasta) params.hasta = hasta;
 
-            const { data } = await MPV.getBitacora(params);
-            renderTabla(data);
+            const { data, paginacion } = await MPV.getBitacora(params);
+            renderTabla(data, paginacion.total);
+            renderPager(paginacion);
         } catch (err) {
             tbody.innerHTML = `<tr><td colspan="5" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
             resultCount.textContent = 'Sin conexión';
@@ -100,6 +113,14 @@ MPVAuth.exigirRol('admin');
         document.getElementById('filtroDesde').value = '';
         document.getElementById('filtroHasta').value = '';
         cargar();
+    });
+    document.getElementById('bitacoraPagerAnterior').addEventListener('click', () => {
+        paginaActual -= 1;
+        cargar({ reiniciarPagina: false });
+    });
+    document.getElementById('bitacoraPagerSiguiente').addEventListener('click', () => {
+        paginaActual += 1;
+        cargar({ reiniciarPagina: false });
     });
 
     cargar();

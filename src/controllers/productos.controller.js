@@ -3,16 +3,41 @@ const { registrarEvento } = require('../services/bitacora');
 
 async function listarProductos(req, res) {
     try {
+        const busqueda = (req.query.busqueda || '').trim();
+        const limite = req.query.limite ? Number(req.query.limite) : 50;
+        const pagina = req.query.pagina ? Number(req.query.pagina) : 1;
+        const offset = (Math.max(1, pagina) - 1) * limite;
+
+        const valores = [];
+        let where = '';
+        if (busqueda) {
+            valores.push(`%${busqueda}%`);
+            where = `WHERE p.nombre ILIKE $${valores.length} OR p.sku ILIKE $${valores.length}`;
+        }
+        valores.push(limite, offset);
+
         const { rows } = await pool.query(
             `SELECT p.*, c.nombre AS categoria_nombre,
-                    COUNT(pp.id) FILTER (WHERE pp.activo) AS proveedores_count
+                    COUNT(pp.id) FILTER (WHERE pp.activo) AS proveedores_count,
+                    COUNT(*) OVER() AS total_count
              FROM productos p
              LEFT JOIN categorias c ON c.id = p.categoria_id
              LEFT JOIN proveedor_producto pp ON pp.producto_id = p.id
+             ${where}
              GROUP BY p.id, c.nombre
-             ORDER BY p.nombre ASC`
+             ORDER BY p.nombre ASC
+             LIMIT $${valores.length - 1}
+             OFFSET $${valores.length}`,
+            valores
         );
-        res.json({ ok: true, data: rows });
+
+        const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+        const productos = rows.map(({ total_count, ...producto }) => producto);
+        res.json({
+            ok: true,
+            data: productos,
+            paginacion: { pagina, limite, total, totalPaginas: Math.max(1, Math.ceil(total / limite)) },
+        });
     } catch (err) {
         console.error(err);
         res.status(500).json({ ok: false, error: err.message });

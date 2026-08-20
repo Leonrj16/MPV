@@ -29,6 +29,7 @@
         <a href="ventas.html" class="nav-link active" title="Ventas"><i class="bi bi-receipt-cutoff"></i> <span class="nav-label">Ventas</span></a>
         <a href="productos.html" class="nav-link" title="Productos"><i class="bi bi-box-seam-fill"></i> <span class="nav-label">Productos</span></a>
         <a href="proveedores.html" class="nav-link" title="Proveedores"><i class="bi bi-truck"></i> <span class="nav-label">Proveedores</span></a>
+        <a href="ordenes-compra.html" class="nav-link" title="Órdenes de Compra"><i class="bi bi-bag-check-fill"></i> <span class="nav-label">Órdenes de Compra</span></a>
         <div class="nav-section-title mt-3" data-rol="admin">Administración</div>
         <a href="configuracion.html" class="nav-link" data-rol="admin" title="Márgenes e Impuestos"><i class="bi bi-sliders"></i> <span class="nav-label">Márgenes e Impuestos</span></a>
         <a href="usuarios.html" class="nav-link" data-rol="admin" title="Usuarios"><i class="bi bi-people-fill"></i> <span class="nav-label">Usuarios</span></a>
@@ -142,6 +143,13 @@
                         </tbody>
                     </table>
                 </div>
+                <div class="d-flex justify-content-between align-items-center p-3 pt-0" id="ventasPager">
+                    <div class="pvp-sub" id="ventasPagerInfo">Página 1 de 1</div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-mpv-outline btn-sm" id="ventasPagerAnterior"><i class="bi bi-chevron-left"></i> Anterior</button>
+                        <button class="btn btn-mpv-outline btn-sm" id="ventasPagerSiguiente">Siguiente <i class="bi bi-chevron-right"></i></button>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -223,10 +231,11 @@
                                 <th class="text-end">Total Gastado</th>
                                 <th class="text-end">Ticket Promedio</th>
                                 <th>Última Compra</th>
+                                <th>Fidelización</th>
                             </tr>
                         </thead>
                         <tbody id="clientesFrecuentesTableBody">
-                            <tr class="skeleton-row"><td colspan="6"><div class="skeleton-bar" style="width:100%"></div></td></tr>
+                            <tr class="skeleton-row"><td colspan="7"><div class="skeleton-bar" style="width:100%"></div></td></tr>
                         </tbody>
                     </table>
                 </div>

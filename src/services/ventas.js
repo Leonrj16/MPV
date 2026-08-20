@@ -203,7 +203,7 @@ async function listarProductosDisponibles() {
     });
 }
 
-async function listarVentas({ limite = 50, desde, hasta, cliente, metodoPago } = {}) {
+async function listarVentas({ limite = 50, pagina = 1, desde, hasta, cliente, metodoPago } = {}) {
     const condiciones = [];
     const valores = [];
 
@@ -225,10 +225,12 @@ async function listarVentas({ limite = 50, desde, hasta, cliente, metodoPago } =
     }
 
     const where = condiciones.length ? `WHERE ${condiciones.join(' AND ')}` : '';
-    valores.push(limite);
+    const offset = (Math.max(1, pagina) - 1) * limite;
+    valores.push(limite, offset);
 
     const { rows } = await pool.query(
         `SELECT v.*, u.nombre AS usuario_nombre,
+                COUNT(*) OVER() AS total_count,
                 COALESCE(json_agg(json_build_object(
                     'productoId', vd.producto_id,
                     'producto', p.nombre,
@@ -249,10 +251,14 @@ async function listarVentas({ limite = 50, desde, hasta, cliente, metodoPago } =
          ${where}
          GROUP BY v.id, u.nombre
          ORDER BY v.created_at DESC
-         LIMIT $${valores.length}`,
+         LIMIT $${valores.length - 1}
+         OFFSET $${valores.length}`,
         valores
     );
-    return rows;
+
+    const total = rows.length > 0 ? Number(rows[0].total_count) : 0;
+    const ventas = rows.map(({ total_count, ...venta }) => venta);
+    return { ventas, total };
 }
 
 /**

@@ -46,21 +46,27 @@
         `;
     }
 
-    function aplicarFiltro() {
-        const texto = buscador.value.trim().toLowerCase();
-        const filtrados = !texto
-            ? productosCompletos
-            : productosCompletos.filter((p) => p.nombre.toLowerCase().includes(texto) || p.sku.toLowerCase().includes(texto));
-        renderTabla(filtrados);
+    function debounce(fn, ms) {
+        let timeout;
+        return (...args) => {
+            clearTimeout(timeout);
+            timeout = setTimeout(() => fn(...args), ms);
+        };
     }
 
-    function renderTabla(productos) {
-        resultCount.textContent = `${productos.length} producto${productos.length === 1 ? '' : 's'} en el catálogo`;
+    function renderTabla(productos, total) {
+        resultCount.textContent = `${total} producto${total === 1 ? '' : 's'} en el catálogo`;
         if (productos.length === 0) {
             tbody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-search"></i>No se encontraron productos.</td></tr>`;
             return;
         }
         tbody.innerHTML = productos.map(filaHtml).join('');
+    }
+
+    function renderPager(paginacion) {
+        document.getElementById('productosPagerInfo').textContent = `Página ${paginacion.pagina} de ${paginacion.totalPaginas}`;
+        document.getElementById('productosPagerAnterior').disabled = paginacion.pagina <= 1;
+        document.getElementById('productosPagerSiguiente').disabled = paginacion.pagina >= paginacion.totalPaginas;
     }
 
     function poblarSelectCategorias(select) {
@@ -70,14 +76,25 @@
         select.value = actual;
     }
 
-    async function cargar() {
+    let paginaActual = 1;
+
+    // reiniciarPagina=true para una búsqueda nueva (la página 5 de una
+    // búsqueda distinta puede no existir); false para refrescar tras crear/
+    // editar un producto, donde tiene sentido quedarse donde estaba el staff.
+    async function cargar({ reiniciarPagina = false } = {}) {
+        if (reiniciarPagina) paginaActual = 1;
         try {
-            const [{ data: productos }, { data: cats }] = await Promise.all([MPV.getProductos(), MPV.getCategorias()]);
+            const busqueda = buscador.value.trim();
+            const [{ data: productos, paginacion }, { data: cats }] = await Promise.all([
+                MPV.getProductos({ pagina: paginaActual, ...(busqueda ? { busqueda } : {}) }),
+                MPV.getCategorias(),
+            ]);
             productosCompletos = productos;
             categorias = cats;
             poblarSelectCategorias(document.getElementById('nuevoCategoria'));
             poblarSelectCategorias(document.getElementById('editarCategoria'));
-            renderTabla(productosCompletos);
+            renderTabla(productosCompletos, paginacion.total);
+            renderPager(paginacion);
             renderListaCategorias();
         } catch (err) {
             tbody.innerHTML = `<tr><td colspan="7" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
@@ -118,7 +135,15 @@
         contenedor.innerHTML = categorias.map(filaCategoriaHtml).join('');
     }
 
-    buscador.addEventListener('input', aplicarFiltro);
+    buscador.addEventListener('input', debounce(() => cargar({ reiniciarPagina: true }), 400));
+    document.getElementById('productosPagerAnterior').addEventListener('click', () => {
+        paginaActual -= 1;
+        cargar();
+    });
+    document.getElementById('productosPagerSiguiente').addEventListener('click', () => {
+        paginaActual += 1;
+        cargar();
+    });
 
     document.getElementById('btnEscanearNuevo').addEventListener('click', () => {
         BarcodeScanner.abrir({ onDetectado: (codigo) => { document.getElementById('nuevoCodigoBarras').value = codigo; } });

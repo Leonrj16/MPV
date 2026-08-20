@@ -82,6 +82,112 @@
     document.getElementById('btnExportarInventarioExcel').addEventListener('click', (e) => exportarInventario(e.currentTarget, MPV.exportarInventarioExcel));
     document.getElementById('btnExportarInventarioPDF').addEventListener('click', (e) => exportarInventario(e.currentTarget, MPV.exportarInventarioPDF));
 
+    // -------- Rentabilidad y rotación --------
+    function nombreMes(mesYYYYMM) {
+        return new Date(`${mesYYYYMM}-01T00:00:00`).toLocaleDateString('es-PE', { month: 'short', year: '2-digit' });
+    }
+
+    function renderGraficoRentabilidad(totalesPorMes) {
+        const canvas = document.getElementById('chartRentabilidadMensual');
+        if (!canvas || totalesPorMes.length === 0) return;
+
+        new Chart(canvas.getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: totalesPorMes.map((m) => nombreMes(m.mes)),
+                datasets: [
+                    {
+                        label: 'Ingresos',
+                        data: totalesPorMes.map((m) => m.ingresos),
+                        borderColor: '#2563eb',
+                        backgroundColor: 'rgba(37, 99, 235, 0.08)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    },
+                    {
+                        label: 'Margen estimado',
+                        data: totalesPorMes.map((m) => m.margen),
+                        borderColor: '#3f9c72',
+                        backgroundColor: 'rgba(63, 156, 114, 0.12)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 2,
+                    },
+                ],
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom' },
+                    tooltip: { callbacks: { label: (ctx) => `${ctx.dataset.label}: ${MPV.formatCurrency(ctx.parsed.y)}` } },
+                },
+                scales: {
+                    y: { beginAtZero: true, ticks: { callback: (v) => MPV.formatCurrency(v) }, grid: { color: '#eaf0ea' } },
+                    x: { grid: { display: false } },
+                },
+            },
+        });
+    }
+
+    function filaCategoriaRentabilidadHtml(c) {
+        return `
+            <tr>
+                <td data-label="Categoría">${escaparHtml(c.categoria)}</td>
+                <td data-label="Ingresos" class="text-end">${MPV.formatCurrency(c.ingresos)}</td>
+                <td data-label="Margen" class="text-end">${MPV.formatCurrency(c.margen)}</td>
+                <td data-label="%" class="text-end">${c.margenPct}%</td>
+            </tr>
+        `;
+    }
+
+    async function cargarRentabilidad() {
+        try {
+            const { data } = await MPV.getRentabilidad(6);
+            renderGraficoRentabilidad(data.totalesPorMes);
+            const tbody = document.getElementById('rentabilidadCategoriaTableBody');
+            tbody.innerHTML = data.porCategoria.length
+                ? data.porCategoria.map(filaCategoriaRentabilidadHtml).join('')
+                : `<tr><td colspan="4" class="mpv-empty"><i class="bi bi-graph-up"></i>Sin ventas en el período.</td></tr>`;
+        } catch (err) {
+            document.getElementById('rentabilidadCategoriaTableBody').innerHTML =
+                `<tr><td colspan="4" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
+        }
+    }
+
+    function filaBajaRotacionHtml(p) {
+        return `
+            <tr>
+                <td data-label="Producto"><span class="fw-semibold">${escaparHtml(p.nombre)}</span> <span class="pvp-sub">${escaparHtml(p.sku)}</span></td>
+                <td data-label="Categoría">${escaparHtml(p.categoria)}</td>
+                <td data-label="Stock">${p.stock}</td>
+                <td data-label="Vendidos (90 días)">${p.unidadesVendidasPeriodo}</td>
+                <td data-label="Última venta">${p.ultimaVenta ? new Date(p.ultimaVenta).toLocaleDateString('es-PE') : '<span class="pvp-sub">Nunca</span>'}</td>
+                <td data-label="Valor inmovilizado" class="text-end">${p.sinPrecio ? '<span class="pvp-sub">Sin proveedor</span>' : MPV.formatCurrency(p.valorInmovilizado)}</td>
+            </tr>
+        `;
+    }
+
+    async function cargarBajaRotacion() {
+        const tbody = document.getElementById('bajaRotacionTableBody');
+        try {
+            const { data } = await MPV.getBajaRotacion(90);
+            const aviso = document.getElementById('bajaRotacionAviso');
+            if (data.totales.cantidadProductos > 0) {
+                aviso.textContent = `${data.totales.cantidadProductos} producto${data.totales.cantidadProductos === 1 ? '' : 's'} casi sin movimiento — ${MPV.formatCurrency(data.totales.valorInmovilizado)} parados en el estante.`;
+                aviso.classList.remove('d-none');
+            } else {
+                aviso.classList.add('d-none');
+            }
+            tbody.innerHTML = data.productos.length
+                ? data.productos.map(filaBajaRotacionHtml).join('')
+                : `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-check-circle"></i>Todo el stock activo tuvo movimiento reciente.</td></tr>`;
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="6" class="mpv-empty"><i class="bi bi-plug-fill"></i>${err.message}</td></tr>`;
+        }
+    }
+
     // -------- Cupones --------
     const ETIQUETAS_TIPO_CUPON = { porcentaje: '%', monto_fijo: 'S/' };
 
@@ -252,6 +358,8 @@
     });
 
     cargarInventarioValorizado();
+    cargarRentabilidad();
+    cargarBajaRotacion();
     cargarCupones();
     cargarResenas();
     cargarBackups();
